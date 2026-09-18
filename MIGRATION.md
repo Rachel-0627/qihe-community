@@ -11,7 +11,8 @@
 | 数据库 | ✅ 新 Supabase（Vercel Storage 开通，新加坡区） |
 | 表结构 | ✅ 19 个迁移全部通过，19 表 + 2 视图 + 17 个函数 |
 | 内容数据 | ✅ 12 张表全部对齐，含 6 个项目正文 |
-| 用户数据 | ⬜ 见下方「未完成」 |
+| 管理员账号 | ✅ xinyu123456,沿用旧 user_id,历史数据已接回 |
+| 其余 5 个用户 | ⬜ 等他们重新注册后可按同样方式接回 |
 | Edge Functions | ⚠️ 1/3 可迁移 |
 | 域名 | ⬜ qihe.bj.cn 仍指向秒哒 |
 
@@ -26,13 +27,22 @@
 
 ## 未完成
 
-### 用户数据（6 个账号）
+### 用户数据
 
-`profiles`、`user_checkins`、`user_interactions`、`user_interaction_xp_records`、
-`event_registrations`、`ai_usage` 共 34 条未导入。
+密码无法从旧库导出（设计上就不可读），所以每个用户都要重新注册。
 
-原因：这些表外键指向 `auth.users`，而**密码无法从旧库导出**（设计上就不可读）。
-用户需要在新站重新注册，注册后再按邮箱把这些记录关联回去。
+**关键做法**：用 Supabase Admin API 建账号时**指定旧库的 user_id**，
+历史数据就能原样接回，不用改任何外键。
+
+登录页会把用户名拼成 `<username>@miaoda.com`，和旧库邮箱格式一致，
+所以同名注册即可对上。
+
+已接回（管理员 xinyu123456）：
+- profiles 资料、昵称、经验值
+- user_checkins 2 条 · user_interactions 10 条 · ai_usage 3 条
+
+待接回（其余 5 个用户，13 条）：
+备份仍在 `backup/miaoda-export/`。他们注册后，按同样方式指定 user_id 即可。
 
 ### Edge Functions
 
