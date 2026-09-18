@@ -1,0 +1,205 @@
+/* stylelint-disable */
+@import './fonts.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design System — Editorial Magazine × Premium Tech Gallery
+   高级感来自克制，科技感来自细节，艺术感来自排版，内容感来自项目卡片 */
+
+@layer base {
+  :root {
+    --radius: 0.375rem;
+
+    /* 启禾社区 2.0 — 极度克制的黑、石墨灰与银灰体系 */
+    --bg: #090a0c;
+    --surface: #0f1013;
+    --surface-2: #141519;
+    --media-frame: #181a1e;
+    --text-primary: #ecebe7;
+    --text-secondary: #8d9098;
+    --text-tertiary: #5e626a;
+    --qihe-border: rgba(235, 234, 227, 0.105);
+    --qihe-border-strong: rgba(235, 234, 227, 0.21);
+    --silver: #afb1b4;
+    --silver-strong: #dedfdf;
+
+    /* Surfaces */
+    --background: 220 14% 4%;
+    --foreground: 45 12% 92%;
+    --card: 220 12% 6%;
+    --card-foreground: 45 12% 92%;
+    --popover: 220 12% 6%;
+    --popover-foreground: 45 12% 92%;
+
+    /* Primary — silver-white on dark */
+    --primary: 45 12% 92%;
+    --primary-foreground: 220 14% 4%;
+
+    /* Secondary — graphite */
+    --secondary: 220 11% 9%;
+    --secondary-foreground: 45 12% 92%;
+
+    /* Muted — deep surface */
+    --muted: 220 11% 9%;
+    --muted-foreground: 220 5% 58%;
+
+    /* Accent — silver */
+    --accent: 220 4% 70%;
+    --accent-foreground: 220 14% 4%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 45 12% 92% / 0.105;
+    --input: 45 12% 92% / 0.105;
+    --ring: 220 4% 70%;
+
+    --chart-1: 45 12% 92%;
+    --chart-2: 220 4% 70%;
+    --chart-3: 220 5% 58%;
+    --chart-4: 220 4% 45%;
+    --chart-5: 200 10% 35%;
+
+    --sidebar-background: 220 14% 4%;
+    --sidebar-foreground: 45 12% 92%;
+    --sidebar-primary: 45 12% 92%;
+    --sidebar-primary-foreground: 220 14% 4%;
+    --sidebar-accent: 220 11% 9%;
+    --sidebar-accent-foreground: 45 12% 92%;
+    --sidebar-border: 45 12% 92% / 0.105;
+    --sidebar-ring: 220 4% 70%;
+
+    --success: 152 40% 40%;
+    --warning: 38 80% 55%;
+    --info: 210 60% 58%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 14% 8%), hsl(220 8% 16%));
+    --gradient-card: linear-gradient(180deg, hsl(220 12% 8%), hsl(220 12% 5%));
+    --gradient-background: linear-gradient(180deg, hsl(220 14% 4%), hsl(220 14% 6%));
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-hover: 0 8px 24px hsl(0 0% 0% / 0.4);
+  }
+
+  .dark {
+    --background: 220 14% 4%;
+    --foreground: 45 12% 92%;
+    --card: 220 12% 6%;
+    --card-foreground: 45 12% 92%;
+    --popover: 220 12% 6%;
+    --popover-foreground: 45 12% 92%;
+    --primary: 45 12% 92%;
+    --primary-foreground: 220 14% 4%;
+    --secondary: 220 11% 9%;
+    --secondary-foreground: 45 12% 92%;
+    --muted: 220 11% 9%;
+    --muted-foreground: 220 5% 58%;
+    --accent: 220 4% 70%;
+    --accent-foreground: 220 14% 4%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 45 12% 92% / 0.105;
+    --input: 45 12% 92% / 0.105;
+    --ring: 220 4% 70%;
+    --chart-1: 45 12% 92%;
+    --chart-2: 220 4% 70%;
+    --chart-3: 220 5% 58%;
+    --chart-4: 220 4% 45%;
+    --chart-5: 200 10% 35%;
+    --sidebar-background: 220 14% 4%;
+    --sidebar-foreground: 45 12% 92%;
+    --sidebar-primary: 45 12% 92%;
+    --sidebar-primary-foreground: 220 14% 4%;
+    --sidebar-accent: 220 11% 9%;
+    --sidebar-accent-foreground: 45 12% 92%;
+    --sidebar-border: 45 12% 92% / 0.105;
+    --sidebar-ring: 220 4% 70%;
+    --success: 152 40% 40%;
+    --warning: 38 80% 55%;
+    --info: 210 60% 58%;
+    --gradient-primary: linear-gradient(135deg, hsl(220 14% 8%), hsl(220 8% 16%));
+    --gradient-card: linear-gradient(180deg, hsl(220 12% 8%), hsl(220 12% 5%));
+    --gradient-background: linear-gradient(180deg, hsl(220 14% 4%), hsl(220 14% 6%));
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-hover: 0 8px 24px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+
+  .font-mono-label {
+    font-family: 'Space Mono', ui-monospace, monospace;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  body {
+    background-color: var(--bg);
+  }
+
+  /* 克制网格背景 */
+  .qihe-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    background-size: 76px 76px;
+    mask-image: linear-gradient(90deg, transparent 2%, #000 52%, transparent 98%);
+  }
+}
+
+@layer components {
+  /* Editorial section label: № 01 / CATEGORY */
+  .editorial-label {
+    @apply font-mono-label text-xs uppercase tracking-[0.2em] text-muted-foreground;
+  }
+
+  /* Hairline rule */
+  .hairline {
+    @apply border-t border-border;
+  }
+
+  /* Magazine card with hairline border, no heavy shadow */
+  .magazine-card {
+    @apply bg-card border border-border transition-all duration-300 rounded-[10px] overflow-hidden;
+  }
+
+  .magazine-card:hover {
+    @apply border-[hsl(45_12%_92%_/_.21)];
+    background: #111216;
+    box-shadow: var(--shadow-hover);
+  }
+
+  .gradient-text {
+    color: #777b84;
+    background-image: none;
+    -webkit-text-fill-color: #777b84;
+  }
+}
+
+/* 首屏网络虚线环旋转 & 小猫眨眼（与 index-v3.html 完全一致） */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes blink {
+  0%, 47%, 51%, 100% { transform: scaleY(1); }
+  49% { transform: scaleY(0.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-eye { animation: none !important; }
+}

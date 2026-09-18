@@ -1,0 +1,50 @@
+# Logs
+/logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+output
+*.local
+package-lock.json
+playwright-report
+test-results
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+package.json.[0-9]*
+.sync
+history/*.json
+.vite_cache
+/.skills
+/tasks
+.native-wind-cache
+.vite
+
+# 环境变量 —— 绝不提交
+# VITE_ 前缀的变量会被编译进前端包,本身是公开的,
+# 但仍不该进仓库:换 Supabase 项目时要能只改本地文件。
+.env
+.env.*
+!.env.example
+
+# 构建产物
+dist/
+.dist/
+
+# 系统文件
+.DS_Store
