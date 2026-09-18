@@ -1,0 +1,9 @@
+[{"id":"c547f73a-096e-44a3-a35d-247f92f09c66","group":"city","name":"上海","name_en":"Shanghai","sort_order":1,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"a6b552e0-10e5-4f95-a49b-0a416fb52ea0","group":"city","name":"北京","name_en":"Beijing","sort_order":2,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"665ac90a-6b57-47c1-8c00-5a6ba0d1d432","group":"city","name":"深圳","name_en":"Shenzhen","sort_order":3,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"0f15fa46-2509-44b9-92f3-1a5751eb810c","group":"city","name":"杭州","name_en":"Hangzhou","sort_order":4,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"c52362cd-63ef-47e4-8d52-87c1269ce30c","group":"theme","name":"创业交流","name_en":"Startup Exchange","sort_order":1,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"678c7a5d-49b5-428e-9818-1ba6668cb248","group":"theme","name":"技术实践","name_en":"Tech Practice","sort_order":2,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"dd36832c-2415-4aed-b1b8-c3247c21ea5d","group":"theme","name":"社交聚会","name_en":"Social Gathering","sort_order":3,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00"}, 
+ {"id":"61110b95-4848-4488-9d0f-21ec46ed28dc","group":"city","name":"雄安","name_en":"xiongan","sort_order":0,"is_active":true,"created_at":"2026-09-18T03:59:50.802543+00:00"}, 
+ {"id":"19c1ce59-6d38-466d-8f2f-1c5708bec2e8","group":"city","name":"杭州","name_en":"hangzhou","sort_order":0,"is_active":true,"created_at":"2026-09-18T04:00:01.506094+00:00"}]

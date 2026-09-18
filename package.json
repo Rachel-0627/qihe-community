@@ -119,6 +119,7 @@
     "jsdom": "^29.1.1",
     "playwright": "^1.62.1",
     "postcss": "^8.5.6",
+    "postgres": "^3.4.9",
     "tailwindcss": "^3.4.11",
     "typescript": "~5.9.3",
     "vite": "^8.2.1",

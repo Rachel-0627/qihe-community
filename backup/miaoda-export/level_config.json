@@ -1,0 +1,10 @@
+[{"level":1,"title":"探索者","title_en":"Explorer","xp_threshold":0,"sort_order":1,"free_unlock_count":0}, 
+ {"level":2,"title":"观察者","title_en":"Observer","xp_threshold":100,"sort_order":2,"free_unlock_count":1}, 
+ {"level":3,"title":"学习者","title_en":"Learner","xp_threshold":300,"sort_order":3,"free_unlock_count":2}, 
+ {"level":4,"title":"实践者","title_en":"Maker","xp_threshold":600,"sort_order":4,"free_unlock_count":3}, 
+ {"level":5,"title":"构建者","title_en":"Builder","xp_threshold":1000,"sort_order":5,"free_unlock_count":4}, 
+ {"level":6,"title":"创作者","title_en":"Creator","xp_threshold":1500,"sort_order":6,"free_unlock_count":5}, 
+ {"level":7,"title":"先行者","title_en":"Pioneer","xp_threshold":2200,"sort_order":7,"free_unlock_count":6}, 
+ {"level":8,"title":"创新者","title_en":"Innovator","xp_threshold":3000,"sort_order":8,"free_unlock_count":7}, 
+ {"level":9,"title":"专家","title_en":"Expert","xp_threshold":4000,"sort_order":9,"free_unlock_count":8}, 
+ {"level":10,"title":"先锋","title_en":"Vanguard","xp_threshold":5500,"sort_order":10,"free_unlock_count":10}]

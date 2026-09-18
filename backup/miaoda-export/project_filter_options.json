@@ -1,0 +1,12 @@
+[{"id":"48c470bb-a78c-4559-980f-cbe07174fc1c","group":"maturity","name":"概念验证","name_en":"Proof of Concept","sort_order":1,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"d716c881-9d6d-47ea-8357-18be374d4235","group":"maturity","name":"研发中","name_en":"In Development","sort_order":2,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"4d4ec447-f7c8-4ff4-9658-088829f65d97","group":"maturity","name":"成熟产品","name_en":"Mature Product","sort_order":3,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"2ff6d5f8-fda8-46c0-b265-37079c527378","group":"category","name":"视觉创意","name_en":"Visual Creativity","sort_order":1,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"9365760b-8b07-4c11-815f-1f5bf20874eb","group":"category","name":"效率工具","name_en":"Productivity Tools","sort_order":2,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"ad9c1c90-69e4-44b4-846f-1a3c710c07cd","group":"category","name":"商业应用","name_en":"Business Applications","sort_order":3,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"a35f3b4d-1e8c-476a-8a52-cf9124573a5d","group":"category","name":"教育科研","name_en":"Education & Research","sort_order":4,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"9964c35a-4731-448a-947f-714461a89c9e","group":"category","name":"内容创作","name_en":"Content Creation","sort_order":5,"is_active":true,"created_at":"2026-08-20T08:27:22.008648+00:00","is_featured":false}, 
+ {"id":"9f70d705-cb6c-4b34-b9e8-1a234191e947","group":"scene","name":"资源项目","name_en":"","sort_order":0,"is_active":true,"created_at":"2026-09-18T03:28:50.384304+00:00","is_featured":false}, 
+ {"id":"3e8dba3d-7d60-43a7-a8e5-3af854751af6","group":"scene","name":"电商","name_en":"","sort_order":0,"is_active":true,"created_at":"2026-09-18T03:30:35.754365+00:00","is_featured":false}, 
+ {"id":"ceb9e840-ec6c-4096-b7bc-9848a5715c4a","group":"scene","name":"AI","name_en":"","sort_order":0,"is_active":true,"created_at":"2026-09-18T03:34:43.674191+00:00","is_featured":false}, 
+ {"id":"47717671-eb16-4126-bd43-4328bb17c605","group":"scene","name":"测试","name_en":"","sort_order":0,"is_active":true,"created_at":"2026-09-18T04:42:13.173996+00:00","is_featured":false}]

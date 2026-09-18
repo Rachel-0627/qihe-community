@@ -1,0 +1,4 @@
+[{"id":"442611a8-a233-4f0d-a9cd-0769ce35520e","name":"视觉创意","name_en":"Visual Creativity","slug":"visual","sort_order":1,"created_at":"2026-08-20T06:11:29.450315+00:00","type":"case"}, 
+ {"id":"e0f679f5-fa3e-4887-8fb6-d32931122b22","name":"效率工具","name_en":"Productivity Tools","slug":"productivity","sort_order":2,"created_at":"2026-08-20T06:11:29.450315+00:00","type":"case"}, 
+ {"id":"db17d3ae-134e-4111-9f1e-4aedc9f70778","name":"商业应用","name_en":"Business Applications","slug":"business","sort_order":3,"created_at":"2026-08-20T06:11:29.450315+00:00","type":"case"}, 
+ {"id":"8a4d4ba5-90d0-4443-b0b1-6b79221d3801","name":"内容创作","name_en":"Content Creation","slug":"content","sort_order":5,"created_at":"2026-08-20T06:11:29.450315+00:00","type":"case"}]
