@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAIAssistant } from '@/contexts/AIAssistantContext';
 import { supabase } from '@/db/supabase';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +15,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 export default function AIAssistant() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, toggle } = useAIAssistant();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -125,7 +126,7 @@ export default function AIAssistant() {
     <>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="fixed bottom-[14px] right-[14px] z-50 h-[60px] w-[60px] rounded-[19px] border border-[rgba(188,190,194,.3)] bg-[rgba(13,14,18,.91)] shadow-[0_20px_55px_rgba(0,0,0,.5),inset_0_1px_rgba(255,255,255,.045)] backdrop-blur-[18px] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[4px] hover:border-[rgba(222,223,223,.5)] md:bottom-[22px] md:right-[22px] md:h-[66px] md:w-[66px]"
         aria-label={t('AI 助手', 'AI Assistant')}
       >

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, Bookmark, Eye } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
@@ -8,7 +8,11 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { totalCount } from '@/lib/utils';
-import type { CaseItem, ContentBlock } from '@/types/types';
+import { injectHeadingIds } from '@/lib/contentHeadings';
+import ChapterToc from '@/components/common/ChapterToc';
+import CommentsSection from '@/components/common/CommentsSection';
+import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
+import type { CaseItem } from '@/types/types';
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +24,7 @@ export default function CaseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [favorited, setFavorited] = useState(false);
+  const [posterOpen, setPosterOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -60,6 +65,13 @@ export default function CaseDetailPage() {
     } catch { toast.error(t('操作失败', 'Action failed')); }
   }, [user, item, liked, favorited, t, refreshProfile]);
 
+  const title = lang === 'en' && item?.title_en ? item.title_en : (item?.title ?? '');
+  const summary = lang === 'en' && item?.summary_en ? item.summary_en : (item?.summary ?? '');
+  const author = lang === 'en' && item?.author_en ? item.author_en : (item?.author ?? '');
+  const category = item?.categories ? (lang === 'en' && item.categories.name_en ? item.categories.name_en : item.categories.name) : null;
+  const rawContent = lang === 'en' && item?.content_en ? item.content_en : (item?.content ?? '');
+  const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12 md:px-8">
@@ -78,12 +90,6 @@ export default function CaseDetailPage() {
       </div>
     );
   }
-
-  const title = lang === 'en' && item.title_en ? item.title_en : item.title;
-  const summary = lang === 'en' && item.summary_en ? item.summary_en : item.summary;
-  const author = lang === 'en' && item.author_en ? item.author_en : item.author;
-  const category = item.categories ? (lang === 'en' && item.categories.name_en ? item.categories.name_en : item.categories.name) : null;
-  const rawContent = lang === 'en' && item.content_en ? item.content_en : item.content;
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16">
@@ -108,68 +114,52 @@ export default function CaseDetailPage() {
             <span className="flex items-center gap-1.5 font-mono-label text-xs text-muted-foreground">
               <Eye className="h-4 w-4" />{totalCount(item.views, item.base_views)}
             </span>
+            <ShareButton onClick={() => setPosterOpen(true)} />
           </div>
         </div>
       </header>
 
-      {/* Document-style content */}
-      <RichContent content={rawContent} />
-    </article>
-  );
-}
-
-function RichContent({ content }: { content: string | ContentBlock[] }) {
-  if (typeof content === 'string') {
-    if (!content.trim()) return null;
-    return (
-      <div
-        className="prose prose-base max-w-none dark:prose-invert mt-10"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-    );
-  }
-  if (Array.isArray(content) && content.length > 0) {
-    return (
-      <div className="mt-10 space-y-6">
-        {content.map((block, i) => <LegacyContentRenderer key={i} block={block} />)}
-      </div>
-    );
-  }
-  return null;
-}
-
-function LegacyContentRenderer({ block }: { block: ContentBlock }) {
-  if (block.type === 'heading') {
-    return <h2 className="font-display text-xl font-medium text-foreground text-balance">{block.text}</h2>;
-  }
-  if (block.type === 'paragraph') {
-    return <p className="text-base leading-relaxed text-foreground/90 text-pretty">{block.text}</p>;
-  }
-  if (block.type === 'quote') {
-    return (
-      <blockquote className="border-l-2 border-accent bg-muted/50 px-5 py-4">
-        <p className="font-display text-lg italic leading-relaxed text-foreground text-pretty">{block.text}</p>
-      </blockquote>
-    );
-  }
-  if (block.type === 'image') {
-    return (
-      <figure className="overflow-hidden border border-border bg-card">
-        <div className="bg-[#181a1e] p-2 md:p-[10px]">
-          {block.url && (
+      {item.cover_url && (
+        <div className="mt-8 overflow-hidden border border-border bg-card">
+          <div className="bg-[#181a1e] p-2 md:p-[10px]">
             <img
-              src={block.url}
-              alt={block.caption || ''}
+              src={item.cover_url}
+              alt={title}
               loading="lazy"
               className="w-full rounded-md border border-[rgba(235,234,227,.09)] object-cover brightness-[.9] saturate-[.9]"
             />
-          )}
+          </div>
         </div>
-        {block.caption && (
-          <figcaption className="border-t border-border px-4 py-2 font-mono-label text-xs text-muted-foreground">{block.caption}</figcaption>
-        )}
-      </figure>
-    );
-  }
-  return null;
+      )}
+
+      {item.video_url && (
+        <div className="mt-8 aspect-video w-full overflow-hidden border border-border bg-card">
+          <video src={item.video_url} controls className="h-full w-full" />
+        </div>
+      )}
+
+      {/* Document-style content */}
+      <div className="relative mt-10">
+        <div className="flex gap-12">
+          <div className="min-w-0 flex-1">
+            <div
+              id="case-content"
+              className="project-content"
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+            />
+          </div>
+          <ChapterToc headings={headings} contentSelector="#case-content" className="w-56 shrink-0" />
+        </div>
+      </div>
+
+      <CommentsSection />
+
+      <ShareDialog
+        open={posterOpen}
+        onOpenChange={setPosterOpen}
+        title={title}
+        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/cases/${item.id}`}
+      />
+    </article>
+  );
 }

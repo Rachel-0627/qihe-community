@@ -18,12 +18,18 @@ const TEXTAREA_KEYS = [
   'business_coop_content', 'business_coop_content_en',
 ];
 
+// 版权/页脚 slogan 等单行短文本用更矮的编辑框
+const COMPACT_TEXTAREA_KEYS = [
+  'footer_tagline', 'footer_tagline_en', 'footer_copyright', 'footer_copyright_en',
+];
+
 // 导航栏板块名称键（成对出现）
 const NAV_LABEL_PAIRS = [
   { zhKey: 'nav_home', enKey: 'nav_home_en', label: ['首页', 'Home'] },
   { zhKey: 'nav_cases', enKey: 'nav_cases_en', label: ['案例', 'Cases'] },
   { zhKey: 'nav_projects', enKey: 'nav_projects_en', label: ['项目库', 'Projects'] },
   { zhKey: 'nav_events', enKey: 'nav_events_en', label: ['城市组局', 'Events'] },
+  { zhKey: 'nav_tools', enKey: 'nav_tools_en', label: ['工具', 'Tools'] },
 ];
 
 export default function AdminSiteSettings() {
@@ -49,6 +55,8 @@ export default function AdminSiteSettings() {
         footer_copyright_en: '© 2026 AI Startup Community. All rights reserved.',
         nav_business: '商务与合作',
         nav_business_en: 'Business',
+        nav_tools: '工具',
+        nav_tools_en: 'Tools',
       };
       const merged: SiteSetting[] = [...rows];
       Object.entries(defaults).forEach(([key, value]) => {
@@ -100,7 +108,7 @@ export default function AdminSiteSettings() {
                 <Textarea
                   value={item.value}
                   onChange={(e) => handleChange(item.key, e.target.value)}
-                  className="min-h-[240px] px-3 font-mono text-sm"
+                  className={`px-3 font-mono text-sm ${COMPACT_TEXTAREA_KEYS.includes(item.key) ? 'min-h-[80px]' : 'min-h-[160px]'}`}
                   placeholder={t('支持 Markdown 格式', 'Markdown supported')}
                 />
               ) : (
@@ -137,6 +145,8 @@ function labelFor(key: string, t: (zh: string, en: string) => string) {
     nav_events_en: ['导航：城市组局（英文）', 'Nav: Events (English)'],
     nav_business: ['导航：商务与合作', 'Nav: Business'],
     nav_business_en: ['导航：商务与合作（英文）', 'Nav: Business (English)'],
+    nav_tools: ['导航：工具', 'Nav: Tools'],
+    nav_tools_en: ['导航：工具（英文）', 'Nav: Tools (English)'],
     locked_project_dialog_title: ['无权益项目弹窗标题', 'Locked project dialog title'],
     locked_project_dialog_title_en: ['无权益项目弹窗标题（英文）', 'Locked project dialog title (English)'],
     locked_project_dialog_content: ['无权益项目弹窗内容', 'Locked project dialog content'],

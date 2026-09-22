@@ -25,6 +25,11 @@ interface SiteSettingsContextValue {
     content: string;
     contentEn: string;
   };
+  tools: {
+    visible: boolean;
+    content: string;
+    contentEn: string;
+  };
   reload: () => void;
 }
 
@@ -34,6 +39,7 @@ const defaultNavLabels: Record<string, { zh: string; en: string }> = {
   '/projects': { zh: '项目库', en: 'Projects' },
   '/events': { zh: '城市组局', en: 'Events' },
   '/business': { zh: '商务与合作', en: 'Business' },
+  '/tools': { zh: '工具', en: 'Tools' },
 };
 
 const defaultLockedDialog = {
@@ -56,6 +62,12 @@ const defaultBusinessCoop = {
   contentEn: '<p>Welcome to contact us for business cooperation.</p>',
 };
 
+const defaultTools = {
+  visible: true,
+  content: '<p>这里汇集了社区精选的 AI 工具与资源。</p>',
+  contentEn: '<p>Here are curated AI tools and resources from the community.</p>',
+};
+
 const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   brandName: '启禾社区',
   brandNameEn: 'Qihe Community',
@@ -65,6 +77,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   lockedDialog: defaultLockedDialog,
   footer: defaultFooter,
   businessCoop: defaultBusinessCoop,
+  tools: defaultTools,
   reload: () => {},
 });
 
@@ -77,6 +90,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [lockedDialog, setLockedDialog] = useState(defaultLockedDialog);
   const [footer, setFooter] = useState(defaultFooter);
   const [businessCoop, setBusinessCoop] = useState(defaultBusinessCoop);
+  const [tools, setTools] = useState(defaultTools);
 
   const load = useCallback(async () => {
     try {
@@ -101,6 +115,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       updateNav('/projects', 'nav_projects', 'nav_projects_en');
       updateNav('/events', 'nav_events', 'nav_events_en');
       updateNav('/business', 'nav_business', 'nav_business_en');
+      updateNav('/tools', 'nav_tools', 'nav_tools_en');
       setNavLabels(next);
 
       setLockedDialog({
@@ -122,6 +137,12 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         content: get('business_coop_content') || defaultBusinessCoop.content,
         contentEn: get('business_coop_content_en') || defaultBusinessCoop.contentEn,
       });
+
+      setTools({
+        visible: get('tools_visible') !== 'false',
+        content: get('tools_content') || defaultTools.content,
+        contentEn: get('tools_content_en') || defaultTools.contentEn,
+      });
     } catch {
       // 静默失败，使用默认值
     }
@@ -132,7 +153,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   return (
-    <SiteSettingsContext.Provider value={{ brandName, brandNameEn, termsContent, privacyContent, navLabels, lockedDialog, footer, businessCoop, reload: load }}>
+    <SiteSettingsContext.Provider value={{ brandName, brandNameEn, termsContent, privacyContent, navLabels, lockedDialog, footer, businessCoop, tools, reload: load }}>
       {children}
     </SiteSettingsContext.Provider>
   );

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Heart, Bookmark, Calendar, Award, Sparkles, Settings, CheckCircle2, Camera, Pencil, KeyRound, TrendingUp } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { LogOut, Heart, Bookmark, Calendar, Award, Sparkles, Settings, CheckCircle2, Camera, Pencil, KeyRound, TrendingUp, Cpu } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAIAssistant } from '@/contexts/AIAssistantContext';
 import { useReveal } from '@/hooks/useReveal';
 import { fetchLevelConfig, fetchEvents, getUserRegistrations, checkIn, fetchTodayCheckin, TIER_LABELS, uploadAvatar, getRemainingUnlockCount } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import type { LevelConfig, EventItem, UnlockCountResult } from '@/types/types';
 export default function ProfilePage() {
   const { t, lang } = useI18n();
   const { user, profile, signOut, refreshProfile, updateProfile } = useAuth();
+  const { setOpen: setAssistantOpen } = useAIAssistant();
   const navigate = useNavigate();
   const revealRef = useReveal<HTMLDivElement>();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -282,7 +284,8 @@ export default function ProfilePage() {
           {/* Quick links */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <QuickLink icon={<Award className="h-4 w-4" />} label={t('我的权益', 'My Benefits')} to="/benefits" />
-            <QuickLink icon={<Sparkles className="h-4 w-4" />} label={t('AI 助手', 'AI Assistant')} to="/" />
+            <QuickLink icon={<Sparkles className="h-4 w-4" />} label={t('AI 助手', 'AI Assistant')} onClick={() => setAssistantOpen(true)} />
+            <QuickLink icon={<Cpu className="h-4 w-4" />} label={t('生图配置', 'Image Gen Config')} to="/profile/image-provider" />
             {profile.role === 'admin' && <QuickLink icon={<Settings className="h-4 w-4" />} label={t('后台管理', 'Admin')} to="/admin" />}
           </div>
 
@@ -329,11 +332,24 @@ export default function ProfilePage() {
   );
 }
 
-function QuickLink({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) {
-  return (
-    <a href={to} className="magazine-card flex h-full flex-col gap-3 p-4 transition-colors hover:text-accent">
+function QuickLink({ icon, label, to, onClick }: { icon: React.ReactNode; label: string; to?: string; onClick?: () => void }) {
+  const className = 'magazine-card flex h-full flex-col gap-3 p-4 text-left transition-colors hover:text-accent';
+  const content = (
+    <>
       <span className="text-accent">{icon}</span>
       <span className="font-mono-label text-xs uppercase tracking-wider text-foreground">{label}</span>
-    </a>
+    </>
+  );
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {content}
+    </button>
   );
 }

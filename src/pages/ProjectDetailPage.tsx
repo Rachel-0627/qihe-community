@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { totalCount } from '@/lib/utils';
-import type { ProjectItem, ContentBlock, ContentAccess, UnlockCountResult } from '@/types/types';
+import { injectHeadingIds } from '@/lib/contentHeadings';
+import ChapterToc from '@/components/common/ChapterToc';
+import CommentsSection from '@/components/common/CommentsSection';
+import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
+import type { ProjectItem, ContentAccess, UnlockCountResult } from '@/types/types';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +30,7 @@ export default function ProjectDetailPage() {
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [unlockCount, setUnlockCount] = useState<UnlockCountResult>({ total: 0, used: 0, remaining: 0 });
   const [unlockBusy, setUnlockBusy] = useState(false);
+  const [posterOpen, setPosterOpen] = useState(false);
 
   const tier = profile?.member_tier || 'guest';
 
@@ -106,6 +111,16 @@ export default function ProjectDetailPage() {
 
   const externalUrl = useMemo(() => normalizeExternalUrl(content?.url), [content?.url]);
 
+  const title = lang === 'en' && item?.title_en ? item.title_en : (item?.title ?? '');
+  const summary = lang === 'en' && item?.summary_en ? item.summary_en : (item?.summary ?? '');
+  const scene = lang === 'en' && item?.scene_en ? item.scene_en : (item?.scene ?? '');
+  const maturity = lang === 'en' && item?.maturity_en ? item.maturity_en : (item?.maturity ?? '');
+  const rawContent = lang === 'en' && content?.en ? content.en : (content?.zh ?? '');
+  const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+  const accessLabel = item ? ACCESS_LABELS[item.access_level as ContentAccess] : undefined;
+  const accessText = accessLabel ? (lang === 'en' ? accessLabel.en : accessLabel.zh) : '';
+  const locked = item ? !canAccessContent(tier, item.access_level) : false;
+
   const openUnlockDialog = useCallback(async () => {
     if (!user) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
     await loadUnlockCount();
@@ -160,15 +175,6 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const title = lang === 'en' && item.title_en ? item.title_en : item.title;
-  const summary = lang === 'en' && item.summary_en ? item.summary_en : item.summary;
-  const scene = lang === 'en' && item.scene_en ? item.scene_en : item.scene;
-  const maturity = lang === 'en' && item.maturity_en ? item.maturity_en : item.maturity;
-  const rawContent = lang === 'en' && content?.en ? content.en : (content?.zh ?? '');
-  const accessLabel = ACCESS_LABELS[item.access_level as ContentAccess];
-  const accessText = lang === 'en' ? accessLabel?.en : accessLabel?.zh;
-  const locked = !canAccessContent(tier, item.access_level);
-
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16">
       <Link to="/projects" className="inline-flex items-center gap-1 font-mono-label text-xs uppercase tracking-wider text-muted-foreground hover:text-accent">
@@ -210,6 +216,7 @@ export default function ProjectDetailPage() {
               </a>
             </Button>
           )}
+          <ShareButton onClick={() => setPosterOpen(true)} />
         </div>
       </header>
 
@@ -242,14 +249,28 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="mt-10 space-y-6">
-          <RichContent content={rawContent} />
-          {item.video_url && (
-            <div className="aspect-video w-full overflow-hidden border border-border">
-              <video src={item.video_url} controls className="h-full w-full" />
+        <>
+          <div className="relative mt-10">
+            <div className="flex gap-12">
+              <div className="min-w-0 flex-1">
+                <div className="space-y-6">
+                  <div
+                    id="project-content"
+                    className="project-content"
+                    dangerouslySetInnerHTML={{ __html: processedContent }}
+                  />
+                  {item.video_url && (
+                    <div className="aspect-video w-full overflow-hidden border border-border">
+                      <video src={item.video_url} controls className="h-full w-full" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <ChapterToc headings={headings} contentSelector="#project-content" className="w-56 shrink-0" />
             </div>
-          )}
-        </div>
+          </div>
+          <CommentsSection />
+        </>
       )}
 
       {/* 解锁确认弹窗 */}
@@ -290,28 +311,15 @@ export default function ProjectDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ShareDialog
+        open={posterOpen}
+        onOpenChange={setPosterOpen}
+        title={title}
+        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/projects/${item.id}`}
+      />
     </article>
   );
-}
-
-function RichContent({ content }: { content: string | ContentBlock[] }) {
-  if (typeof content === 'string') {
-    if (!content.trim()) return null;
-    return (
-      <div
-        className="prose prose-base max-w-none dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-    );
-  }
-  if (Array.isArray(content) && content.length > 0) {
-    return (
-      <div className="space-y-6">
-        {content.map((block, i) => <LegacyContentRenderer key={i} block={block} />)}
-      </div>
-    );
-  }
-  return null;
 }
 
 function normalizeExternalUrl(url?: string | null): string | null {
@@ -323,40 +331,4 @@ function normalizeExternalUrl(url?: string | null): string | null {
     return `https://${trimmed}`;
   }
   return trimmed;
-}
-
-function LegacyContentRenderer({ block }: { block: ContentBlock }) {
-  if (block.type === 'heading') {
-    return <h2 className="font-display text-xl font-medium text-foreground text-balance">{block.text}</h2>;
-  }
-  if (block.type === 'paragraph') {
-    return <p className="text-base leading-relaxed text-foreground/90 text-pretty">{block.text}</p>;
-  }
-  if (block.type === 'quote') {
-    return (
-      <blockquote className="border-l-2 border-accent bg-muted/50 px-5 py-4">
-        <p className="font-display text-lg italic leading-relaxed text-foreground text-pretty">{block.text}</p>
-      </blockquote>
-    );
-  }
-  if (block.type === 'image') {
-    return (
-      <figure className="overflow-hidden border border-border bg-card">
-        <div className="bg-[#181a1e] p-2 md:p-[10px]">
-          {block.url && (
-            <img
-              src={block.url}
-              alt={block.caption || ''}
-              loading="lazy"
-              className="w-full rounded-md border border-[rgba(235,234,227,.09)] object-cover brightness-[.9] saturate-[.9]"
-            />
-          )}
-        </div>
-        {block.caption && (
-          <figcaption className="border-t border-border px-4 py-2 font-mono-label text-xs text-muted-foreground">{block.caption}</figcaption>
-        )}
-      </figure>
-    );
-  }
-  return null;
 }

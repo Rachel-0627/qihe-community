@@ -37,6 +37,20 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
 --
+-- Name: pg_net; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "public";
+
+
+--
+-- Name: EXTENSION "pg_net"; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION "pg_net" IS 'Async HTTP';
+
+
+--
 -- Name: pg_graphql; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -337,6 +351,55 @@ END; $$;
 
 
 --
+-- Name: get_my_image_provider_config(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION "public"."get_my_image_provider_config"() RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'vault', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_rec record;
+  v_has_key boolean := false;
+  v_vault_name text;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT * INTO v_rec
+  FROM public.user_image_providers
+  WHERE user_id = v_user_id
+  LIMIT 1;
+
+  v_vault_name := 'IMAGE_GEN_API_KEY_' || v_user_id::text;
+  
+  SELECT EXISTS (
+    SELECT 1 FROM vault.secrets WHERE name = v_vault_name
+  ) INTO v_has_key;
+
+  IF v_rec IS NULL AND NOT v_has_key THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'provider', coalesce(v_rec.provider, ''),
+    'base_url', coalesce(v_rec.base_url, ''),
+    'model', coalesce(v_rec.model, ''),
+    'protocol', coalesce(v_rec.protocol, 'openai'),
+    'default_size', coalesce(v_rec.default_size, '1024x1024'),
+    'request_body_template', v_rec.request_body_template,
+    'protocol_settings', v_rec.protocol_settings,
+    'apiKeyConfigured', v_has_key,
+    'has_api_key', v_has_key,
+    'updated_at', v_rec.updated_at
+  );
+END;
+$$;
+
+
+--
 -- Name: get_project_content("uuid"); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -353,6 +416,7 @@ DECLARE
   v_role         public.user_role;
   v_unlocked     boolean;
   v_allowed      boolean;
+  v_is_auth      boolean;
 BEGIN
   SELECT access_level, content, content_en, external_url
     INTO v_access, v_content, v_content_en, v_external_url
@@ -363,7 +427,10 @@ BEGIN
     RETURN json_build_object('allowed', false, 'reason', 'not_found');
   END IF;
 
-  IF auth.uid() IS NOT NULL THEN
+  -- 仅当用户已登录（role = authenticated）时才查询 profiles，避免 'anon' 字符串被当作 UUID
+  v_is_auth := COALESCE(auth.jwt() ->> 'role', 'anon') = 'authenticated';
+
+  IF v_is_auth THEN
     SELECT role, member_tier INTO v_role, v_tier
     FROM public.profiles WHERE id = auth.uid();
   END IF;
@@ -381,7 +448,7 @@ BEGIN
     END;
 
     -- 如果用户已用免费额度解锁，也允许访问
-    IF NOT v_allowed AND auth.uid() IS NOT NULL THEN
+    IF NOT v_allowed AND v_is_auth THEN
       SELECT EXISTS(SELECT 1 FROM public.user_unlock_records WHERE user_id = auth.uid() AND project_id = p_project_id) INTO v_unlocked;
       IF v_unlocked THEN
         v_allowed := true;
@@ -466,6 +533,27 @@ CREATE OR REPLACE FUNCTION "public"."get_user_role"("uid" "uuid") RETURNS "publi
 
 
 --
+-- Name: get_vault_secret("text"); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION "public"."get_vault_secret"("p_name" "text") RETURNS "text"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'vault', 'pg_temp'
+    AS $$
+DECLARE
+  v_secret text;
+BEGIN
+  SELECT decrypted_secret INTO v_secret
+  FROM vault.decrypted_secrets
+  WHERE name = p_name
+  LIMIT 1;
+
+  RETURN v_secret;
+END;
+$$;
+
+
+--
 -- Name: guard_profile_privileged_fields(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -516,6 +604,26 @@ BEGIN
     split_part(COALESCE(NEW.email, 'user'), '@', 1)
   );
   RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: has_vault_secret("text"); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION "public"."has_vault_secret"("p_name" "text") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'vault', 'pg_temp'
+    AS $$
+DECLARE
+  v_exists boolean;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM vault.secrets WHERE name = p_name
+  ) INTO v_exists;
+
+  RETURN coalesce(v_exists, false);
 END;
 $$;
 
@@ -616,6 +724,28 @@ BEGIN
     'registered', v_event.registered + 1,
     'capacity', v_event.capacity
   );
+END;
+$$;
+
+
+--
+-- Name: set_vault_secret("text", "text", "text"); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION "public"."set_vault_secret"("p_name" "text", "p_secret" "text", "p_description" "text" DEFAULT ''::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'vault'
+    AS $$
+DECLARE
+  v_id uuid;
+BEGIN
+  SELECT id INTO v_id FROM vault.secrets WHERE name = p_name LIMIT 1;
+  IF v_id IS NOT NULL THEN
+    PERFORM vault.update_secret(v_id, p_secret, p_name, p_description);
+    RETURN v_id;
+  ELSE
+    RETURN vault.create_secret(p_secret, p_name, p_description);
+  END IF;
 END;
 $$;
 
@@ -794,6 +924,31 @@ $$;
 
 
 --
+-- Name: uid(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION "public"."uid"() RETURNS "uuid"
+    LANGUAGE "plpgsql" STABLE
+    AS $_$
+DECLARE
+  sub_text text;
+BEGIN
+  sub_text := coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  );
+  -- 如果 sub_text 为空、等于 'anon' 或者不符合 UUID 格式，安全返回 NULL
+  IF sub_text IS NULL OR sub_text = 'anon' OR sub_text !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+    RETURN NULL;
+  END IF;
+  RETURN sub_text::uuid;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NULL;
+END;
+$_$;
+
+
+--
 -- Name: unlock_project_with_free_quota("uuid"); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -917,7 +1072,9 @@ CREATE TABLE IF NOT EXISTS "public"."cases" (
     "show_on_home" boolean DEFAULT true NOT NULL,
     "base_likes" integer DEFAULT 0 NOT NULL,
     "base_favorites" integer DEFAULT 0 NOT NULL,
-    "base_views" integer DEFAULT 0 NOT NULL
+    "base_views" integer DEFAULT 0 NOT NULL,
+    "video_url" "text" DEFAULT ''::"text" NOT NULL,
+    "is_pinned" boolean DEFAULT false NOT NULL
 );
 
 
@@ -997,7 +1154,8 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
     "views" integer DEFAULT 0 NOT NULL,
     "base_likes" integer DEFAULT 0 NOT NULL,
     "base_favorites" integer DEFAULT 0 NOT NULL,
-    "base_views" integer DEFAULT 0 NOT NULL
+    "base_views" integer DEFAULT 0 NOT NULL,
+    "video_url" "text" DEFAULT ''::"text" NOT NULL
 );
 
 
@@ -1142,7 +1300,62 @@ CREATE TABLE IF NOT EXISTS "public"."projects" (
     "base_favorites" integer DEFAULT 0 NOT NULL,
     "base_views" integer DEFAULT 0 NOT NULL,
     "tech_stack" "text" DEFAULT ''::"text" NOT NULL,
-    "tech_stack_en" "text" DEFAULT ''::"text" NOT NULL
+    "tech_stack_en" "text" DEFAULT ''::"text" NOT NULL,
+    "is_pinned" boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: prompt_case_filters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS "public"."prompt_case_filters" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "group" "text" NOT NULL,
+    "name" "text" NOT NULL,
+    "name_en" "text" DEFAULT ''::"text" NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "prompt_case_filters_group_check" CHECK (("group" = ANY (ARRAY['category'::"text", 'style'::"text", 'scene'::"text"])))
+);
+
+
+--
+-- Name: prompt_case_generations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS "public"."prompt_case_generations" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "prompt_case_id" "uuid" NOT NULL,
+    "image_url" "text" NOT NULL,
+    "prompt_text" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+--
+-- Name: prompt_cases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS "public"."prompt_cases" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "title" "text" DEFAULT ''::"text" NOT NULL,
+    "title_en" "text" DEFAULT ''::"text" NOT NULL,
+    "prompt" "text" DEFAULT ''::"text" NOT NULL,
+    "prompt_en" "text" DEFAULT ''::"text" NOT NULL,
+    "cover_url" "text" DEFAULT ''::"text" NOT NULL,
+    "aspect_ratio" "text" DEFAULT '4:3'::"text" NOT NULL,
+    "category_id" "uuid",
+    "style_id" "uuid",
+    "scene_id" "uuid",
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "description" "text" DEFAULT ''::"text" NOT NULL,
+    "description_en" "text" DEFAULT ''::"text" NOT NULL,
+    CONSTRAINT "prompt_cases_aspect_ratio_check" CHECK (("aspect_ratio" = ANY (ARRAY['3:4'::"text", '4:3'::"text", '9:16'::"text", '16:9'::"text", '2.35:1'::"text"])))
 );
 
 
@@ -1198,6 +1411,24 @@ CREATE TABLE IF NOT EXISTS "public"."user_checkins" (
     "checkin_date" "date" DEFAULT CURRENT_DATE NOT NULL,
     "xp_awarded" integer DEFAULT 50 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+--
+-- Name: user_image_providers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS "public"."user_image_providers" (
+    "user_id" "uuid" NOT NULL,
+    "provider" "text" NOT NULL,
+    "base_url" "text" NOT NULL,
+    "model" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "default_size" "text" DEFAULT '1024x1024'::"text",
+    "request_body_template" "text",
+    "protocol_settings" "jsonb",
+    "protocol" "text" DEFAULT 'openai'::"text"
 );
 
 
@@ -1639,6 +1870,75 @@ $pg_schema_restore$;
 
 
 --
+-- Name: prompt_case_filters prompt_case_filters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_case_filters_pkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_filters'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_case_filters"
+    ADD CONSTRAINT "prompt_case_filters_pkey" PRIMARY KEY ("id");
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_case_generations prompt_case_generations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_case_generations_pkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_generations'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_case_generations"
+    ADD CONSTRAINT "prompt_case_generations_pkey" PRIMARY KEY ("id");
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_cases prompt_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_cases_pkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_cases'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_cases"
+    ADD CONSTRAINT "prompt_cases_pkey" PRIMARY KEY ("id");
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
 -- Name: site_content site_content_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1747,6 +2047,29 @@ BEGIN
     EXECUTE $pg_schema_sql$
 ALTER TABLE ONLY "public"."user_checkins"
     ADD CONSTRAINT "user_checkins_user_id_checkin_date_key" UNIQUE ("user_id", "checkin_date");
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers user_image_providers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'user_image_providers_pkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."user_image_providers"
+    ADD CONSTRAINT "user_image_providers_pkey" PRIMARY KEY ("user_id");
 $pg_schema_sql$;
   END IF;
 END
@@ -1876,6 +2199,13 @@ CREATE INDEX IF NOT EXISTS "idx_cases_home" ON "public"."cases" USING "btree" ("
 
 
 --
+-- Name: idx_cases_is_pinned; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS "idx_cases_is_pinned" ON "public"."cases" USING "btree" ("is_pinned" DESC, "sort_order", "created_at" DESC);
+
+
+--
 -- Name: idx_events_home; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1887,6 +2217,20 @@ CREATE INDEX IF NOT EXISTS "idx_events_home" ON "public"."events" USING "btree" 
 --
 
 CREATE INDEX IF NOT EXISTS "idx_projects_home" ON "public"."projects" USING "btree" ("show_on_home", "sort_order");
+
+
+--
+-- Name: idx_projects_is_pinned; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS "idx_projects_is_pinned" ON "public"."projects" USING "btree" ("is_pinned" DESC, "sort_order", "created_at" DESC);
+
+
+--
+-- Name: idx_prompt_case_generations_case_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX IF NOT EXISTS "idx_prompt_case_generations_case_id" ON "public"."prompt_case_generations" USING "btree" ("prompt_case_id");
 
 
 --
@@ -2035,6 +2379,98 @@ $pg_schema_restore$;
 
 
 --
+-- Name: prompt_case_generations prompt_case_generations_prompt_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_case_generations_prompt_case_id_fkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_generations'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_case_generations"
+    ADD CONSTRAINT "prompt_case_generations_prompt_case_id_fkey" FOREIGN KEY ("prompt_case_id") REFERENCES "public"."prompt_cases"("id") ON DELETE CASCADE;
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_cases prompt_cases_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_cases_category_id_fkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_cases'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_cases"
+    ADD CONSTRAINT "prompt_cases_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."prompt_case_filters"("id") ON DELETE SET NULL;
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_cases prompt_cases_scene_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_cases_scene_id_fkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_cases'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_cases"
+    ADD CONSTRAINT "prompt_cases_scene_id_fkey" FOREIGN KEY ("scene_id") REFERENCES "public"."prompt_case_filters"("id") ON DELETE SET NULL;
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_cases prompt_cases_style_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'prompt_cases_style_id_fkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_cases'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."prompt_cases"
+    ADD CONSTRAINT "prompt_cases_style_id_fkey" FOREIGN KEY ("style_id") REFERENCES "public"."prompt_case_filters"("id") ON DELETE SET NULL;
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
 -- Name: user_checkins user_checkins_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2051,6 +2487,29 @@ BEGIN
     EXECUTE $pg_schema_sql$
 ALTER TABLE ONLY "public"."user_checkins"
     ADD CONSTRAINT "user_checkins_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers user_image_providers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint con
+    JOIN pg_class c ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE con.conname = 'user_image_providers_user_id_fkey'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+ALTER TABLE ONLY "public"."user_image_providers"
+    ADD CONSTRAINT "user_image_providers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 $pg_schema_sql$;
   END IF;
 END
@@ -2458,6 +2917,50 @@ $pg_schema_restore$;
 
 
 --
+-- Name: prompt_case_filters Admins manage prompt case filters; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = 'Admins manage prompt case filters'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_filters'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "Admins manage prompt case filters" ON "public"."prompt_case_filters" TO "authenticated" USING (("public"."get_user_role"("auth"."uid"()) = 'admin'::"public"."user_role")) WITH CHECK (("public"."get_user_role"("auth"."uid"()) = 'admin'::"public"."user_role"));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_cases Admins manage prompt cases; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = 'Admins manage prompt cases'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_cases'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "Admins manage prompt cases" ON "public"."prompt_cases" TO "authenticated" USING (("public"."get_user_role"("auth"."uid"()) = 'admin'::"public"."user_role")) WITH CHECK (("public"."get_user_role"("auth"."uid"()) = 'admin'::"public"."user_role"));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
 -- Name: event_registrations Admins manage registrations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -2561,6 +3064,28 @@ BEGIN
   ) THEN
     EXECUTE $pg_schema_sql$
 CREATE POLICY "Admins view all ai usage" ON "public"."ai_usage" FOR SELECT TO "authenticated" USING (("public"."get_user_role"("auth"."uid"()) = 'admin'::"public"."user_role"));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_cases Anyone view active prompt cases; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = 'Anyone view active prompt cases'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_cases'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "Anyone view active prompt cases" ON "public"."prompt_cases" FOR SELECT USING (("is_active" = true));
 $pg_schema_sql$;
   END IF;
 END
@@ -2781,6 +3306,28 @@ BEGIN
   ) THEN
     EXECUTE $pg_schema_sql$
 CREATE POLICY "Anyone view projects" ON "public"."projects" FOR SELECT TO "authenticated", "anon" USING (true);
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_case_filters Anyone view prompt case filters; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = 'Anyone view prompt case filters'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_filters'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "Anyone view prompt case filters" ON "public"."prompt_case_filters" FOR SELECT USING (true);
 $pg_schema_sql$;
   END IF;
 END
@@ -3196,6 +3743,24 @@ ALTER TABLE "public"."project_filter_options" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."projects" ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: prompt_case_filters; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE "public"."prompt_case_filters" ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: prompt_case_generations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE "public"."prompt_case_generations" ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: prompt_cases; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE "public"."prompt_cases" ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: site_content; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3214,6 +3779,12 @@ ALTER TABLE "public"."site_settings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."user_checkins" ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: user_image_providers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE "public"."user_image_providers" ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: user_interaction_xp_records; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3230,6 +3801,186 @@ ALTER TABLE "public"."user_interactions" ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE "public"."user_unlock_records" ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: prompt_case_generations 任何人可新增生图历史; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '任何人可新增生图历史'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_generations'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "任何人可新增生图历史" ON "public"."prompt_case_generations" FOR INSERT WITH CHECK (true);
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_case_generations 任何人可查看生图历史; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '任何人可查看生图历史'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_generations'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "任何人可查看生图历史" ON "public"."prompt_case_generations" FOR SELECT USING (true);
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers 用户删除自己的生图配置; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '用户删除自己的生图配置'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "用户删除自己的生图配置" ON "public"."user_image_providers" FOR DELETE USING (("user_id" = "auth"."uid"()));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers 用户新增自己的生图配置; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '用户新增自己的生图配置'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "用户新增自己的生图配置" ON "public"."user_image_providers" FOR INSERT WITH CHECK (("user_id" = "auth"."uid"()));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers 用户更新自己的生图配置; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '用户更新自己的生图配置'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "用户更新自己的生图配置" ON "public"."user_image_providers" FOR UPDATE USING (("user_id" = "auth"."uid"())) WITH CHECK (("user_id" = "auth"."uid"()));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers 用户查看自己的生图配置; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '用户查看自己的生图配置'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "用户查看自己的生图配置" ON "public"."user_image_providers" FOR SELECT USING (("user_id" = "auth"."uid"()));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: prompt_case_generations 管理员可删除生图历史; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '管理员可删除生图历史'
+      AND n.nspname = 'public'
+      AND c.relname = 'prompt_case_generations'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "管理员可删除生图历史" ON "public"."prompt_case_generations" FOR DELETE USING (((("auth"."jwt"() ->> 'role'::"text") = 'authenticated'::"text") AND (EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = 'admin'::"public"."user_role"))))));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
+
+--
+-- Name: user_image_providers 管理员可查看全部生图配置; Type: POLICY; Schema: public; Owner: -
+--
+
+DO $pg_schema_restore$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE pol.polname = '管理员可查看全部生图配置'
+      AND n.nspname = 'public'
+      AND c.relname = 'user_image_providers'
+  ) THEN
+    EXECUTE $pg_schema_sql$
+CREATE POLICY "管理员可查看全部生图配置" ON "public"."user_image_providers" FOR SELECT USING (((("auth"."jwt"() ->> 'role'::"text") = 'authenticated'::"text") AND (EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = 'admin'::"public"."user_role"))))));
+$pg_schema_sql$;
+  END IF;
+END
+$pg_schema_restore$;
+
 
 --
 -- PostgreSQL database dump complete

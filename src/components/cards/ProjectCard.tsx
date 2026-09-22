@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Eye, Lock } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, Share2, Pin } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { totalCount, displayViews } from '@/lib/utils';
 import InteractionButton from './InteractionButton';
 import MediaFrame from './MediaFrame';
+import ShareDialog from '@/components/common/ShareDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { ProjectItem } from '@/types/types';
@@ -28,9 +29,11 @@ const accessLevelLabel: Record<string, { zh: string; en: string; className: stri
 };
 
 export default function ProjectCard({ item, locked, liked, favorited, onLike, onFavorite }: Props) {
-  const { lang } = useI18n();
+  const { t, lang } = useI18n();
   const { lockedDialog } = useSiteSettings();
+  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [posterOpen, setPosterOpen] = useState(false);
   const title = lang === 'en' && item.title_en ? item.title_en : item.title;
   const summary = lang === 'en' && item.summary_en ? item.summary_en : item.summary;
   const maturityLabel = lang === 'en' && item.maturity_en ? item.maturity_en : item.maturity;
@@ -41,47 +44,55 @@ export default function ProjectCard({ item, locked, liked, favorited, onLike, on
     setDialogOpen(true);
   };
 
+  const handleFooterClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    if (locked) {
+      setDialogOpen(true);
+    } else {
+      navigate(`/projects/${item.id}`);
+    }
+  };
+
   return (
     <>
-      <article data-reveal className="magazine-card group flex h-full flex-col overflow-hidden">
+      <article data-reveal className="magazine-card group flex h-full flex-col overflow-hidden cursor-pointer">
         <Link
           to={locked ? '#' : `/projects/${item.id}`}
           onClick={locked ? handleLockedClick : undefined}
-          className="block shrink-0"
+          className="flex flex-1 flex-col focus:outline-none"
         >
-          <MediaFrame src={item.cover_url} alt={title}>
-            {locked && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[rgba(9,10,12,.6)] backdrop-blur-[2px]">
-                <Lock className="h-8 w-8 text-[#ecebe7]" />
-              </div>
-            )}
-          </MediaFrame>
-        </Link>
-
-        <div className="flex h-32 shrink-0 flex-col p-5">
-          <div className="pointer-events-none flex flex-wrap gap-1.5">
-            <span className={`rounded px-2 py-0.5 font-mono-label text-[10px] uppercase tracking-wider ${access.className}`}>
-              {lang === 'en' ? access.en : access.zh}
-            </span>
-            {maturityLabel && (
-              <span className="rounded bg-[rgba(9,10,12,.72)] px-2 py-0.5 font-mono-label text-[10px] uppercase tracking-wider text-[#ecebe7] backdrop-blur-sm">
-                {maturityLabel}
-              </span>
-            )}
+          <div className="shrink-0">
+            <MediaFrame src={item.cover_url} alt={title} />
           </div>
-          <Link
-            to={locked ? '#' : `/projects/${item.id}`}
-            onClick={locked ? handleLockedClick : undefined}
-            className="mt-2 block"
-          >
-            <h3 className="line-clamp-2 font-display text-lg font-medium leading-snug text-foreground text-balance transition-colors group-hover:text-accent">
+
+          <div className="flex h-32 shrink-0 flex-col p-5">
+            <div className="pointer-events-none flex flex-wrap gap-1.5">
+              {item.is_pinned && (
+                <span className="flex items-center gap-1 rounded bg-accent px-2 py-0.5 font-mono-label text-[10px] uppercase tracking-wider text-accent-foreground shadow-sm">
+                  <Pin className="h-2.5 w-2.5 fill-current" />
+                  {lang === 'en' ? 'PINNED' : '置顶'}
+                </span>
+              )}
+              <span className={`rounded px-2 py-0.5 font-mono-label text-[10px] uppercase tracking-wider ${access.className}`}>
+                {lang === 'en' ? access.en : access.zh}
+              </span>
+              {maturityLabel && (
+                <span className="rounded bg-[rgba(9,10,12,.72)] px-2 py-0.5 font-mono-label text-[10px] uppercase tracking-wider text-[#ecebe7] backdrop-blur-sm">
+                  {maturityLabel}
+                </span>
+              )}
+            </div>
+            <h3 className="mt-2 line-clamp-2 font-display text-lg font-medium leading-snug text-foreground text-balance transition-colors group-hover:text-accent">
               {title}
             </h3>
-          </Link>
-          <p className="mt-2 line-clamp-1 text-sm leading-relaxed text-muted-foreground text-pretty">{summary}</p>
-        </div>
+            <p className="mt-2 line-clamp-1 text-sm leading-relaxed text-muted-foreground text-pretty">{summary}</p>
+          </div>
+        </Link>
 
-        <div className="mt-auto flex h-12 shrink-0 items-center justify-between border-t border-border px-5">
+        <div
+          onClick={handleFooterClick}
+          className="mt-auto flex h-12 shrink-0 items-center justify-between border-t border-border px-5"
+        >
           <div className="flex items-center gap-4">
             <InteractionButton
               type="like"
@@ -97,6 +108,14 @@ export default function ProjectCard({ item, locked, liked, favorited, onLike, on
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFavorite?.(); }}
               className={favorited ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}
             />
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPosterOpen(true); }}
+              className="flex items-center gap-1.5 font-mono-label text-xs text-muted-foreground hover:text-accent"
+              aria-label={t('分享', 'Share')}
+            >
+              <Share2 className="h-3.5 w-3.5" />{t('分享', 'Share')}
+            </button>
           </div>
           <span className="flex items-center gap-1 font-mono-label text-xs text-muted-foreground">
             <Eye className="h-3.5 w-3.5" />
@@ -122,6 +141,13 @@ export default function ProjectCard({ item, locked, liked, favorited, onLike, on
           </div>
         </DialogContent>
       </Dialog>
+
+      <ShareDialog
+        open={posterOpen}
+        onOpenChange={setPosterOpen}
+        title={title}
+        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/projects/${item.id}`}
+      />
     </>
   );
 }

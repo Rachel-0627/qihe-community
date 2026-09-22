@@ -5,7 +5,10 @@ import { useReveal } from '@/hooks/useReveal';
 import { fetchEvents, fetchEventFilterOptions, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { CalendarDays, List } from 'lucide-react';
 import EventCard from '@/components/cards/EventCard';
+import EventCalendar from '@/components/events/EventCalendar';
 import type { EventItem, EventFilterOption } from '@/types/types';
 
 export default function EventsPage() {
@@ -22,6 +25,8 @@ export default function EventsPage() {
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [favorited, setFavorited] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const cityOptions = filterOptions.filter((o) => o.group === 'city' && o.is_active);
   const themeOptions = filterOptions.filter((o) => o.group === 'theme' && o.is_active);
@@ -32,6 +37,19 @@ export default function EventsPage() {
     }
     return counts;
   }, [events]);
+
+  const filteredEvents = useMemo(() => {
+    let list = events;
+    if (city) list = list.filter((e) => e.city === city);
+    if (theme) list = list.filter((e) => e.theme === theme);
+    if (selectedDate) {
+      list = list.filter((e) => {
+        const d = new Date(e.event_date);
+        return d.getFullYear() === selectedDate.getFullYear() && d.getMonth() === selectedDate.getMonth() && d.getDate() === selectedDate.getDate();
+      });
+    }
+    return list;
+  }, [events, city, theme, selectedDate]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -97,8 +115,37 @@ export default function EventsPage() {
         <p className="mt-4 text-base leading-relaxed text-muted-foreground text-pretty">{t('按城市与主题发现线下活动，与本地 AI 社区面对面交流。', 'Discover offline events by city and theme, and meet your local AI community in person.')}</p>
       </div>
 
+      {/* View toggle */}
+      <div className="mt-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            className="gap-1.5 font-mono-label text-xs"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-3.5 w-3.5" />{t('列表', 'List')}
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+            size="sm"
+            className="gap-1.5 font-mono-label text-xs"
+            onClick={() => setViewMode('calendar')}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />{t('日历', 'Calendar')}
+          </Button>
+        </div>
+        {!loading && (
+          <span className="font-mono-label text-xs text-muted-foreground">
+            {filteredEvents.length}{t(' 个活动', ' events')}
+          </span>
+        )}
+      </div>
+
       {/* Filters */}
-      <div className="mt-8 border-b border-border pb-6">
+      <div className="mt-4 border-b border-border pb-6">
         <div className="flex flex-wrap gap-2">
           <GroupButton
             label={t('所在地', 'Location')}
@@ -149,32 +196,74 @@ export default function EventsPage() {
         )}
       </div>
 
-      {/* Grid */}
-      <div ref={revealRef} className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {loading
-          ? Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="magazine-card">
-                <Skeleton className="aspect-[4/3] w-full bg-muted" />
-                <div className="flex h-32 flex-col justify-center p-5">
-                  <Skeleton className="h-5 w-3/4 bg-muted" />
-                  <Skeleton className="mt-2 h-4 w-full bg-muted" />
-                </div>
-                <div className="flex h-12 items-center border-t border-border px-5">
-                  <Skeleton className="h-3 w-1/2 bg-muted" />
-                </div>
+      {viewMode === 'calendar' && (
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <EventCalendar
+            events={events}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            className="lg:col-span-1"
+          />
+          <div className="lg:col-span-2">
+            <div ref={revealRef} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {loading
+                ? Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="magazine-card">
+                      <Skeleton className="aspect-[4/3] w-full bg-muted" />
+                      <div className="flex h-32 flex-col justify-center p-5">
+                        <Skeleton className="h-5 w-3/4 bg-muted" />
+                        <Skeleton className="mt-2 h-4 w-full bg-muted" />
+                      </div>
+                    </div>
+                  ))
+                : filteredEvents.map((item) => (
+                    <EventCard
+                      key={item.id}
+                      item={item}
+                      liked={liked.has(item.id)}
+                      favorited={favorited.has(item.id)}
+                      onLike={() => handleInteraction(item, 'like')}
+                      onFavorite={() => handleInteraction(item, 'favorite')}
+                    />
+                  ))}
+            </div>
+            {!loading && filteredEvents.length === 0 && (
+              <div className="flex flex-col items-center justify-center border border-dashed border-border py-16 text-center">
+                <CalendarDays className="h-10 w-10 text-muted-foreground/60" />
+                <p className="mt-4 font-mono-label text-sm text-muted-foreground">{t('该日暂无活动', 'No events on this day')}</p>
               </div>
-            ))
-          : events.map((item) => (
-              <EventCard
-                key={item.id}
-                item={item}
-                liked={liked.has(item.id)}
-                favorited={favorited.has(item.id)}
-                onLike={() => handleInteraction(item, 'like')}
-                onFavorite={() => handleInteraction(item, 'favorite')}
-              />
-            ))}
-      </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'list' && (
+        <div ref={revealRef} className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="magazine-card">
+                  <Skeleton className="aspect-[4/3] w-full bg-muted" />
+                  <div className="flex h-32 flex-col justify-center p-5">
+                    <Skeleton className="h-5 w-3/4 bg-muted" />
+                    <Skeleton className="mt-2 h-4 w-full bg-muted" />
+                  </div>
+                  <div className="flex h-12 items-center border-t border-border px-5">
+                    <Skeleton className="h-3 w-1/2 bg-muted" />
+                  </div>
+                </div>
+              ))
+            : filteredEvents.map((item) => (
+                <EventCard
+                  key={item.id}
+                  item={item}
+                  liked={liked.has(item.id)}
+                  favorited={favorited.has(item.id)}
+                  onLike={() => handleInteraction(item, 'like')}
+                  onFavorite={() => handleInteraction(item, 'favorite')}
+                />
+              ))}
+        </div>
+      )}
     </div>
   );
 }

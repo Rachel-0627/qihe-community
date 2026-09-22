@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye } from 'lucide-react';
+import { Eye, Share2 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { totalCount, displayViews } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import InteractionButton from './InteractionButton';
 import MediaFrame from './MediaFrame';
+import ShareDialog from '@/components/common/ShareDialog';
 import type { EventItem } from '@/types/types';
 
 interface Props {
@@ -29,6 +31,7 @@ function getEventStatus(item: EventItem): EventStatus {
 
 export default function EventCard({ item, liked, favorited, onLike, onFavorite }: Props) {
   const { t, lang } = useI18n();
+  const [posterOpen, setPosterOpen] = useState(false);
   const title = lang === 'en' && item.title_en ? item.title_en : item.title;
   const summary = lang === 'en' && item.summary_en ? item.summary_en : item.summary;
   const status = getEventStatus(item);
@@ -77,12 +80,27 @@ export default function EventCard({ item, liked, favorited, onLike, onFavorite }
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFavorite?.(); }}
             className={favorited ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}
           />
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPosterOpen(true); }}
+            className="flex items-center gap-1.5 font-mono-label text-xs text-muted-foreground hover:text-accent"
+            aria-label={t('分享', 'Share')}
+          >
+            <Share2 className="h-3.5 w-3.5" />{t('分享', 'Share')}
+          </button>
         </div>
         <span className="flex items-center gap-1 font-mono-label text-xs text-muted-foreground">
           <Eye className="h-3.5 w-3.5" />
           {displayViews(item.views, item.base_views, item.likes, item.base_likes, item.favorites, item.base_favorites)}
         </span>
       </div>
+
+      <ShareDialog
+        open={posterOpen}
+        onOpenChange={setPosterOpen}
+        title={title}
+        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/events/${item.id}`}
+      />
     </article>
   );
 }

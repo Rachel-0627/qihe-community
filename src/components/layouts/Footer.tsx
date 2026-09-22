@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 
 export default function Footer() {
-  const { t, lang } = useI18n();
-  const { brandName, brandNameEn, footer, businessCoop } = useSiteSettings();
+  const { t } = useI18n();
+  const { brandName, brandNameEn, footer, businessCoop, tools } = useSiteSettings();
+  // 页脚文案优先读后台「页面文案设置」（site_content 表），无值回退「品牌与导航」配置
+  const { c } = useSiteContent();
   return (
     <footer className="border-t border-border bg-[#0b0c0f]">
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
@@ -13,10 +16,10 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-12">
           <div className="col-span-2 md:col-span-5">
             <Link to="/" className="inline-block font-display text-lg font-semibold tracking-tight text-foreground hover:text-accent transition-colors">
-              {t(brandName, brandNameEn)}
+              {c('footer', 'brand', brandName, brandNameEn)}
             </Link>
             <p className="mt-4 max-w-sm text-base leading-relaxed text-muted-foreground text-pretty">
-              {lang === 'en' && footer.taglineEn ? footer.taglineEn : footer.tagline}
+              {c('footer', 'tagline', footer.tagline, footer.taglineEn)}
             </p>
           </div>
 
@@ -30,6 +33,9 @@ export default function Footer() {
               <li><Link to="/events" className="hover:text-accent transition-colors">{t('城市组局', 'Events')}</Link></li>
               {businessCoop.visible && (
                 <li><Link to="/business" className="hover:text-accent transition-colors">{t('商务与合作', 'Business')}</Link></li>
+              )}
+              {tools.visible && (
+                <li><Link to="/tools" className="hover:text-accent transition-colors">{t('工具', 'Tools')}</Link></li>
               )}
             </ul>
           </div>
@@ -56,7 +62,7 @@ export default function Footer() {
 
         <div className="mt-10 border-t border-border pt-6">
           <p className="font-mono-label text-xs text-muted-foreground">
-            {lang === 'en' && footer.copyrightEn ? footer.copyrightEn : footer.copyright}
+            {c('footer', 'copyright', footer.copyright, footer.copyrightEn)}
           </p>
         </div>
       </div>

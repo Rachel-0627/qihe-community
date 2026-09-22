@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,13 +10,16 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AnimatedDialogContent } from '@/components/common/AnimatedDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
-import RichTextEditor from '@/components/common/RichTextEditor';
+import { Pencil, Trash2, Plus, Loader2, Pin } from 'lucide-react';
+import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 import FileUploadField from '@/components/common/FileUploadField';
 import NumberField from '@/components/admin/NumberField';
-import { translateZhToEn, fetchProjectContent } from '@/lib/api';
+import { translateZhToEn, fetchProjectContent, toggleProjectPinned } from '@/lib/api';
+import { importMarkdown, importDocx, importPdf, type ImportResult } from '@/lib/documentImport';
+import { useLocalDraft } from '@/lib/useLocalDraft';
 import { totalCount } from '@/lib/utils';
 import type { ProjectItem, ContentAccess, ProjectFilterOption } from '@/types/types';
 
@@ -25,7 +28,7 @@ const ACCESS: ContentAccess[] = ['free', 'member', 'pro', 'private'];
 const emptyProject = (scene: string, maturity: string): Partial<ProjectItem> => ({
   title: '', title_en: '', summary: '', summary_en: '', cover_url: '',
   scene, maturity, access_level: 'free',
-  video_url: '', external_url: '', is_hot: false, sort_order: 0, content: '', content_en: '', show_on_home: true,
+  video_url: '', external_url: '', is_hot: false, is_pinned: false, sort_order: 0, content: '', content_en: '', show_on_home: true,
   likes: 0, favorites: 0, views: 0,
   base_likes: 0, base_favorites: 0, base_views: 0,
 });
@@ -43,6 +46,7 @@ export default function AdminProjects() {
   const [homeToggleReady, setHomeToggleReady] = useState(true);
   const [filterOptions, setFilterOptions] = useState<ProjectFilterOption[]>([]);
   const [translating, setTranslating] = useState<{ title: boolean; summary: boolean }>({ title: false, summary: false });
+  const editorRef = useRef<ImmersiveEditorApi>(null);
 
   const sceneOptions = filterOptions.filter((o) => o.group === 'scene' && o.is_active);
   const maturityOptions = filterOptions.filter((o) => o.group === 'maturity' && o.is_active);
@@ -81,6 +85,13 @@ export default function AdminProjects() {
     }
   };
 
+  const { clearDraft: clearProjectDraft } = useLocalDraft<Partial<ProjectItem>>(
+    { type: 'project', id: editing?.id || 'new' },
+    editing || {},
+    (draft) => setEditing((prev) => (prev ? { ...prev, ...draft } : prev)),
+    open
+  );
+
   const autoTranslate = async (key: 'title' | 'summary') => {
     if (!editing) return;
     const zh = editing[key];
@@ -110,6 +121,7 @@ export default function AdminProjects() {
     };
     try {
       await saveProject(payload);
+      clearProjectDraft();
       toast.success(t('保存成功', 'Saved successfully'));
       setOpen(false);
       setEditing(null);
@@ -124,7 +136,64 @@ export default function AdminProjects() {
       }
       fetchProjects().then(setItems);
     } catch { toast.error(t('保存失败', 'Save failed')); }
-  }, [editing, t]);
+  }, [editing, t, clearProjectDraft]);
+
+  const handleTogglePinned = async (item: ProjectItem) => {
+    const nextPinned = !item.is_pinned;
+    try {
+      await toggleProjectPinned(item.id, nextPinned);
+      setItems((prev) => prev.map((p) => p.id === item.id ? { ...p, is_pinned: nextPinned } : p));
+      toast.success(nextPinned ? t('已置顶', 'Pinned to top') : t('已取消置顶', 'Unpinned'));
+    } catch {
+      toast.error(t('操作失败', 'Operation failed'));
+    }
+  };
+
+  const handleImportFile = useCallback(async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.markdown,.docx,.pdf,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf';
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length === 0) return;
+      const doc = files.find((f) => !f.type.startsWith('image/'));
+      const sidecars = files.filter((f) => f.type.startsWith('image/'));
+      if (!doc) {
+        toast.error('请选择一个 Markdown、Word 或 PDF 文件');
+        return;
+      }
+      try {
+        const ext = doc.name.split('.').pop()?.toLowerCase() || '';
+        const folder = `projects/${editing?.id || 'new'}`;
+        let result: ImportResult;
+        if (ext === 'md' || ext === 'markdown' || doc.type === 'text/markdown') {
+          result = await importMarkdown(doc, folder, sidecars);
+        } else if (ext === 'docx') {
+          result = await importDocx(doc, folder);
+        } else if (ext === 'pdf') {
+          result = await importPdf(doc, folder);
+        } else {
+          toast.error('仅支持 Markdown、Word、PDF 文件');
+          return;
+        }
+        editorRef.current?.setHTML(result.content);
+        setEditing((prev) => prev ? { ...prev, content: result.content } : prev);
+        if (result.missingImages.length > 0) {
+          toast.warning(`缺少图片文件：${result.missingImages.join(', ')}`);
+        }
+        if (result.failedUploads.length > 0) {
+          toast.warning(`部分图片上传失败：${result.failedUploads.join(', ')}`);
+        }
+        if (result.uploadedImages > 0) {
+          toast.success(`已导入并上传 ${result.uploadedImages} 张图片`);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '导入失败');
+      }
+    };
+    input.click();
+  }, [editing?.id]);
 
   const handleDelete = async (id: string) => {
     try { await deleteProject(id); toast.success(t('已删除', 'Deleted')); setItems((p) => p.filter((x) => x.id !== id)); }
@@ -142,7 +211,7 @@ export default function AdminProjects() {
           <DialogTrigger asChild>
             <Button onClick={openNew} className="gap-1.5 font-mono-label text-xs"><Plus className="h-3.5 w-3.5" />{t('新建项目', 'New Project')}</Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90dvh] max-w-[calc(100%-2rem)] overflow-y-auto md:max-w-2xl">
+          <AnimatedDialogContent open={open} className="max-h-[90dvh] max-w-[calc(100%-2rem)] overflow-y-auto md:max-w-2xl">
             <DialogHeader><DialogTitle className="font-display">{editing?.id ? t('编辑项目', 'Edit Project') : t('新建项目', 'New Project')}</DialogTitle></DialogHeader>
             {editing && (
               <div className="space-y-4">
@@ -191,7 +260,17 @@ export default function AdminProjects() {
                     </Field>
                   </div>
                 </div>
-                <RichTextEditor label={t('正文内容', 'Content')} value={typeof editing.content === 'string' ? editing.content : ''} onChange={(html) => setEditing({ ...editing, content: html })} uploadFolder="projects" />
+                <div className="space-y-1.5">
+                  <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('正文内容', 'Content')}</Label>
+                  <ImmersiveEditor
+                    ref={editorRef}
+                    value={typeof editing.content === 'string' ? editing.content : ''}
+                    onChange={(html) => setEditing({ ...editing, content: html })}
+                    uploadFolder="projects"
+                    uploadId={editing.id}
+                    onImportFile={handleImportFile}
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <NumberField
                     label={t('基础点赞', 'Base likes')}
@@ -214,6 +293,17 @@ export default function AdminProjects() {
                 </div>
                 <div className="flex items-center gap-3 border border-border bg-muted/30 px-4 py-3">
                   <Switch
+                    id="project-pinned"
+                    checked={!!editing.is_pinned}
+                    onCheckedChange={(v) => setEditing({ ...editing, is_pinned: v })}
+                  />
+                  <Label htmlFor="project-pinned" className="flex items-center gap-1.5 font-mono-label text-xs uppercase tracking-wider text-muted-foreground">
+                    <Pin className="h-3.5 w-3.5 text-accent" />
+                    {t('置顶展示（优先排在列表最前列）', 'Pin to top (prioritize at the top of list)')}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-3 border border-border bg-muted/30 px-4 py-3">
+                  <Switch
                     id="project-on-home"
                     disabled={!homeToggleReady}
                     checked={editing.show_on_home !== false}
@@ -231,7 +321,7 @@ export default function AdminProjects() {
                 <Button onClick={handleSave} className="w-full font-mono-label text-xs uppercase tracking-wider">{t('保存', 'Save')}</Button>
               </div>
             )}
-          </DialogContent>
+          </AnimatedDialogContent>
         </Dialog>
       </div>
 
@@ -239,6 +329,7 @@ export default function AdminProjects() {
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/40">
+              <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('置顶', 'Pinned')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('标题', 'Title')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('场景', 'Scene')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('访问', 'Access')}</th>
@@ -250,11 +341,26 @@ export default function AdminProjects() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</td></tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('暂无项目', 'No projects')}</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('暂无项目', 'No projects')}</td></tr>
             ) : items.map((item) => (
-              <tr key={item.id} className="border-b border-border last:border-0">
+              <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/10 transition-colors">
+                <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePinned(item)}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 font-mono-label text-[11px] transition-colors ${
+                      item.is_pinned
+                        ? 'bg-accent/20 text-accent font-medium border border-accent/40'
+                        : 'text-muted-foreground hover:text-foreground border border-transparent'
+                    }`}
+                    title={item.is_pinned ? t('点击取消置顶', 'Click to unpin') : t('点击置顶', 'Click to pin')}
+                  >
+                    <Pin className={`h-3 w-3 ${item.is_pinned ? 'text-accent fill-accent' : ''}`} />
+                    {item.is_pinned ? t('已置顶', 'Pinned') : t('常规', 'Normal')}
+                  </button>
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{lang === 'en' && item.title_en ? item.title_en : item.title}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.scene}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{lang === 'en' ? ACCESS_LABELS[item.access_level].en : ACCESS_LABELS[item.access_level].zh}</td>

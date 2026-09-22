@@ -13,12 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Pencil, Trash2, Plus, Download, Users } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import NumberField from '@/components/admin/NumberField';
+import FileUploadField from '@/components/common/FileUploadField';
 import { totalCount } from '@/lib/utils';
 import type { EventItem, EventFilterOption, EventRegistrationExportRow } from '@/types/types';
 
 const emptyEvent = (city: string, theme: string): Partial<EventItem> => ({
-  title: '', title_en: '', summary: '', summary_en: '', cover_url: '',
+  title: '', title_en: '', summary: '', summary_en: '', cover_url: '', video_url: '',
   city, city_en: '', theme, theme_en: '', location: '', location_en: '',
   event_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
   capacity: 50, sort_order: 0, show_on_home: true,
@@ -113,7 +115,7 @@ export default function AdminEvents() {
     }
   };
 
-  const downloadCSV = useCallback(() => {
+  const downloadExcel = useCallback(() => {
     if (!exportEvent) return;
     const headers = [t('姓名', 'Name'), t('电话', 'Phone'), t('微信', 'WeChat'), t('备注', 'Note'), t('报名时间', 'Registered At')];
     const rows = exportRows.map((r) => [
@@ -123,17 +125,11 @@ export default function AdminEvents() {
       r.note.replace(/\n/g, ' '),
       new Date(r.created_at).toLocaleString(),
     ]);
-    const csv = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, t('报名人员', 'Registrations'));
     const title = (lang === 'en' && exportEvent.title_en ? exportEvent.title_en : exportEvent.title).replace(/\s+/g, '_');
-    a.download = `${title}_registrations.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(workbook, `${title}_registrations.xlsx`);
   }, [exportEvent, exportRows, lang, t]);
 
   return (
@@ -156,7 +152,8 @@ export default function AdminEvents() {
                   <Field label={t('标题（英）', 'Title (EN)')}><Input value={editing.title_en || ''} onChange={(e) => setEditing({ ...editing, title_en: e.target.value })} className="px-3" /></Field>
                   <Field label={t('摘要（中）', 'Summary (ZH)')}><Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="px-3" rows={2} /></Field>
                   <Field label={t('摘要（英）', 'Summary (EN)')}><Textarea value={editing.summary_en || ''} onChange={(e) => setEditing({ ...editing, summary_en: e.target.value })} className="px-3" rows={2} /></Field>
-                  <Field label={t('封面图 URL', 'Cover URL')}><Input value={editing.cover_url || ''} onChange={(e) => setEditing({ ...editing, cover_url: e.target.value })} className="px-3" /></Field>
+                  <FileUploadField label={t('封面图', 'Cover Image')} value={editing.cover_url || ''} onChange={(url) => setEditing({ ...editing, cover_url: url })} folder="events/covers" accept="image/jpeg,image/png,image/webp,image/gif" id={editing.id} />
+                  <FileUploadField label={t('视频', 'Video')} value={editing.video_url || ''} onChange={(url) => setEditing({ ...editing, video_url: url })} folder="events/videos" accept="video/mp4" preview="video" id={editing.id} />
                   <Field label={t('活动时间', 'Date')}><Input type="datetime-local" value={editing.event_date || ''} onChange={(e) => setEditing({ ...editing, event_date: e.target.value })} className="px-3" /></Field>
                   <Field label={t('城市（中）', 'City (ZH)')}>
                     <Select value={editing.city || defaultCity} onValueChange={(v) => setEditing({ ...editing, city: v })}>
@@ -288,8 +285,8 @@ export default function AdminEvents() {
           ) : (
             <>
               <div className="flex justify-end">
-                <Button onClick={downloadCSV} size="sm" className="gap-1.5 font-mono-label text-xs">
-                  <Download className="h-3.5 w-3.5" />{t('下载 CSV', 'Download CSV')}
+                <Button onClick={downloadExcel} size="sm" className="gap-1.5 font-mono-label text-xs">
+                  <Download className="h-3.5 w-3.5" />{t('下载 Excel', 'Download Excel')}
                 </Button>
               </div>
               <div className="mt-2 w-full max-w-full overflow-x-auto border border-border bg-card">

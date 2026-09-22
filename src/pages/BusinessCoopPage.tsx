@@ -32,7 +32,7 @@ export default function BusinessCoopPage() {
 
       <div
         data-reveal
-        className="prose prose-base mt-8 max-w-none dark:prose-invert"
+        className="project-content mt-8"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: content }}
       />

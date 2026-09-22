@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchCases, fetchCategories, saveCase, deleteCase, isShowOnHomeReady } from '@/lib/api';
+import { importMarkdown, importDocx, importPdf, type ImportResult } from '@/lib/documentImport';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,17 +13,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
-import RichTextEditor from '@/components/common/RichTextEditor';
+import { Pencil, Trash2, Plus, Loader2, Pin } from 'lucide-react';
+import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 import FileUploadField from '@/components/common/FileUploadField';
 import NumberField from '@/components/admin/NumberField';
-import { translateZhToEn } from '@/lib/api';
+import { translateZhToEn, toggleCasePinned } from '@/lib/api';
+import { useLocalDraft } from '@/lib/useLocalDraft';
 import { totalCount } from '@/lib/utils';
 import type { CaseItem, Category } from '@/types/types';
 
 const emptyCase = (): Partial<CaseItem> => ({
-  title: '', title_en: '', summary: '', summary_en: '', cover_url: '',
-  category_id: null, author: '', author_en: '', is_featured: false, sort_order: 0, show_on_home: true,
+  title: '', title_en: '', summary: '', summary_en: '', cover_url: '', video_url: '',
+  category_id: null, author: '', author_en: '', is_featured: false, is_pinned: false, sort_order: 0, show_on_home: true,
   content: '', content_en: '',
   likes: 0, favorites: 0, views: 0,
   base_likes: 0, base_favorites: 0, base_views: 0,
@@ -41,6 +43,14 @@ export default function AdminCases() {
   // 数据库迁移未执行时，这个开关存不进去，置灰并说明原因，避免静默失效
   const [homeToggleReady, setHomeToggleReady] = useState(true);
   const [translating, setTranslating] = useState<{ title: boolean; summary: boolean }>({ title: false, summary: false });
+  const editorRef = useRef<ImmersiveEditorApi>(null);
+
+  const { clearDraft: clearCaseDraft } = useLocalDraft<Partial<CaseItem>>(
+    { type: 'case', id: editing?.id || 'new' },
+    editing || {},
+    (draft) => setEditing((prev) => (prev ? { ...prev, ...draft } : prev)),
+    open
+  );
 
   useEffect(() => {
     isShowOnHomeReady().then(setHomeToggleReady).catch(() => setHomeToggleReady(false));
@@ -74,6 +84,63 @@ export default function AdminCases() {
     }
   };
 
+  const handleTogglePinned = async (item: CaseItem) => {
+    const nextPinned = !item.is_pinned;
+    try {
+      await toggleCasePinned(item.id, nextPinned);
+      setCases((prev) => prev.map((c) => c.id === item.id ? { ...c, is_pinned: nextPinned } : c));
+      toast.success(nextPinned ? t('已置顶', 'Pinned to top') : t('已取消置顶', 'Unpinned'));
+    } catch {
+      toast.error(t('操作失败', 'Operation failed'));
+    }
+  };
+
+  const handleImportFile = useCallback(async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.markdown,.docx,.pdf,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf';
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length === 0) return;
+      const doc = files.find((f) => !f.type.startsWith('image/'));
+      const sidecars = files.filter((f) => f.type.startsWith('image/'));
+      if (!doc) {
+        toast.error('请选择一个 Markdown、Word 或 PDF 文件');
+        return;
+      }
+      try {
+        const ext = doc.name.split('.').pop()?.toLowerCase() || '';
+        const folder = `cases/${editing?.id || 'new'}`;
+        let result: ImportResult;
+        if (ext === 'md' || ext === 'markdown' || doc.type === 'text/markdown') {
+          result = await importMarkdown(doc, folder, sidecars);
+        } else if (ext === 'docx') {
+          result = await importDocx(doc, folder);
+        } else if (ext === 'pdf') {
+          result = await importPdf(doc, folder);
+        } else {
+          toast.error('仅支持 Markdown、Word、PDF 文件');
+          return;
+        }
+        editorRef.current?.setHTML(result.content);
+        setEditing((prev) => prev ? { ...prev, content: result.content } : prev);
+        if (result.missingImages.length > 0) {
+          toast.warning(`缺少图片文件：${result.missingImages.join(', ')}`);
+        }
+        if (result.failedUploads.length > 0) {
+          toast.warning(`部分图片上传失败：${result.failedUploads.join(', ')}`);
+        }
+        if (result.uploadedImages > 0) {
+          toast.success(`已导入并上传 ${result.uploadedImages} 张图片`);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : '导入失败');
+      }
+    };
+    input.click();
+  }, [editing?.id]);
+
   const handleSave = useCallback(async () => {
     if (!editing) return;
     if (!editing.title?.trim()) { toast.error(t('请填写标题', 'Title is required')); return; }
@@ -87,6 +154,7 @@ export default function AdminCases() {
     };
     try {
       await saveCase(payload);
+      clearCaseDraft();
       toast.success(t('保存成功', 'Saved successfully'));
       setOpen(false);
       setEditing(null);
@@ -103,7 +171,7 @@ export default function AdminCases() {
       const data = await fetchCases();
       setCases(data);
     } catch { toast.error(t('保存失败', 'Save failed')); }
-  }, [editing, t]);
+  }, [editing, t, clearCaseDraft]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -111,10 +179,6 @@ export default function AdminCases() {
       toast.success(t('已删除', 'Deleted'));
       setCases((prev) => prev.filter((c) => c.id !== id));
     } catch { toast.error(t('删除失败', 'Delete failed')); }
-  };
-
-  const updateContent = (key: 'content' | 'content_en', html: string) => {
-    setEditing((prev) => prev ? { ...prev, [key]: html } : prev);
   };
 
   return (
@@ -154,18 +218,29 @@ export default function AdminCases() {
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FileUploadField label={t('封面图', 'Cover Image')} value={editing.cover_url || ''} onChange={(url) => setEditing({ ...editing, cover_url: url })} folder="cases/covers" accept="image/jpeg,image/png,image/webp,image/gif" id={editing.id} />
-                  <div className="space-y-1.5">
-                    <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('分类', 'Category')}</Label>
-                    <Select value={editing.category_id || 'none'} onValueChange={(v) => setEditing({ ...editing, category_id: v === 'none' ? null : v })}>
-                      <SelectTrigger><SelectValue placeholder={t('选择分类', 'Select category')} /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{t('无', 'None')}</SelectItem>
-                        {categories.map((c) => <SelectItem key={c.id} value={c.id}>{lang === 'en' ? c.name_en : c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <FileUploadField label={t('视频', 'Video')} value={editing.video_url || ''} onChange={(url) => setEditing({ ...editing, video_url: url })} folder="cases/videos" accept="video/mp4" preview="video" id={editing.id} />
                 </div>
-                <RichTextEditor label={t('正文内容', 'Content')} value={typeof editing.content === 'string' ? editing.content : ''} onChange={(html) => updateContent('content', html)} uploadFolder="cases" />
+                <div className="space-y-1.5">
+                  <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('分类', 'Category')}</Label>
+                  <Select value={editing.category_id || 'none'} onValueChange={(v) => setEditing({ ...editing, category_id: v === 'none' ? null : v })}>
+                    <SelectTrigger><SelectValue placeholder={t('选择分类', 'Select category')} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t('无', 'None')}</SelectItem>
+                      {categories.map((c) => <SelectItem key={c.id} value={c.id}>{lang === 'en' ? c.name_en : c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('正文内容', 'Content')}</Label>
+                  <ImmersiveEditor
+                    ref={editorRef}
+                    value={typeof editing.content === 'string' ? editing.content : ''}
+                    onChange={(html) => setEditing({ ...editing, content: html })}
+                    uploadFolder="cases"
+                    uploadId={editing.id}
+                    onImportFile={handleImportFile}
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <NumberField
                     label={t('基础点赞', 'Base likes')}
@@ -185,6 +260,17 @@ export default function AdminCases() {
                     onChange={(v) => setEditing({ ...editing, base_views: v })}
                     actual={editing.views}
                   />
+                </div>
+                <div className="flex items-center gap-3 border border-border bg-muted/30 px-4 py-3">
+                  <Switch
+                    id="case-pinned"
+                    checked={!!editing.is_pinned}
+                    onCheckedChange={(v) => setEditing({ ...editing, is_pinned: v })}
+                  />
+                  <Label htmlFor="case-pinned" className="flex items-center gap-1.5 font-mono-label text-xs uppercase tracking-wider text-muted-foreground">
+                    <Pin className="h-3.5 w-3.5 text-accent" />
+                    {t('置顶展示（优先排在列表最前列）', 'Pin to top (prioritize at the top of list)')}
+                  </Label>
                 </div>
                 <div className="flex items-center gap-3 border border-border bg-muted/30 px-4 py-3">
                   <Switch
@@ -213,6 +299,7 @@ export default function AdminCases() {
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/40">
+              <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('置顶', 'Pinned')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('标题', 'Title')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('作者', 'Author')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('点赞', 'Likes')}</th>
@@ -223,11 +310,26 @@ export default function AdminCases() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</td></tr>
             ) : cases.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('暂无案例', 'No cases')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('暂无案例', 'No cases')}</td></tr>
             ) : cases.map((item) => (
-              <tr key={item.id} className="border-b border-border last:border-0">
+              <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/10 transition-colors">
+                <td className="whitespace-nowrap px-4 py-3 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePinned(item)}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 font-mono-label text-[11px] transition-colors ${
+                      item.is_pinned
+                        ? 'bg-accent/20 text-accent font-medium border border-accent/40'
+                        : 'text-muted-foreground hover:text-foreground border border-transparent'
+                    }`}
+                    title={item.is_pinned ? t('点击取消置顶', 'Click to unpin') : t('点击置顶', 'Click to pin')}
+                  >
+                    <Pin className={`h-3 w-3 ${item.is_pinned ? 'text-accent fill-accent' : ''}`} />
+                    {item.is_pinned ? t('已置顶', 'Pinned') : t('常规', 'Normal')}
+                  </button>
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{lang === 'en' && item.title_en ? item.title_en : item.title}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.author}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs text-muted-foreground">{totalCount(item.likes, item.base_likes)}</td>
@@ -261,4 +363,3 @@ export default function AdminCases() {
     </div>
   );
 }
-

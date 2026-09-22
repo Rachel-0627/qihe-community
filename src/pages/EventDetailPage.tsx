@@ -14,6 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { totalCount } from '@/lib/utils';
 import type { EventItem } from '@/types/types';
+import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
 
 function formatDate(iso: string, lang: 'zh' | 'en') {
   const d = new Date(iso);
@@ -39,6 +40,7 @@ export default function EventDetailPage() {
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', wechat: '', note: '' });
   const [formError, setFormError] = useState('');
+  const [posterOpen, setPosterOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -229,6 +231,7 @@ export default function EventDetailPage() {
               <Eye className="h-4 w-4" />{totalCount(item.views, item.base_views)}
             </span>
           </div>
+          <ShareButton onClick={() => setPosterOpen(true)} />
         </div>
       </header>
 
@@ -242,6 +245,12 @@ export default function EventDetailPage() {
               className="w-full rounded-md border border-[rgba(235,234,227,.09)] object-cover brightness-[.9] saturate-[.9]"
             />
           </div>
+        </div>
+      )}
+
+      {item.video_url && (
+        <div className="mt-6 aspect-video w-full overflow-hidden border border-border bg-card">
+          <video src={item.video_url} controls className="h-full w-full" />
         </div>
       )}
 
@@ -311,6 +320,13 @@ export default function EventDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+    {/* 分享海报 */}
+      <ShareDialog
+        open={posterOpen}
+        onOpenChange={setPosterOpen}
+        title={title}
+        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/events/${item.id}`}
+      />
     </article>
   );
 }

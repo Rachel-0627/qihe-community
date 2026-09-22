@@ -14,7 +14,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const UPSTREAM = "https://app-du7cn8oyrwn5-api-zYkZz8qovQ1L-gateway.appmiaoda.com/v2/chat/completions";
+const UPSTREAM = "https://app-ela0iwd2axvl-api-zYkZz8qovQ1L-gateway.appmiaoda.com/v2/chat/completions";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

@@ -13,6 +13,8 @@ import EventDetailPage from './pages/EventDetailPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import BusinessCoopPage from './pages/BusinessCoopPage';
+import ToolsPage from './pages/ToolsPage';
+import ProfileImageProviderPage from './pages/ProfileImageProviderPage';
 
 export interface RouteConfig {
   name: string;
@@ -31,9 +33,11 @@ export const routes: RouteConfig[] = [
   { name: '城市组局', path: '/events', element: <EventsPage />, public: true },
   { name: '活动详情', path: '/events/:id', element: <EventDetailPage />, public: true },
   { name: '商务与合作', path: '/business', element: <BusinessCoopPage />, public: true },
+  { name: '工具', path: '/tools', element: <ToolsPage />, public: true },
   { name: '权益', path: '/benefits', element: <BenefitsPage />, public: true },
   { name: '登录', path: '/login', element: <LoginPage />, public: true },
   { name: '个人中心', path: '/profile', element: <ProfilePage /> },
+  { name: '生图模型配置', path: '/profile/image-provider', element: <ProfileImageProviderPage /> },
   { name: '后台管理', path: '/admin', element: <AdminPage /> },
   { name: '用户协议', path: '/terms', element: <TermsPage />, public: true },
   { name: '隐私政策', path: '/privacy', element: <PrivacyPage />, public: true },

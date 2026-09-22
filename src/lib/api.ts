@@ -19,6 +19,11 @@ import type {
   EventRegistrationExportRow,
   UnlockCountResult,
   UnlockProjectResult,
+  PromptCase,
+  PromptCaseFilter,
+  PromptCaseFilterGroup,
+  PromptCaseGeneration,
+  PromptCaseAspectRatio,
 } from '@/types/types';
 
 const safeArray = <T,>(data: unknown): T[] => (Array.isArray(data) ? (data as T[]) : []);
@@ -68,6 +73,139 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
   if (error) throw error;
   const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
   return urlData.publicUrl;
+}
+
+export interface ImageProviderConfig {
+  provider: string;
+  base_url: string;
+  model: string;
+  protocol?: 'openai' | 'claude' | 'gemini' | string;
+  default_size?: string;
+  request_body_template?: string;
+  protocol_settings?: Record<string, string>;
+  has_api_key?: boolean;
+  apiKeyConfigured?: boolean;
+}
+
+const LOCAL_STORAGE_PROVIDER_PREFIX = 'miaoda_user_img_provider_';
+
+export async function fetchMyImageProviderConfig(): Promise<ImageProviderConfig | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
+
+  // 1. 优先调用后端 set-image-provider Edge Function (统一经过服务端 Vault + 数据库)
+  try {
+    const { data, error } = await supabase.functions.invoke('set-image-provider', {
+      body: { action: 'get' },
+    });
+    if (!error && data?.config) {
+      const isConfigured = Boolean(data.apiKeyConfigured ?? data.has_api_key);
+      return {
+        ...data.config,
+        has_api_key: isConfigured,
+        apiKeyConfigured: isConfigured,
+      };
+    }
+  } catch (err) {
+    console.warn('fetch provider via function error, fallback to RPC', err);
+  }
+
+  // 2. 备用链路：调用数据库 RPC get_my_image_provider_config()（直接带出 Vault 是否有 key）
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_image_provider_config');
+    if (!rpcError && rpcData && typeof rpcData === 'object') {
+      const res = rpcData as ImageProviderConfig;
+      if (res.provider || res.base_url || res.apiKeyConfigured) {
+        return res;
+      }
+    }
+  } catch (err) {
+    console.warn('fetch provider via rpc error', err);
+  }
+
+  // 3. 最终兜底：直查 user_image_providers 表
+  try {
+    const { data, error } = await supabase
+      .from('user_image_providers')
+      .select('provider, base_url, model, protocol, default_size, request_body_template, protocol_settings')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      ...data,
+      has_api_key: false,
+      apiKeyConfigured: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function saveMyImageProviderConfig(config: ImageProviderConfig & { api_key?: string }): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('set-image-provider', {
+    body: config,
+  });
+  if (error) {
+    let msg = error.message;
+    const ctx = (error as unknown as { context?: Response }).context;
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = await ctx.json();
+        if (body?.error) msg = body.error;
+      } catch {
+        // keep fallback msg
+      }
+    }
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+
+  // 保存成功后若成功，服务端数据库与 Vault 已经更新为权威状态
+}
+
+export async function generateImage(
+  prompt: string,
+  promptCaseId?: string,
+  size = '1024x1024'
+): Promise<{ url: string }> {
+  const { data, error } = await supabase.functions.invoke('generate-image', {
+    body: { prompt: prompt.trim(), prompt_case_id: promptCaseId, size },
+  });
+  if (error) {
+    let msg = error.message;
+    const ctx = (error as unknown as { context?: Response }).context;
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = await ctx.json();
+        if (body?.error) msg = body.error;
+      } catch {
+        // keep fallback msg
+      }
+    }
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+  return { url: data.url };
+}
+
+export async function fetchPromptCaseGenerations(promptCaseId: string): Promise<PromptCaseGeneration[]> {
+  const { data, error } = await supabase
+    .from('prompt_case_generations')
+    .select('*')
+    .eq('prompt_case_id', promptCaseId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deletePromptCaseGeneration(id: string): Promise<void> {
+  const { error } = await supabase.from('prompt_case_generations').delete().eq('id', id);
+  if (error) throw error;
 }
 
 // 通用文件上传：封面图 / 视频等到 media bucket
@@ -154,7 +292,9 @@ export async function fetchHomeCases(): Promise<CaseItem[]> {
   let query = supabase
     .from('cases')
     .select('*, categories(*)')
+    .order('is_pinned', { ascending: false })
     .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(HOME_SECTION_LIMIT);
   if (await supportsShowOnHome()) query = query.eq('show_on_home', true);
   const { data, error } = await query;
@@ -167,7 +307,9 @@ export async function fetchHomeProjects(): Promise<ProjectItem[]> {
   let query = supabase
     .from('projects')
     .select(await projectColumns())
+    .order('is_pinned', { ascending: false })
     .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(HOME_SECTION_LIMIT);
   if (filtered) query = query.eq('show_on_home', true);
   const { data, error } = await query;
@@ -247,7 +389,9 @@ export async function fetchCases(categoryId?: string | null): Promise<CaseItem[]
   let query = supabase
     .from('cases')
     .select('*, categories(*)')
+    .order('is_pinned', { ascending: false })
     .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(100);
   if (categoryId) query = query.eq('category_id', categoryId);
   const { data, error } = await query;
@@ -302,6 +446,23 @@ export async function saveCase(item: Partial<CaseItem>): Promise<void> {
   }
 }
 
+// 保存案例并返回 id（新建时返回新记录 id，更新时返回原 id）
+export async function saveCaseAndReturn(item: Partial<CaseItem>): Promise<string | undefined> {
+  const { categories: _embeddedCategory, ...itemWithoutRelation } = item as Partial<CaseItem> & {
+    categories?: unknown;
+  };
+  const payload = ensureViewCeiling(await stripUnsupportedFields(itemWithoutRelation));
+  if (payload.id) {
+    const { error } = await supabase.from('cases').update(payload).eq('id', payload.id);
+    if (error) throw error;
+    return payload.id as string;
+  }
+  const { id, ...rest } = payload;
+  const { data, error } = await supabase.from('cases').insert(rest).select('id').maybeSingle();
+  if (error) throw error;
+  return data?.id as string | undefined;
+}
+
 export async function deleteCase(id: string): Promise<void> {
   const { error } = await supabase.from('cases').delete().eq('id', id);
   if (error) throw error;
@@ -317,7 +478,7 @@ const PROJECT_PUBLIC_COLUMNS =
   'id, title, title_en, summary, summary_en, cover_url, video_url, ' +
   'scene, scene_en, maturity, maturity_en, access_level, ' +
   'likes, views, favorites, base_likes, base_favorites, base_views, ' +
-  'is_hot, sort_order, created_at, created_by';
+  'is_hot, is_pinned, sort_order, created_at, created_by';
 
 /**
  * 「首页展示」字段（show_on_home）是后加的，而本项目的数据库与前端
@@ -413,7 +574,9 @@ export async function fetchProjects(filters?: {
   let query = supabase
     .from('projects')
     .select(await projectColumns())
+    .order('is_pinned', { ascending: false })
     .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(100);
   if (filters?.scene) query = query.eq('scene', filters.scene);
   if (filters?.maturity) query = query.eq('maturity', filters.maturity);
@@ -834,4 +997,104 @@ export async function saveSiteSetting(item: SiteSetting): Promise<void> {
     { onConflict: 'key' }
   );
   if (error) throw error;
+}
+
+// ============ Prompt Case Library ============
+export async function fetchPromptCaseFilters(): Promise<PromptCaseFilter[]> {
+  const { data, error } = await supabase
+    .from('prompt_case_filters')
+    .select('*')
+    .eq('is_active', true)
+    .order('group', { ascending: true })
+    .order('sort_order', { ascending: true })
+    .limit(300);
+  if (error) throw error;
+  return safeArray<PromptCaseFilter>(data);
+}
+
+export async function fetchPromptCases(): Promise<PromptCase[]> {
+  const { data, error } = await supabase
+    .from('prompt_cases')
+    .select('*, category:category_id(*), style:style_id(*), scene:scene_id(*)')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return safeArray<PromptCase>(data);
+}
+
+export async function fetchAllPromptCases(): Promise<PromptCase[]> {
+  const { data, error } = await supabase
+    .from('prompt_cases')
+    .select('*, category:category_id(*), style:style_id(*), scene:scene_id(*)')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return safeArray<PromptCase>(data);
+}
+
+export async function savePromptCase(item: Partial<PromptCase>): Promise<void> {
+  // fetchPromptCases / fetchAllPromptCases 用 select('*, category:category_id(*), style:style_id(*), scene:scene_id(*)')
+  // 把关联对象作为嵌入对象带回，并非 prompt_cases 表真实列；
+  // 必须剔除 category, style, scene 虚拟字段，避免 PostgREST PGRST204 报错
+  const { category: _c, style: _s, scene: _sc, created_at: _ca, ...cleanItem } = item as Partial<PromptCase> & {
+    category?: unknown;
+    style?: unknown;
+    scene?: unknown;
+    created_at?: unknown;
+  };
+  const payload = { ...cleanItem, updated_at: new Date().toISOString() };
+  if (payload.id) {
+    const { error } = await supabase.from('prompt_cases').update(payload).eq('id', payload.id);
+    if (error) throw error;
+  } else {
+    const { id, ...rest } = payload;
+    const { error } = await supabase.from('prompt_cases').insert(rest);
+    if (error) throw error;
+  }
+}
+
+// 快速切换案例置顶状态
+export async function toggleCasePinned(id: string, is_pinned: boolean): Promise<void> {
+  const { error } = await supabase.from('cases').update({ is_pinned }).eq('id', id);
+  if (error) throw error;
+}
+
+// 快速切换项目置顶状态
+export async function toggleProjectPinned(id: string, is_pinned: boolean): Promise<void> {
+  const { error } = await supabase.from('projects').update({ is_pinned }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deletePromptCase(id: string): Promise<void> {
+  const { error } = await supabase.from('prompt_cases').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function savePromptCaseFilter(item: Partial<PromptCaseFilter>): Promise<void> {
+  const payload = { ...item };
+  if (payload.id) {
+    const { error } = await supabase.from('prompt_case_filters').update(payload).eq('id', payload.id);
+    if (error) throw error;
+  } else {
+    const { id, ...rest } = payload;
+    const { error } = await supabase.from('prompt_case_filters').insert(rest);
+    if (error) throw error;
+  }
+}
+
+export async function deletePromptCaseFilter(id: string): Promise<void> {
+  const { error } = await supabase.from('prompt_case_filters').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function uploadPromptCaseCover(file: File): Promise<string> {
+  const ext = file.name.split('.').pop() || 'png';
+  const path = `prompt-cases/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from('public-assets').upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from('public-assets').getPublicUrl(path);
+  return data.publicUrl;
 }

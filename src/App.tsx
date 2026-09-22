@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { I18nProvider } from '@/contexts/I18nContext';
 import { SiteSettingsProvider } from '@/contexts/SiteSettingsContext';
+import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import MainLayout from '@/components/layouts/MainLayout';
 
 import { routes } from './routes';
@@ -15,6 +16,7 @@ const App: React.FC = () => {
       <I18nProvider>
         <AuthProvider>
           <SiteSettingsProvider>
+          <SiteContentProvider>
           <IntersectObserver />
           <MainLayout>
             <Routes>
@@ -25,6 +27,7 @@ const App: React.FC = () => {
             </Routes>
           </MainLayout>
           <Toaster />
+          </SiteContentProvider>
           </SiteSettingsProvider>
         </AuthProvider>
       </I18nProvider>

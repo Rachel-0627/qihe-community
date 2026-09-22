@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const UPSTREAM = "https://app-du7cn8oyrwn5-api-e94GZ5j0PWpa-gateway.appmiaoda.com/rpc/2.0/mt/texttrans/v1";
+const UPSTREAM = "https://app-ela0iwd2axvl-api-e94GZ5j0PWpa-gateway.appmiaoda.com/rpc/2.0/mt/texttrans/v1";
 
 const MAX_CHARS = 2000;            // 百度通用翻译单次长度限制，超了上游也会拒
 const UPSTREAM_TIMEOUT_MS = 20000;

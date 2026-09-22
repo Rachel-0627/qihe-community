@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 import { useI18n } from '@/contexts/I18nContext';
 
 const PTS: [number, number, number][] = [
@@ -57,6 +58,10 @@ export default function CommunityNetwork() {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerRef = useRef({ x: 0.5, y: 0.5 });
+  const ringRef = useRef<HTMLDivElement>(null);
+  const coreRef = useRef<HTMLDivElement>(null);
+  const labelsRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -68,6 +73,15 @@ export default function CommunityNetwork() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let frame = 0;
 
+    // 鼠标视差：用 quickTo 避免高频创建 tween
+    const ringX = ringRef.current ? gsap.quickTo(ringRef.current, 'x', { duration: 0.6, ease: 'power2.out' }) : null;
+    const ringY = ringRef.current ? gsap.quickTo(ringRef.current, 'y', { duration: 0.6, ease: 'power2.out' }) : null;
+    const coreX = coreRef.current ? gsap.quickTo(coreRef.current, 'x', { duration: 0.5, ease: 'power2.out' }) : null;
+    const coreY = coreRef.current ? gsap.quickTo(coreRef.current, 'y', { duration: 0.5, ease: 'power2.out' }) : null;
+    const labelsX = labelsRef.current ? gsap.quickTo(labelsRef.current, 'x', { duration: 0.65, ease: 'power2.out' }) : null;
+    const labelsY = labelsRef.current ? gsap.quickTo(labelsRef.current, 'y', { duration: 0.65, ease: 'power2.out' }) : null;
+    const statusX = statusRef.current ? gsap.quickTo(statusRef.current, 'x', { duration: 0.45, ease: 'power2.out' }) : null;
+
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const rect = stage.getBoundingClientRect();
@@ -76,7 +90,6 @@ export default function CommunityNetwork() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    // 获取路径上某进度处的坐标
     const getPathPoint = (path: number[], t: number, w: number, h: number) => {
       const segCount = path.length - 1;
       const segT = (t % 1) * segCount;
@@ -98,43 +111,56 @@ export default function CommunityNetwork() {
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
-      // 全部背景连线
+      // 背景连线 — 电光紫微光
       LINKS.forEach(([a, b]) => {
         const p = PTS[a];
         const q = PTS[b];
         ctx.beginPath();
         ctx.moveTo(p[0] * w, p[1] * h);
         ctx.lineTo(q[0] * w, q[1] * h);
-        ctx.strokeStyle = 'rgba(188,190,194,.105)';
+        ctx.strokeStyle = 'hsla(258, 90%, 66%, 0.18)';
+        ctx.lineWidth = 1;
         ctx.stroke();
       });
 
-      // 规律流动的光点：从启禾中心沿四条线向 12 个白色节点滑动
+      // 流动光点 — 电光紫到洋红渐变
       FLOW_DOTS.forEach((dot) => {
         const path = FLOW_PATHS[dot.path];
         const t = reduced ? dot.offset : (time * dot.speed + dot.offset) % 1;
         const { x, y } = getPathPoint(path, t, w, h);
-        const g = ctx.createRadialGradient(x, y, 0, x, y, 10);
-        g.addColorStop(0, 'rgba(222,223,223,.78)');
-        g.addColorStop(0.45, 'rgba(188,190,194,.22)');
-        g.addColorStop(1, 'rgba(188,190,194,0)');
+        const g = ctx.createRadialGradient(x, y, 0, x, y, 14);
+        g.addColorStop(0, 'hsla(258, 100%, 72%, 0.95)');
+        g.addColorStop(0.5, 'hsla(320, 90%, 60%, 0.35)');
+        g.addColorStop(1, 'hsla(258, 90%, 66%, 0)');
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.arc(x, y, 14, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // 节点
+      // 节点 — 中心高亮 + 外围电光紫/洋红脉冲
+      const ptr = pointerRef.current;
       PTS.forEach(([x, y, s], i) => {
-        ctx.fillStyle = i ? 'rgba(188,190,194,.46)' : 'rgba(222,223,223,.9)';
+        const baseX = x * w + (ptr.x - 0.5) * (i % 2 ? 8 : -8);
+        const baseY = y * h + (ptr.y - 0.5) * (i % 3 ? 6 : -6);
+        const pulse = reduced ? 0 : Math.sin(time * 0.003 + i * 1.3) * 0.35;
+        const radius = s * (1 + pulse * 0.25);
+        const isCenter = i === 0;
+        const color = isCenter ? 'hsla(258, 100%, 72%, 0.95)' : (i % 2 === 0 ? 'hsla(258, 90%, 66%, 0.85)' : 'hsla(320, 90%, 60%, 0.85)');
+
+        // 外发光
+        const glow = ctx.createRadialGradient(baseX, baseY, 0, baseX, baseY, radius * 4);
+        glow.addColorStop(0, color.replace('0.85', '0.28').replace('0.95', '0.32'));
+        glow.addColorStop(1, 'hsla(258, 90%, 66%, 0)');
+        ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.arc(
-          x * w + (pointerRef.current.x - 0.5) * (i % 2 ? 5 : -5),
-          y * h + (pointerRef.current.y - 0.5) * (i % 3 ? 4 : -4),
-          s,
-          0,
-          Math.PI * 2,
-        );
+        ctx.arc(baseX, baseY, radius * 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 实心节点
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(baseX, baseY, Math.max(1.5, radius), 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -143,14 +169,30 @@ export default function CommunityNetwork() {
 
     const handleMove = (e: PointerEvent) => {
       const rect = stage.getBoundingClientRect();
-      pointerRef.current = {
-        x: (e.clientX - rect.left) / rect.width,
-        y: (e.clientY - rect.top) / rect.height,
-      };
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      pointerRef.current = { x, y };
+
+      const dx = (x - 0.5) * 100; // percent-like offset base
+      const dy = (y - 0.5) * 100;
+      ringX?.(dx * -0.18);
+      ringY?.(dy * -0.18);
+      coreX?.(dx * -0.1);
+      coreY?.(dy * -0.1);
+      labelsX?.(dx * -0.28);
+      labelsY?.(dy * -0.28);
+      statusX?.(dx * -0.06);
     };
 
     const handleLeave = () => {
       pointerRef.current = { x: 0.5, y: 0.5 };
+      ringX?.(0);
+      ringY?.(0);
+      coreX?.(0);
+      coreY?.(0);
+      labelsX?.(0);
+      labelsY?.(0);
+      statusX?.(0);
     };
 
     resize();
@@ -178,32 +220,32 @@ export default function CommunityNetwork() {
 
       <div className="absolute inset-0">
         {/* 圆环 */}
-        <div className="absolute left-[51%] top-[49%] h-[235px] w-[235px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(167,177,220,.13)] shadow-[0_0_0_64px_rgba(167,177,220,.025),0_0_0_128px_rgba(167,177,220,.012)] md:h-[320px] md:w-[320px]">
-          <span className="absolute inset-[56px] rounded-full border border-[rgba(200,208,244,.13)]" aria-hidden="true" />
-          <span className="absolute -inset-[54px] animate-[spin_40s_linear_infinite] rounded-full border border-dashed border-[rgba(167,177,220,.1)] motion-reduce:animate-none" aria-hidden="true" />
+        <div ref={ringRef} className="network-ring absolute left-[51%] top-[49%] h-[235px] w-[235px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/30 shadow-[0_0_0_64px_hsl(258_90%_66%_/_.04),0_0_0_128px_hsl(258_90%_66%_/_.02)] md:h-[320px] md:w-[320px]">
+          <span className="absolute inset-[56px] rounded-full border border-primary/25" aria-hidden="true" />
+          <span className="absolute -inset-[54px] animate-[spin_40s_linear_infinite] rounded-full border border-dashed border-primary/20 motion-reduce:animate-none" aria-hidden="true" />
         </div>
 
         {/* 中心核心 */}
-        <div className="absolute left-[51%] top-[49%] grid h-[96px] w-[96px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[rgba(200,208,244,.35)] bg-[rgba(12,13,17,.83)] shadow-[inset_0_0_36px_rgba(167,177,220,.055)] backdrop-blur-[15px] md:h-[118px] md:w-[118px]">
+        <div ref={coreRef} className="network-core absolute left-[51%] top-[49%] grid h-[96px] w-[96px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-primary/40 bg-card/90 shadow-[inset_0_0_36px_hsl(258_90%_66%_/_.12),0_0_40px_hsl(258_90%_66%_/_.18)] backdrop-blur-[15px] md:h-[118px] md:w-[118px]">
           <div className="text-center">
-            <b className="block text-[23px] tracking-[.04em] text-[#ecebe7]">{lang === 'en' ? 'Qihe' : '启禾'}</b>
-            <small className="mt-[6px] block font-mono text-[7px] uppercase tracking-[.16em] text-[#afb1b4]">QI HE / 01</small>
+            <b className="block text-[23px] tracking-[.04em] text-foreground">{lang === 'en' ? 'Qihe' : '启禾'}</b>
+            <small className="mt-[6px] block font-mono text-[7px] uppercase tracking-[.16em] text-muted-foreground">QI HE / 01</small>
           </div>
         </div>
 
         {/* 四个节点标签 */}
-        <div className="pointer-events-none absolute inset-0">
+        <div ref={labelsRef} className="pointer-events-none absolute inset-0">
           {LABELS.map((n, i) => (
-            <div key={n.zh} className={`absolute min-w-[105px] border-l border-[rgba(200,208,244,.42)] bg-[linear-gradient(90deg,rgba(167,177,220,.055),transparent)] p-[12px_13px] text-[#b9bbc2] md:min-w-[124px] ${NODE_POS[i]}`}>
-              <b className="block text-xs font-[550]">{lang === 'en' ? n.en : n.zh}</b>
-              <small className="mt-[5px] block font-mono text-[8px] uppercase tracking-[.12em] text-[#5e626a]">{n.sub}</small>
+            <div key={n.zh} className={`network-label absolute min-w-[105px] border-l border-primary/40 bg-gradient-to-r from-primary/10 to-transparent p-[12px_13px] text-muted-foreground md:min-w-[124px] ${NODE_POS[i]}`}>
+              <b className="block text-xs font-[550] text-foreground">{lang === 'en' ? n.en : n.zh}</b>
+              <small className="mt-[5px] block font-mono text-[8px] uppercase tracking-[.12em] text-muted-foreground">{n.sub}</small>
             </div>
           ))}
         </div>
 
         {/* 状态条 */}
-        <div className="absolute bottom-[22px] left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] uppercase tracking-[.15em] text-[#5e626a]">
-          <span className="mr-[9px] inline-block h-[5px] w-[5px] rounded-full bg-[#afb1b4] shadow-[0_0_9px_#afb1b4]" />
+        <div ref={statusRef} className="network-status absolute bottom-[22px] left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] uppercase tracking-[.15em] text-muted-foreground">
+          <span className="mr-[9px] inline-block h-[5px] w-[5px] rounded-full bg-primary shadow-[0_0_9px_hsl(258_90%_66%_/_1)]" />
           SYSTEM COORDINATES STABLE
         </div>
       </div>

@@ -3,13 +3,28 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { useI18n } from '@/contexts/I18nContext';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import CommunityNetwork from './CommunityNetwork';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export default function FlowingHero() {
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
+  const { c } = useSiteContent();
   const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Hero 标题从后台「页面文案设置」读取（数据库优先，无值回退默认）
+  const heroTitle = c('hero', 'title', '探索 AI 的边界，共建创新社区', 'Explore the frontier of AI, build together');
+  // 按第一个逗号拆分为两行，保留原有大字号两行视觉设计
+  const titleParts = heroTitle.split(/，|,\s*/);
+  const titleLine1 = titleParts[0]?.trim() || heroTitle;
+  const titleLine2 = titleParts.slice(1).join('，').trim();
+  const heroSubtitle = c(
+    'hero',
+    'subtitle',
+    '一个面向 AI 爱好者、创作者与项目探索者的高端社区，汇聚前沿案例、项目与线下连接。',
+    'A premium community for AI enthusiasts, creators, and project explorers — gathering frontier cases, projects, and real-world connections.'
+  );
 
   useGSAP(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,7 +38,11 @@ export default function FlowingHero() {
       tl.from('.hero-label', { y: 12, autoAlpha: 0, duration: 0.5 })
         .from('.hero-title-line', { y: 36, autoAlpha: 0, stagger: 0.12 }, '-=0.3')
         .from('.hero-desc', { y: 24, autoAlpha: 0 }, '-=0.5')
-        .from('.hero-index', { y: 16, autoAlpha: 0 }, '-=0.4');
+        .from('.hero-index', { y: 16, autoAlpha: 0 }, '-=0.4')
+        .from('.network-ring', { scale: 0.75, autoAlpha: 0, duration: 0.9 }, '-=0.5')
+        .from('.network-core', { scale: 0.4, autoAlpha: 0, duration: 0.7, ease: 'back.out(1.6)' }, '-=0.7')
+        .from('.network-label', { y: 24, autoAlpha: 0, stagger: 0.1, duration: 0.55 }, '-=0.55')
+        .from('.network-status', { y: 12, autoAlpha: 0, duration: 0.45 }, '-=0.35');
     }, sectionRef);
 
     return () => ctx.revert();
@@ -31,13 +50,13 @@ export default function FlowingHero() {
 
   return (
     <div ref={sectionRef}>
-      <section className="relative overflow-hidden border-b border-border bg-[#090a0c]">
+      <section className="relative overflow-hidden border-b border-border bg-background">
         {/* 克制网格背景 */}
         <div className="qihe-grid pointer-events-none absolute inset-0 z-0" aria-hidden="true" />
-        {/* 右侧柔光氛围 */}
+        {/* 右侧电光紫氛围光 */}
         <div
-          className="pointer-events-none absolute right-[-160px] top-[3%] h-[760px] w-[760px] rounded-full opacity-50 blur-[150px]"
-          style={{ background: 'rgba(196, 198, 202, .045)' }}
+          className="pointer-events-none absolute right-[-160px] top-[3%] h-[760px] w-[760px] rounded-full opacity-60 blur-[150px]"
+          style={{ background: 'hsl(258 90% 55% / .14)' }}
           aria-hidden="true"
         />
 
@@ -49,11 +68,11 @@ export default function FlowingHero() {
                 QIHE COMMUNITY / AI BUILDERS NETWORK
               </p>
               <h1 className="font-display text-[clamp(49px,15vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-[#ecebe7] md:text-[clamp(54px,6.7vw,102px)]">
-                <span className="hero-title-line block">{t('探索 AI 的边界，', 'Explore the frontier of AI,')}</span>
-                <span className="hero-title-line gradient-text block">{t('共建创新社区', 'build together')}</span>
+                <span className="hero-title-line block">{titleLine1}</span>
+                {titleLine2 && <span className="hero-title-line gradient-text block">{titleLine2}</span>}
               </h1>
               <p className="hero-desc mt-6 max-w-[610px] text-base leading-[1.8] text-[#999ca4] text-pretty md:text-[clamp(16px,1.35vw,19px)]">
-                {t('一个面向 AI 爱好者、创作者与项目探索者的高端社区，汇聚前沿案例、项目与线下连接。', 'A premium community for AI enthusiasts, creators, and project explorers — gathering frontier cases, projects, and real-world connections.')}
+                {heroSubtitle}
               </p>
               <div className="hero-index mt-10 flex w-full max-w-[460px] gap-6 border-t border-border pt-5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#5e626a]">
                 <span className="text-[#afb1b4]">{lang === 'en' ? 'COMMUNITY SIGNAL / ONLINE' : 'COMMUNITY SIGNAL / ONLINE'}</span>

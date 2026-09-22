@@ -35,6 +35,7 @@ export interface CaseItem {
   summary: string;
   summary_en: string;
   cover_url: string;
+  video_url: string;
   category_id: string | null;
   content: string;
   content_en: string;
@@ -47,6 +48,8 @@ export interface CaseItem {
   base_favorites: number;
   base_views: number;
   is_featured: boolean;
+  /** 是否置顶展示 */
+  is_pinned?: boolean;
   /** 是否在首页对应板块展示 */
   show_on_home: boolean;
   sort_order: number;
@@ -79,6 +82,8 @@ export interface ProjectItem {
   base_favorites: number;
   base_views: number;
   is_hot: boolean;
+  /** 是否置顶展示 */
+  is_pinned?: boolean;
   /** 是否在首页对应板块展示 */
   show_on_home: boolean;
   sort_order: number;
@@ -101,6 +106,7 @@ export interface EventItem {
   summary: string;
   summary_en: string;
   cover_url: string;
+  video_url: string;
   city: string;
   city_en: string;
   theme: string;
@@ -245,4 +251,59 @@ export interface SiteSetting {
   key: string;
   value: string;
   updated_at: string;
+}
+
+export type PromptCaseFilterGroup = 'category' | 'style' | 'scene';
+
+export interface PromptCaseFilter {
+  id: string;
+  group: PromptCaseFilterGroup;
+  name: string;
+  name_en: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type PromptCaseAspectRatio = '3:4' | '4:3' | '9:16' | '16:9' | '2.35:1';
+
+export interface UserImageProvider {
+  user_id: string;
+  provider: string;
+  base_url: string;
+  model: string;
+  default_size?: string;
+  request_body_template?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromptCaseGeneration {
+  id: string;
+  prompt_case_id: string;
+  image_url: string;
+  prompt_text: string;
+  created_at: string;
+}
+
+export interface PromptCase {
+  id: string;
+  title: string;
+  title_en: string;
+  description: string;
+  description_en: string;
+  prompt: string;
+  prompt_en: string;
+  cover_url: string;
+  aspect_ratio: PromptCaseAspectRatio;
+  category_id: string | null;
+  style_id: string | null;
+  scene_id: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  category?: PromptCaseFilter;
+  style?: PromptCaseFilter;
+  scene?: PromptCaseFilter;
 }

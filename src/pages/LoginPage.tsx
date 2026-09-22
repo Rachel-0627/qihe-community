@@ -62,30 +62,33 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:grid-cols-2">
       {/* Editorial left panel */}
-      <div className="relative hidden flex-col justify-between bg-gradient-primary p-10 text-[#ecebe7] lg:flex lg:p-16">
-        <div>
-          <p className="font-mono-label text-xs uppercase tracking-[0.2em] text-[#8d9098]">№ 00 / AI 创业社区</p>
-          <h1 className="mt-8 font-display text-4xl font-medium leading-tight tracking-tight text-balance">
-            {t('每一个 AI 项目，', 'Every AI project')}
-            <br />
-            <span className="italic">{t('都值得被认真探索', 'deserves thoughtful exploration')}</span>
-          </h1>
-          <p className="mt-6 max-w-md text-sm leading-relaxed text-[#8d9098] text-pretty">
-            {t('加入高端 AI 社区，浏览前沿案例、探索精选项目、参与线下连接。', 'Join the premium AI community — explore frontier cases, curated projects, and real-world connections.')}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-6 font-mono-label text-xs text-[#5e626a]">
+      <div className="relative hidden flex-col justify-between bg-gradient-primary p-10 text-white lg:flex lg:p-16">
+        <div className="absolute inset-0 bg-black/45" aria-hidden="true" />
+        <div className="relative z-10 flex h-full flex-col justify-between">
           <div>
-            <p className="font-display text-2xl font-medium text-[#ecebe7]">100+</p>
-            <p className="mt-1">{t('精选案例', 'Cases')}</p>
+            <p className="font-mono-label text-xs uppercase tracking-[0.2em] text-white/75">№ 00 / AI 创业社区</p>
+            <h1 className="mt-8 font-display text-4xl font-medium leading-tight tracking-tight text-balance">
+              {t('每一个 AI 项目，', 'Every AI project')}
+              <br />
+              <span className="italic">{t('都值得被认真探索', 'deserves thoughtful exploration')}</span>
+            </h1>
+            <p className="mt-6 max-w-md text-sm leading-relaxed text-white/85 text-pretty">
+              {t('加入高端 AI 社区，浏览前沿案例、探索精选项目、参与线下连接。', 'Join the premium AI community — explore frontier cases, curated projects, and real-world connections.')}
+            </p>
           </div>
-          <div>
-            <p className="font-display text-2xl font-medium text-[#ecebe7]">50+</p>
-            <p className="mt-1">{t('AI 项目', 'Projects')}</p>
-          </div>
-          <div>
-            <p className="font-display text-2xl font-medium text-[#ecebe7]">4</p>
-            <p className="mt-1">{t('城市活动', 'Cities')}</p>
+          <div className="grid grid-cols-3 gap-6 font-mono-label text-xs text-white/80">
+            <div>
+              <p className="font-display text-2xl font-medium text-white">100+</p>
+              <p className="mt-1">{t('精选案例', 'Cases')}</p>
+            </div>
+            <div>
+              <p className="font-display text-2xl font-medium text-white">50+</p>
+              <p className="mt-1">{t('AI 项目', 'Projects')}</p>
+            </div>
+            <div>
+              <p className="font-display text-2xl font-medium text-white">4</p>
+              <p className="mt-1">{t('城市活动', 'Cities')}</p>
+            </div>
           </div>
         </div>
       </div>

@@ -1,0 +1,1 @@
+BEGIN; SET LOCAL role TO anon; ROLLBACK;
