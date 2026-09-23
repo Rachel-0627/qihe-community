@@ -38,37 +38,43 @@ export default function BrandMark({ size = 36, className, color }: BrandMarkProp
           </linearGradient>
         </defs>
       )}
+      {/*
+        全部线稿、叶片空心。叶形刻意画得比常规宽（控制点 ±23），
+        这样即使线宽到 12 仍留得出空腔——细线在 16px 标签页看不清，
+        粗线又会把空腔填死变成实心，加宽叶形是这对矛盾的唯一解。
+        被 scale 缩小的叶子按比例反向补偿线宽，否则粗细不均。
+      */}
       <g fill="none" stroke={stroke} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="0" cy="-52" r="104" strokeWidth="6" />
-        <path d="M-88,14 Q0,-16 88,14" strokeWidth="6" />
-        <path d="M-18,3 C-19,-14 -20,-34 -16,-58" strokeWidth="6" />
+        <circle cx="0" cy="-52" r="104" strokeWidth="10" />
+        <path d="M-88,14 Q0,-16 88,14" strokeWidth="10" />
+        <path d="M-18,3 C-19,-14 -20,-34 -16,-58" strokeWidth="11" />
+        <path d="M34,7 C34,-6 34,-18 35,-30" strokeWidth="10" />
         <path
           transform="translate(-16,-58) rotate(28)"
-          d="M0,0 C-15,-20 -15,-46 0,-66 C15,-46 15,-20 0,0Z"
-          strokeWidth="6"
+          d="M0,0 C-21,-25.5 -21,-60.5 0,-86 C21,-60.5 21,-25.5 0,0Z"
+          strokeWidth="12"
         />
         <path
           transform="translate(-19,-32) rotate(-46) scale(.76)"
-          d="M0,0 C-15,-20 -15,-46 0,-66 C15,-46 15,-20 0,0Z"
-          strokeWidth="7.9"
+          d="M0,0 C-21,-25.5 -21,-60.5 0,-86 C21,-60.5 21,-25.5 0,0Z"
+          strokeWidth="15.8"
         />
-        <path d="M34,7 C34,-6 34,-18 35,-30" strokeWidth="5" />
         <path
           transform="translate(35,-30) rotate(32) scale(.5)"
-          d="M0,0 C-15,-20 -15,-46 0,-66 C15,-46 15,-20 0,0Z"
-          strokeWidth="10"
+          d="M0,0 C-21,-25.5 -21,-60.5 0,-86 C21,-60.5 21,-25.5 0,0Z"
+          strokeWidth="24"
         />
         <path
           transform="translate(33,-16) rotate(-42) scale(.42)"
-          d="M0,0 C-15,-20 -15,-46 0,-66 C15,-46 15,-20 0,0Z"
-          strokeWidth="11.9"
+          d="M0,0 C-21,-25.5 -21,-60.5 0,-86 C21,-60.5 21,-25.5 0,0Z"
+          strokeWidth="28.6"
         />
       </g>
       <g fill={stroke}>
-        <circle cx="44" cy="-146" r="7" />
-        <circle cx="-99" cy="-84" r="7" />
-        <circle cx="-80" cy="15" r="7" />
-        <circle cx="100" cy="-25" r="7" />
+        <circle cx="44" cy="-146" r="7.5" />
+        <circle cx="-99" cy="-84" r="7.5" />
+        <circle cx="-80" cy="15" r="7.5" />
+        <circle cx="100" cy="-25" r="7.5" />
       </g>
     </svg>
   );
