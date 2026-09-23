@@ -40,10 +40,10 @@ const FLOW_DOTS = [
 ];
 
 const LABELS = [
-  { zh: '案例', en: 'Cases', sub: 'CASES / 08' },
-  { zh: '项目库', en: 'Projects', sub: 'PROJECTS / 11' },
-  { zh: '城市组局', en: 'Events', sub: 'EVENTS / 04' },
-  { zh: '社区连接', en: 'Connections', sub: 'VIEWS / 43.5K' },
+  { zh: '案例', en: 'Cases', sub: 'CASES' },
+  { zh: '项目库', en: 'Projects', sub: 'PROJECTS' },
+  { zh: '城市组局', en: 'Events', sub: 'EVENTS' },
+  { zh: '社区连接', en: 'Connections', sub: 'VIEWS' },
 ];
 
 const NODE_POS = [
@@ -229,7 +229,7 @@ export default function CommunityNetwork() {
         <div ref={coreRef} className="network-core absolute left-[51%] top-[49%] grid h-[96px] w-[96px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-primary/40 bg-card/90 shadow-[inset_0_0_36px_hsl(258_90%_66%_/_.12),0_0_40px_hsl(258_90%_66%_/_.18)] backdrop-blur-[15px] md:h-[118px] md:w-[118px]">
           <div className="text-center">
             <b className="block text-[23px] tracking-[.04em] text-foreground">{lang === 'en' ? 'Qihe' : '启禾'}</b>
-            <small className="mt-[6px] block font-mono text-[7px] uppercase tracking-[.16em] text-muted-foreground">QI HE / 01</small>
+            <small className="mt-[6px] block font-mono text-[7px] uppercase tracking-[.16em] text-muted-foreground">QI HE</small>
           </div>
         </div>
 

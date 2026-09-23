@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import BrandMark from '@/components/common/BrandMark';
 
 const DEFAULT_NAV_ITEMS = [
   { path: '/', key: 'nav_home' },
@@ -65,7 +66,8 @@ export default function Header() {
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">
-        <Link to="/" className="flex items-center shrink-0">
+        <Link to="/" className="flex items-center gap-3 shrink-0">
+          <BrandMark size={48} className="shrink-0" />
           <span className="font-display text-2xl font-semibold tracking-tight text-[#ecebe7]">{t(brandName, brandNameEn)}</span>
         </Link>
 
