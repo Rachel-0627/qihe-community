@@ -196,7 +196,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `vercel.json` | Vercel 构建与 SPA 路由重写。**删了会构建失败** |
 | `vite.config.ts` / `tailwind.config.js` / `postcss.config.js` | 构建与样式配置 |
 | `biome.json` | 代码格式化配置 |
-| `.env` / `.env.local` / `.env.vercel` | 环境变量，**已在 .gitignore 内** |
+| `.env` | 环境变量，**已在 .gitignore 内**。`VITE_SUPABASE_URL` 必须指向 `https://rrotrtbhqthvfuteoryv.supabase.co`，别用秒哒的 `backend.appmiaoda.com`（见下方待办 7）|
+| `.env.vercel` | 从 Vercel 拉下来的快照，**可能过期**，不要当作真实配置的依据 |
 
 ## 十六、文档与备份
 
@@ -216,4 +217,12 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 3. `src/components/dropzone.tsx` 放在 `components/` 根目录，与其他组件的分类方式不一致。
 4. `src/services/` 是空目录。
 5. ~~Vercel GitHub 自动部署失效~~ —— 2026-09-23 已在 Vercel 重新授权 GitHub App 修复，推 main 会自动部署，无需手动发布。
-6. 数据库迁移 `00030_fix_auth_uid_safe_uuid.sql` 未执行——控制台 SQL Editor 无权修改 `auth` schema，如线上出现 `invalid input syntax for type uuid: "anon"` 需用 psql/TablePlus 单独补。
+6. ~~数据库迁移 `00030_fix_auth_uid_safe_uuid.sql` 未执行~~ —— **确认不需要执行，不要再去补**。
+
+   该迁移想把 `auth.uid()` 改成遇到非法 UUID 时返回 NULL，针对的是秒哒时代自铸的 anon key：那把 key 的 JWT 里带 `sub: "anon"`，`auth.uid()` 会拿 `'anon'` 去 cast UUID 而报错（迁移 00022 的注释记录了这次事故）。
+   迁移到独立 Supabase 后，用的是标准 anon key（payload 只有 `iss` / `ref` / `role`，**没有 `sub`**），`auth.uid()` 正常返回 NULL，问题不复存在。已用匿名身份实测 `user_image_providers`（策略含 `auth.uid()`）、`get_project_content`、`prompt_case_filters`，均正常无报错。
+   改 `auth` schema 属于改 Supabase 托管对象，平台升级时可能被覆盖，不值得为一个不会发生的问题去冒险。
+
+7. **本地 `.env` 容易指错后端**。`.env` 不在版本库里，2026-09-23 曾发现它还指向秒哒网关 `backend.appmiaoda.com`，而线上早已切到独立 Supabase `rrotrtbhqthvfuteoryv.supabase.co`——导致本地开发连的是旧库，新表全都读不到，很容易误判成功能坏了。
+   `.env.vercel` 同样是过期快照，里面的 `VITE_SUPABASE_URL` 也还是秒哒的，**以 Vercel 后台的环境变量为准**。
+   排查方法：`curl -s https://qihe.bj.cn/ | grep -o 'assets/index-[^"]*\.js'` 拿到产物名，再 `curl` 该文件搜 `supabase.co`，就能看到线上真正用的地址。
