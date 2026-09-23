@@ -7,7 +7,7 @@
 
 ## 技术栈速览
 
-React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgres + Auth + Storage + Edge Functions）｜ 部署 Vercel（**自动部署已断，需手动 `npx vercel --prod`**）
+React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgres + Auth + Storage + Edge Functions）｜ 部署 Vercel（推 main 自动部署）
 
 ---
 
@@ -215,5 +215,5 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 2. 十余个文件超过 200 行（上表 ⚠️），其中 `UserImageProviderConfig.tsx`(568)、`RichTextEditor.tsx`(460)、`PromptCaseDetail.tsx`(445) 最值得优先拆。
 3. `src/components/dropzone.tsx` 放在 `components/` 根目录，与其他组件的分类方式不一致。
 4. `src/services/` 是空目录。
-5. **Vercel GitHub 自动部署失效**（2026-09-19 起），推代码不会触发部署，需手动执行 `npx vercel@latest --prod --yes`。
+5. ~~Vercel GitHub 自动部署失效~~ —— 2026-09-23 已在 Vercel 重新授权 GitHub App 修复，推 main 会自动部署，无需手动发布。
 6. 数据库迁移 `00030_fix_auth_uid_safe_uuid.sql` 未执行——控制台 SQL Editor 无权修改 `auth` schema，如线上出现 `invalid input syntax for type uuid: "anon"` 需用 psql/TablePlus 单独补。
