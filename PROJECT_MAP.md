@@ -37,6 +37,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `ToolsPage.tsx` (38) | 工具页外壳 |
 | `ProfilePage.tsx` (354) ⚠️ | 个人中心 |
 | `ProfileImageProviderPage.tsx` (35) | 个人生图 API 配置页外壳 |
+| `SubmitCasePage.tsx` (50) | 用户投稿案例。壳在 `SubmissionForm`，这里只管「分类」字段 |
+| `SubmitProjectPage.tsx` (100) | 用户投稿项目。外链必填并校验 http(s)，场景/成熟度必选，不开放传视频 |
 | `BenefitsPage.tsx` (180) | 会员权益 |
 | `BusinessCoopPage.tsx` | 商务与合作 |
 | `LoginPage.tsx` (152) | 登录 / 注册 |
@@ -65,6 +67,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 文件 | 职责 |
 |---|---|
+| `SubmissionForm.tsx` (184) | **投稿表单公共外壳**：登录判断、本地草稿、公共字段、提交与重投。两个投稿页复用它 |
+| `profile/MySubmissions.tsx` (120) | 个人中心「我的投稿」：状态、驳回理由、重投、撤回 |
 | `BrandMark.tsx` (75) | **品牌标识 SVG**。与 `public/favicon.svg` 同源，改动需两边同步 |
 | `PageMeta.tsx` (22) | 逐页设置标题等元信息 |
 | `RouteGuard.tsx` (67) | 路由守卫，拦截未登录/无权限访问 |
@@ -127,6 +131,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `AdminContent.tsx` (99) | 通用内容编辑 |
 | `AdminAssistant.tsx` (157) | AI 助手配置 |
 | `AdminTools.tsx` (65) | 工具页配置 |
+| `AdminSubmissions.tsx` (145) | **投稿审核**：预览、通过（落地到正式表）、驳回填理由 |
 | `NumberField.tsx` (36) | 后台专用数字输入框 |
 
 ## 十、状态 `src/contexts/`
@@ -151,6 +156,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `editorImageExtension.ts` (113) / `videoExtension.ts` (99) | TipTap 图片 / 视频扩展 |
 | `editorSlashCommand.ts` (31) / `editorSlashItems.ts` (101) | 斜杠命令的机制与菜单项 |
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
+| `submissionsApi.ts` (135) | **投稿与审核的所有读写**。单独成文件，不往 api.ts 里堆 |
 | `utils.ts` (59) | 通用小函数（className 合并等） |
 
 ## 十二、Hooks `src/hooks/`
@@ -177,7 +183,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 路径 | 职责 |
 |---|---|
-| `migrations/` | 38 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/` | 39 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/00039_…submissions.sql` | 投稿表 + RLS + `review_submission()` 审核落地函数 |
 | `schema.sql` | 完整表结构快照 |
 | `config.toml` | Supabase 本地配置 |
 | `functions/ai-assistant` | AI 对话（流式） |

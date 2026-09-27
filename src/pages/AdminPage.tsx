@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutGrid, PenLine, Settings2, Sparkles, Users, ArrowLeft, Menu } from 'lucide-react';
+import { LayoutGrid, PenLine, Settings2, Sparkles, Users, ArrowLeft, Menu, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import AdminContentHub from '@/components/admin/AdminContentHub';
@@ -10,8 +10,9 @@ import AdminCopywriting from '@/components/admin/AdminCopywriting';
 import AdminBenefits from '@/components/admin/AdminBenefits';
 import AdminAssistant from '@/components/admin/AdminAssistant';
 import AdminAccounts from '@/components/admin/AdminAccounts';
+import AdminSubmissions from '@/components/admin/AdminSubmissions';
 
-type TabKey = 'content' | 'copywriting' | 'benefits' | 'assistant' | 'accounts';
+type TabKey = 'content' | 'submissions' | 'copywriting' | 'benefits' | 'assistant' | 'accounts';
 
 /**
  * 后台管理：五大入口（内容管理 / 网站文案 / 权益管理 / 智能助手 / 账号管理）。
@@ -39,6 +40,7 @@ export default function AdminPage() {
 
   const tabs: { key: TabKey; zh: string; en: string; icon: React.ReactNode }[] = [
     { key: 'content', zh: '内容管理', en: 'Content', icon: <LayoutGrid className="h-4 w-4" /> },
+    { key: 'submissions', zh: '投稿审核', en: 'Submissions', icon: <Inbox className="h-4 w-4" /> },
     { key: 'copywriting', zh: '网站文案', en: 'Site Copywriting', icon: <PenLine className="h-4 w-4" /> },
     { key: 'benefits', zh: '权益管理', en: 'Benefits', icon: <Settings2 className="h-4 w-4" /> },
     { key: 'assistant', zh: '智能助手', en: 'AI Assistant', icon: <Sparkles className="h-4 w-4" /> },
@@ -48,6 +50,7 @@ export default function AdminPage() {
   const renderTab = () => {
     switch (tab) {
       case 'content': return <AdminContentHub />;
+      case 'submissions': return <AdminSubmissions />;
       case 'copywriting': return <AdminCopywriting />;
       case 'benefits': return <AdminBenefits />;
       case 'assistant': return <AdminAssistant />;

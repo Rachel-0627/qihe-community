@@ -50,3 +50,6 @@ dist/
 .DS_Store
 .vercel
 .env*
+
+# Supabase CLI 本机状态（部署时自动生成，不应入库）
+supabase/.temp/

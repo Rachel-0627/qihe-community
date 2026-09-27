@@ -15,6 +15,8 @@ import PrivacyPage from './pages/PrivacyPage';
 import BusinessCoopPage from './pages/BusinessCoopPage';
 import ToolsPage from './pages/ToolsPage';
 import ProfileImageProviderPage from './pages/ProfileImageProviderPage';
+import SubmitCasePage from './pages/SubmitCasePage';
+import SubmitProjectPage from './pages/SubmitProjectPage';
 
 export interface RouteConfig {
   name: string;
@@ -36,6 +38,8 @@ export const routes: RouteConfig[] = [
   { name: '工具', path: '/tools', element: <ToolsPage />, public: true },
   { name: '权益', path: '/benefits', element: <BenefitsPage />, public: true },
   { name: '登录', path: '/login', element: <LoginPage />, public: true },
+  { name: '发布案例', path: '/submit/case', element: <SubmitCasePage /> },
+  { name: '发布项目', path: '/submit/project', element: <SubmitProjectPage /> },
   { name: '个人中心', path: '/profile', element: <ProfilePage /> },
   { name: '生图模型配置', path: '/profile/image-provider', element: <ProfileImageProviderPage /> },
   { name: '后台管理', path: '/admin', element: <AdminPage /> },

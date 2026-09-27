@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
-import { Menu, Globe, User, Award, LogOut, Settings } from 'lucide-react';
+import { Menu, Globe, User, Award, LogOut, Settings, PenSquare } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
@@ -15,6 +15,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import BrandMark from '@/components/common/BrandMark';
+
+// 发布按钮样式，与旁边的语言切换保持一致
+const PUBLISH_BTN =
+  'font-mono-label text-base gap-1.5 text-[#8d9098] hover:bg-transparent hover:text-[#ecebe7]';
 
 const DEFAULT_NAV_ITEMS = [
   { path: '/', key: 'nav_home' },
@@ -86,6 +90,15 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          {/* 只放一个发布按钮，进去后在页面里用标签切换案例 / 项目。
+              导航栏已经有 6 个栏目，再摆两个按钮窄屏会挤。 */}
+          <Button asChild variant="ghost" size="sm" className={PUBLISH_BTN}>
+            <Link to={user ? '/submit/case' : '/login'}>
+              <PenSquare className="h-3.5 w-3.5" />
+              {t('发布', 'Publish')}
+            </Link>
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"

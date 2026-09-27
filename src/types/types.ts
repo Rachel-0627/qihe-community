@@ -307,3 +307,51 @@ export interface PromptCase {
   style?: PromptCaseFilter;
   scene?: PromptCaseFilter;
 }
+// ── 用户投稿与审核 ──────────────────────────────────
+// 待审内容不进 cases / projects，只存在 content_submissions 里，
+// 审核通过时由 review_submission() 落地到正式表。
+
+export type SubmissionKind = 'case' | 'project';
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+
+/** 投稿里可编辑的字段。刻意不含 is_featured、base_likes、access_level
+ *  这类运营字段——它们由管理员在后台控制，不接受用户提交。 */
+export interface SubmissionPayload {
+  title?: string;
+  title_en?: string;
+  summary?: string;
+  summary_en?: string;
+  cover_url?: string;
+  video_url?: string;
+  content?: string;
+  content_en?: string;
+  /** 案例专有 */
+  category_id?: string | null;
+  author?: string;
+  author_en?: string;
+  /** 项目专有 */
+  scene?: string;
+  scene_en?: string;
+  maturity?: string;
+  maturity_en?: string;
+  external_url?: string;
+}
+
+export interface ContentSubmission {
+  id: string;
+  kind: SubmissionKind;
+  /** null = 新投稿；非 null = 对这条已发布内容的修改 */
+  target_id: string | null;
+  payload: SubmissionPayload;
+  status: SubmissionStatus;
+  submitted_by: string;
+  submitted_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  /** 驳回理由；通过时也可留备注 */
+  review_note: string;
+  created_at: string;
+  updated_at: string;
+  /** 后台列表联表带出的投稿人信息 */
+  submitter?: { nickname: string | null; username: string | null; avatar_url: string | null };
+}

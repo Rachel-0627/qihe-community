@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import type { LevelConfig, EventItem, UnlockCountResult } from '@/types/types';
+import MySubmissions from '@/components/profile/MySubmissions';
 
 export default function ProfilePage() {
   const { t, lang } = useI18n();
@@ -291,6 +292,16 @@ export default function ProfilePage() {
 
           {/* My events */}
           <div className="magazine-card p-6">
+            <div className="rounded-lg border border-border bg-card/40 p-5">
+              <h2 className="font-display text-lg font-medium">{t('我的投稿', 'My Submissions')}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t('投稿需管理员审核通过后才会公开展示', 'Submissions go public after admin review')}
+              </p>
+              <div className="mt-4">
+                <MySubmissions />
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-accent" />
               <h2 className="font-display text-lg font-medium">{t('我报名的活动', 'My Events')}</h2>
