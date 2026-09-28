@@ -9,7 +9,7 @@ export default function Footer() {
   // 页脚文案优先读后台「页面文案设置」（site_content 表），无值回退「品牌与导航」配置
   const { c } = useSiteContent();
   return (
-    <footer className="border-t border-border bg-[#0b0c0f]">
+    <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
         {/* 12 栏网格：品牌占 5 栏，三组链接均分右侧 7 栏，
             避免原来「左边一个 logo、右边三列挤在一起、中间大片空白」的失衡 */}

@@ -32,9 +32,9 @@ export default function BrandMark({ size = 36, className, color }: BrandMarkProp
       {!color && (
         <defs>
           <linearGradient id={gradientId} x1="-110" y1="10" x2="110" y2="-150" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#F53DB8" />
-            <stop offset=".55" stopColor="#A06BF8" />
-            <stop offset="1" stopColor="#895AF6" />
+            <stop offset="0" stopColor="#E2A17E" />
+            <stop offset=".55" stopColor="#C76242" />
+            <stop offset="1" stopColor="#A4472F" />
           </linearGradient>
         </defs>
       )}

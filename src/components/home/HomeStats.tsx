@@ -51,7 +51,7 @@ export default function HomeStats() {
   ];
 
   return (
-    <section className="border-b border-border bg-[#0b0c0f]">
+    <section className="border-b border-border bg-card">
       <div ref={rootRef} className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4">
           {items.map((item, i) => (
@@ -59,10 +59,10 @@ export default function HomeStats() {
               key={item.key}
               className={`flex min-h-[90px] items-end justify-between py-6 md:min-h-[118px] md:py-7 ${i % 2 === 1 ? 'border-l border-border pl-4 md:pl-6' : ''} ${i >= 2 ? 'border-t border-border md:border-t-0' : ''} ${i === 2 ? 'md:border-l md:pl-6' : ''} ${i === 3 ? 'md:pl-6' : ''}`}
             >
-              <p className="font-display text-2xl font-medium tabular-nums text-[#ecebe7] md:text-[32px] md:font-[540] md:tracking-[-.04em]">
+              <p className="font-display text-2xl font-medium tabular-nums text-foreground md:text-[32px] md:font-[540] md:tracking-[-.04em]">
                 {stats ? <span data-count={stats[item.key]}>{formatCount(stats[item.key], lang)}</span> : <span className="text-muted-foreground">—</span>}
               </p>
-              <p className="editorial-label mt-2 text-right text-[10px] leading-[1.6] tracking-[0.12em] text-[#5e626a]">{t(item.zh, item.en)}</p>
+              <p className="editorial-label mt-2 text-right text-[10px] leading-[1.6] tracking-[0.12em] text-muted-foreground">{t(item.zh, item.en)}</p>
             </div>
           ))}
         </div>

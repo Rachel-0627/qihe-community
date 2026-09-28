@@ -56,7 +56,7 @@ export default function FlowingHero() {
         {/* 右侧电光紫氛围光 */}
         <div
           className="pointer-events-none absolute right-[-160px] top-[3%] h-[760px] w-[760px] rounded-full opacity-60 blur-[150px]"
-          style={{ background: 'hsl(258 90% 55% / .14)' }}
+          style={{ background: 'hsl(var(--primary) / .12)' }}
           aria-hidden="true"
         />
 
@@ -64,18 +64,18 @@ export default function FlowingHero() {
           <div className="grid min-h-[calc(100svh-80px)] grid-cols-1 items-center gap-8 py-12 md:grid-cols-[1.05fr_.95fr] md:gap-[4vw] md:py-[8vh]">
             {/* 左侧文案 */}
             <div className="hero-copy max-w-[750px]">
-              <p className="hero-label mb-6 font-mono text-[10px] uppercase tracking-[0.19em] text-[#afb1b4]">
+              <p className="hero-label mb-6 font-mono text-[10px] uppercase tracking-[0.19em] text-muted-foreground">
                 QIHE COMMUNITY / AI BUILDERS NETWORK
               </p>
-              <h1 className="font-display text-[clamp(49px,15vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-[#ecebe7] md:text-[clamp(54px,6.7vw,102px)]">
+              <h1 className="font-display text-[clamp(49px,15vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-foreground md:text-[clamp(54px,6.7vw,102px)]">
                 <span className="hero-title-line block">{titleLine1}</span>
                 {titleLine2 && <span className="hero-title-line gradient-text block">{titleLine2}</span>}
               </h1>
-              <p className="hero-desc mt-6 max-w-[610px] text-base leading-[1.8] text-[#999ca4] text-pretty md:text-[clamp(16px,1.35vw,19px)]">
+              <p className="hero-desc mt-6 max-w-[610px] text-base leading-[1.8] text-muted-foreground text-pretty md:text-[clamp(16px,1.35vw,19px)]">
                 {heroSubtitle}
               </p>
-              <div className="hero-index mt-10 flex w-full max-w-[460px] gap-6 border-t border-border pt-5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#5e626a]">
-                <span className="text-[#afb1b4]">{lang === 'en' ? 'COMMUNITY SIGNAL / ONLINE' : 'COMMUNITY SIGNAL / ONLINE'}</span>
+              <div className="hero-index mt-10 flex w-full max-w-[460px] gap-6 border-t border-border pt-5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                <span className="text-foreground/70">{lang === 'en' ? 'COMMUNITY SIGNAL / ONLINE' : 'COMMUNITY SIGNAL / ONLINE'}</span>
                 <span>BEIJING · CHINA</span>
               </div>
             </div>

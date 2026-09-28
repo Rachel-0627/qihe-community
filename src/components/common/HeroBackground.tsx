@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 // 用 Canvas 2D 而非 three.js：这个效果不需要 3D 管线，
 // 2D 实现体积更小、启动更快，也不依赖 WebGL 上下文（部分环境拿不到）。
 
-const ACCENT_RGB = '188, 190, 194'; // 克制银灰，与黑灰银主题一致
+const ACCENT_RGB = '199, 98, 66'; // 克制陶土橘，与暖白主题一致
 const LINK_DISTANCE = 160;         // 连线距离（CSS px）
 const AREA_PER_NODE = 4200;        // 节点密度提升，保证视觉丰富度
 const MIN_NODES = 45;

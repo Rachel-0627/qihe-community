@@ -36,11 +36,11 @@ export default function CaseCard({ item, liked, favorited, onLike, onFavorite }:
     if (!card || !gloss || !contextSafe) return;
 
     const onEnter = contextSafe(() => {
-      gsap.to(card, { boxShadow: '0 18px 40px hsl(258 90% 55% / 0.28)', duration: 0.35, overwrite: 'auto' });
+      gsap.to(card, { boxShadow: '0 18px 40px hsl(14 54% 38% / 0.18)', duration: 0.35, overwrite: 'auto' });
       gsap.fromTo(gloss, { x: '-100%', opacity: 0 }, { x: '100%', opacity: 0.18, duration: 0.6, ease: 'power2.out' });
     });
     const onLeave = contextSafe(() => {
-      gsap.to(card, { boxShadow: '0 1px 2px hsl(258 70% 30% / 0.25)', duration: 0.45, ease: 'power2.out', overwrite: 'auto' });
+      gsap.to(card, { boxShadow: '0 1px 2px hsl(26 20% 30% / 0.1)', duration: 0.45, ease: 'power2.out', overwrite: 'auto' });
       gsap.to(gloss, { x: '100%', opacity: 0, duration: 0.3, ease: 'power2.in', overwrite: 'auto' });
     });
 

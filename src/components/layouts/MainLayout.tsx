@@ -7,8 +7,8 @@ import { AIAssistantProvider } from '@/contexts/AIAssistantContext';
 
 export default function MainLayout({ children }: { children: ReactNode }) {
   return (
-    // 本站为固定深色主题，显式添加 .dark 以激活 Tailwind 的 dark: 变体（如 dark:prose-invert）。
-    <div className="dark flex min-h-screen w-full flex-col bg-background">
+    // 本站采用固定暖白主题，颜色统一由全局设计变量控制。
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <AIAssistantProvider>
         <Header />
         <main className="flex-1 min-w-0">

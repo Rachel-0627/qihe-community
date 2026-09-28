@@ -18,7 +18,7 @@ import BrandMark from '@/components/common/BrandMark';
 
 // 发布按钮样式，与旁边的语言切换保持一致
 const PUBLISH_BTN =
-  'font-mono-label text-base gap-1.5 text-[#8d9098] hover:bg-transparent hover:text-[#ecebe7]';
+  'font-mono-label text-base gap-1.5 text-muted-foreground hover:bg-transparent hover:text-foreground';
 
 const DEFAULT_NAV_ITEMS = [
   { path: '/', key: 'nav_home' },
@@ -65,14 +65,14 @@ export default function Header() {
     <header
       className={`sticky top-0 z-40 w-full border-b transition-colors duration-300 ${
         scrolled
-          ? 'border-border bg-[rgba(9,10,12,.88)] backdrop-blur-[22px]'
+          ? 'border-border bg-background/90 backdrop-blur-[22px]'
           : 'border-transparent bg-background/85 backdrop-blur-md'
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">
         <Link to="/" className="flex items-center gap-3 shrink-0">
           <BrandMark size={48} className="shrink-0" />
-          <span className="font-display text-2xl font-semibold tracking-tight text-[#ecebe7]">{t(brandName, brandNameEn)}</span>
+          <span className="font-display text-2xl font-semibold tracking-tight text-foreground">{t(brandName, brandNameEn)}</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -80,8 +80,8 @@ export default function Header() {
             <Link
               key={item.path}
               to={item.path}
-              className={`font-mono-label text-base tracking-[0.02em] transition-colors hover:text-[#ecebe7] ${
-                isActive(item.path) ? 'text-[#ecebe7]' : 'text-[#8d9098]'
+              className={`font-mono-label text-base tracking-[0.02em] transition-colors hover:text-foreground ${
+                isActive(item.path) ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               {t(item.zh, item.en)}
@@ -103,7 +103,7 @@ export default function Header() {
             variant="ghost"
             size="sm"
             onClick={toggleLang}
-            className="font-mono-label text-base gap-1.5 text-[#8d9098] hover:bg-transparent hover:text-[#ecebe7]"
+            className="font-mono-label text-base gap-1.5 text-muted-foreground hover:bg-transparent hover:text-foreground"
           >
             <Globe className="h-3.5 w-3.5" />
             {lang === 'zh' ? 'EN' : '中'}

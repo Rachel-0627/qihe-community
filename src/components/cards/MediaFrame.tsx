@@ -9,8 +9,8 @@ interface MediaFrameProps {
 }
 
 /**
- * 统一 Media Frame：为所有用户上传图片提供克制的深色画框。
- * 外层背景 #181A1E，内边距桌面 10px / 移动端 8px，
+ * 统一 Media Frame：为所有用户上传图片提供克制的暖灰画框。
+ * 外层背景使用全局 media-frame 变量，内边距桌面 10px / 移动端 8px，
  * 图片 6px 圆角 + 细描边，默认降低亮度与饱和度，Hover 恢复。
  */
 export default function MediaFrame({
@@ -23,8 +23,8 @@ export default function MediaFrame({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden bg-[#181a1e] p-2 md:p-[10px]',
-        'border-b border-[rgba(235,234,227,.075)]',
+        'group relative overflow-hidden bg-[var(--media-frame)] p-2 md:p-[10px]',
+        'border-b border-border',
         aspectClass,
         className
       )}
@@ -34,11 +34,11 @@ export default function MediaFrame({
           src={src}
           alt={alt}
           loading="lazy"
-          className="h-full w-full rounded-md border border-[rgba(235,234,227,.09)] object-cover brightness-[.9] saturate-[.9] transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.012] group-hover:brightness-100 group-hover:saturate-100"
+          className="h-full w-full rounded-md border border-border object-cover transition-transform duration-500 ease-out group-hover:scale-[1.012]"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center rounded-md border border-[rgba(235,234,227,.09)] bg-[#141519]">
-          <span className="font-mono-label text-[10px] uppercase tracking-wider text-[#5e626a]">No Image</span>
+        <div className="flex h-full w-full items-center justify-center rounded-md border border-border bg-muted">
+          <span className="font-mono-label text-[10px] uppercase tracking-wider text-muted-foreground">No Image</span>
         </div>
       )}
       {children}

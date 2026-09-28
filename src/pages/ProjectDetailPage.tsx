@@ -222,12 +222,12 @@ export default function ProjectDetailPage() {
 
       {item.cover_url && (
         <div className="mt-8 overflow-hidden border border-border bg-card">
-          <div className="bg-[#181a1e] p-2 md:p-[10px]">
+          <div className="bg-[var(--media-frame)] p-2 md:p-[10px]">
             <img
               src={item.cover_url}
               alt={title}
               loading="lazy"
-              className="w-full rounded-md border border-[rgba(235,234,227,.09)] object-cover brightness-[.9] saturate-[.9]"
+              className="w-full rounded-md border border-border object-cover brightness-[.9] saturate-[.9]"
             />
           </div>
         </div>

@@ -111,34 +111,34 @@ export default function CommunityNetwork() {
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
-      // 背景连线 — 电光紫微光
+      // 背景连线 — 陶土橘微光
       LINKS.forEach(([a, b]) => {
         const p = PTS[a];
         const q = PTS[b];
         ctx.beginPath();
         ctx.moveTo(p[0] * w, p[1] * h);
         ctx.lineTo(q[0] * w, q[1] * h);
-        ctx.strokeStyle = 'hsla(258, 90%, 66%, 0.18)';
+        ctx.strokeStyle = 'hsla(14, 54%, 52%, 0.18)';
         ctx.lineWidth = 1;
         ctx.stroke();
       });
 
-      // 流动光点 — 电光紫到洋红渐变
+      // 流动光点 — 陶土橘同色系渐变
       FLOW_DOTS.forEach((dot) => {
         const path = FLOW_PATHS[dot.path];
         const t = reduced ? dot.offset : (time * dot.speed + dot.offset) % 1;
         const { x, y } = getPathPoint(path, t, w, h);
         const g = ctx.createRadialGradient(x, y, 0, x, y, 14);
-        g.addColorStop(0, 'hsla(258, 100%, 72%, 0.95)');
-        g.addColorStop(0.5, 'hsla(320, 90%, 60%, 0.35)');
-        g.addColorStop(1, 'hsla(258, 90%, 66%, 0)');
+        g.addColorStop(0, 'hsla(19, 61%, 62%, 0.95)');
+        g.addColorStop(0.5, 'hsla(14, 54%, 52%, 0.35)');
+        g.addColorStop(1, 'hsla(14, 54%, 52%, 0)');
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.arc(x, y, 14, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // 节点 — 中心高亮 + 外围电光紫/洋红脉冲
+      // 节点 — 中心高亮 + 外围陶土橘脉冲
       const ptr = pointerRef.current;
       PTS.forEach(([x, y, s], i) => {
         const baseX = x * w + (ptr.x - 0.5) * (i % 2 ? 8 : -8);
@@ -146,12 +146,12 @@ export default function CommunityNetwork() {
         const pulse = reduced ? 0 : Math.sin(time * 0.003 + i * 1.3) * 0.35;
         const radius = s * (1 + pulse * 0.25);
         const isCenter = i === 0;
-        const color = isCenter ? 'hsla(258, 100%, 72%, 0.95)' : (i % 2 === 0 ? 'hsla(258, 90%, 66%, 0.85)' : 'hsla(320, 90%, 60%, 0.85)');
+        const color = isCenter ? 'hsla(19, 61%, 62%, 0.95)' : (i % 2 === 0 ? 'hsla(14, 54%, 52%, 0.85)' : 'hsla(12, 55%, 41%, 0.85)');
 
         // 外发光
         const glow = ctx.createRadialGradient(baseX, baseY, 0, baseX, baseY, radius * 4);
         glow.addColorStop(0, color.replace('0.85', '0.28').replace('0.95', '0.32'));
-        glow.addColorStop(1, 'hsla(258, 90%, 66%, 0)');
+        glow.addColorStop(1, 'hsla(14, 54%, 52%, 0)');
         ctx.fillStyle = glow;
         ctx.beginPath();
         ctx.arc(baseX, baseY, radius * 4, 0, Math.PI * 2);
@@ -220,13 +220,13 @@ export default function CommunityNetwork() {
 
       <div className="absolute inset-0">
         {/* 圆环 */}
-        <div ref={ringRef} className="network-ring absolute left-[51%] top-[49%] h-[235px] w-[235px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/30 shadow-[0_0_0_64px_hsl(258_90%_66%_/_.04),0_0_0_128px_hsl(258_90%_66%_/_.02)] md:h-[320px] md:w-[320px]">
+        <div ref={ringRef} className="network-ring absolute left-[51%] top-[49%] h-[235px] w-[235px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/30 shadow-[0_0_0_64px_hsl(14_54%_52%_/_.04),0_0_0_128px_hsl(14_54%_52%_/_.02)] md:h-[320px] md:w-[320px]">
           <span className="absolute inset-[56px] rounded-full border border-primary/25" aria-hidden="true" />
           <span className="absolute -inset-[54px] animate-[spin_40s_linear_infinite] rounded-full border border-dashed border-primary/20 motion-reduce:animate-none" aria-hidden="true" />
         </div>
 
         {/* 中心核心 */}
-        <div ref={coreRef} className="network-core absolute left-[51%] top-[49%] grid h-[96px] w-[96px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-primary/40 bg-card/90 shadow-[inset_0_0_36px_hsl(258_90%_66%_/_.12),0_0_40px_hsl(258_90%_66%_/_.18)] backdrop-blur-[15px] md:h-[118px] md:w-[118px]">
+        <div ref={coreRef} className="network-core absolute left-[51%] top-[49%] grid h-[96px] w-[96px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-primary/40 bg-card/90 shadow-[inset_0_0_36px_hsl(14_54%_52%_/_.12),0_0_40px_hsl(14_54%_52%_/_.18)] backdrop-blur-[15px] md:h-[118px] md:w-[118px]">
           <div className="text-center">
             <b className="block text-[23px] tracking-[.04em] text-foreground">{lang === 'en' ? 'Qihe' : '启禾'}</b>
             <small className="mt-[6px] block font-mono text-[7px] uppercase tracking-[.16em] text-muted-foreground">QI HE</small>
@@ -245,7 +245,7 @@ export default function CommunityNetwork() {
 
         {/* 状态条 */}
         <div ref={statusRef} className="network-status absolute bottom-[22px] left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] uppercase tracking-[.15em] text-muted-foreground">
-          <span className="mr-[9px] inline-block h-[5px] w-[5px] rounded-full bg-primary shadow-[0_0_9px_hsl(258_90%_66%_/_1)]" />
+          <span className="mr-[9px] inline-block h-[5px] w-[5px] rounded-full bg-primary shadow-[0_0_9px_hsl(14_54%_52%_/_1)]" />
           SYSTEM COORDINATES STABLE
         </div>
       </div>

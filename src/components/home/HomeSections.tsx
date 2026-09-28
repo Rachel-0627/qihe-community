@@ -123,14 +123,14 @@ export default function HomeSections() {
 function Section({ title, desc, to, muted, children }: { title: string; desc: string; to: string; muted?: boolean; children: ReactNode }) {
   const { t } = useI18n();
   return (
-    <section className={`border-b border-border ${muted ? 'bg-[#0c0d10]' : ''}`}>
+    <section className={`border-b border-border ${muted ? 'bg-muted/40' : ''}`}>
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl font-medium tracking-[-.035em] text-[#ecebe7] md:text-[34px]">{title}</h2>
-            <p className="mt-2 max-w-xl text-base leading-[1.7] text-[#8d9098] text-pretty">{desc}</p>
+            <h2 className="font-display text-2xl font-medium tracking-[-.035em] text-foreground md:text-[34px]">{title}</h2>
+            <p className="mt-2 max-w-xl text-base leading-[1.7] text-muted-foreground text-pretty">{desc}</p>
           </div>
-          <Link to={to} className="group inline-flex items-center gap-1.5 font-mono-label text-[11px] tracking-[0.08em] text-[#8c8f97] transition-colors hover:text-[#ecebe7]">
+          <Link to={to} className="group inline-flex items-center gap-1.5 font-mono-label text-[11px] tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground">
             {t('查看全部', 'View all')}
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
