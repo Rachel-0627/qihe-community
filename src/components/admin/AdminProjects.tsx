@@ -21,6 +21,8 @@ import { translateZhToEn, fetchProjectContent, toggleProjectPinned } from '@/lib
 import { importMarkdown, importDocx, importPdf, type ImportResult } from '@/lib/documentImport';
 import { useLocalDraft } from '@/lib/useLocalDraft';
 import { totalCount } from '@/lib/utils';
+import PreviewChapterPicker from '@/components/admin/PreviewChapterPicker';
+import { stampChapters } from '@/lib/chapters';
 import type { ProjectItem, ContentAccess, ProjectFilterOption } from '@/types/types';
 
 const ACCESS: ContentAccess[] = ['free', 'member', 'pro', 'private'];
@@ -75,9 +77,10 @@ export default function AdminProjects() {
       if (!res.allowed) throw new Error('no access');
       setEditing({
         ...item,
-        content: res.content ?? '',
+        content: stampChapters(res.content ?? ''),
         content_en: res.content_en ?? '',
         external_url: res.external_url ?? '',
+        preview_chapters: res.preview_chapters ?? [],
       });
       setOpen(true);
     } catch {
@@ -260,6 +263,16 @@ export default function AdminProjects() {
                     </Field>
                   </div>
                 </div>
+                {/* 紧挨着「访问级别」：选了付费级别马上就能看到试看设置，
+                    放到正文编辑器下面的话要滚很久，容易以为没这个功能 */}
+                {(editing.access_level || 'free') !== 'free' && (
+                  <PreviewChapterPicker
+                    content={typeof editing.content === 'string' ? editing.content : ''}
+                    value={editing.preview_chapters ?? []}
+                    onChange={(next) => setEditing({ ...editing, preview_chapters: next })}
+                    onStamp={(html) => setEditing({ ...editing, content: html })}
+                  />
+                )}
                 <div className="space-y-1.5">
                   <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('正文内容', 'Content')}</Label>
                   <ImmersiveEditor

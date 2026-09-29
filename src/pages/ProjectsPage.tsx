@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReveal } from '@/hooks/useReveal';
-import { fetchProjects, getUserInteractions, toggleInteractionV2, canAccessContent, fetchProjectFilterOptions } from '@/lib/api';
+import { fetchProjects, getUserInteractions, toggleInteractionV2, fetchProjectFilterOptions } from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProjectCard from '@/components/cards/ProjectCard';
@@ -12,7 +12,7 @@ type FilterKey = 'scene' | 'hot' | 'maturity';
 
 export default function ProjectsPage() {
   const { t, lang } = useI18n();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const revealRef = useReveal<HTMLDivElement>();
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -24,8 +24,6 @@ export default function ProjectsPage() {
   const [interactions, setInteractions] = useState<{ like: Set<string>; favorite: Set<string> }>({ like: new Set(), favorite: new Set() });
   const [filterOptions, setFilterOptions] = useState<ProjectFilterOption[]>([]);
   const [showAllFilters, setShowAllFilters] = useState(false);
-
-  const tier = profile?.member_tier || 'guest';
 
   const load = useCallback(() => {
     setLoading(true);
@@ -162,7 +160,6 @@ export default function ProjectsPage() {
               <ProjectCard
                 key={item.id}
                 item={item}
-                locked={!canAccessContent(tier, item.access_level)}
                 liked={interactions.like.has(item.id)}
                 favorited={interactions.favorite.has(item.id)}
                 onLike={() => handleInteraction(item, 'like')}

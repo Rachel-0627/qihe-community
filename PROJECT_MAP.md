@@ -76,7 +76,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `AIAssistant.tsx` (226) ⚠️ | 前台 AI 助手浮窗 |
 | `CommentsSection.tsx` (46) | 评论区 |
 | `ShareDialog.tsx` (81) | 分享弹窗 |
-| `ChapterToc.tsx` (87) | 长文章的章节目录 |
+| `ChapterToc.tsx` (100) | 长文章的章节目录；付费内容里没解锁的章节显示成锁、不可点 |
 | `AnimatedDialog.tsx` (86) | 带动效的弹窗容器 |
 | `ShimmerEmptyState.tsx` (56) | 空状态占位 |
 | `FileUploadField.tsx` (111) | 文件上传表单项 |
@@ -98,7 +98,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 文件 | 职责 |
 |---|---|
-| `ImmersiveEditor.tsx` (211) ⚠️ | 编辑器主体 |
+| `ImmersiveEditor.tsx` (212) ⚠️ | 编辑器主体。标题级别含 h1（库里有整篇用 h1 分章的文章） |
+| `ChapterHeading.ts` (30) | 让标题保住 `data-ch` 属性。ProseMirror 只保留声明过的属性，不声明会被丢掉 |
 | `EditorToolbar.tsx` (107) | 顶部工具栏 |
 | `BubbleMenu.tsx` (165) | 选中文字时浮出的气泡菜单 |
 | `SlashCommand.tsx` (96) | 斜杠命令菜单 |
@@ -121,6 +122,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `AdminContentHub.tsx` (129) | 内容管理总入口，分发到下面各模块 |
 | `AdminCases.tsx` (365) ⚠️ / `AdminCaseFilters.tsx` (120) | 案例管理 / 案例筛选维度管理 |
 | `AdminProjects.tsx` (398) ⚠️ / `AdminProjectFilters.tsx` (152) | 项目管理 / 项目筛选维度管理 |
+| `PreviewChapterPicker.tsx` (72) | 付费项目的「免费试看章节」勾选框，读编辑器里的实时正文 |
 | `AdminEvents.tsx` (331) ⚠️ / `AdminEventFilters.tsx` (145) | 活动管理 / 活动筛选维度管理 |
 | `AdminPromptCases.tsx` (255) ⚠️ / `AdminPromptCaseFilters.tsx` (139) | 提示词案例管理 / 其筛选维度管理 |
 | `AdminAccounts.tsx` (266) ⚠️ | 用户账号管理 |
@@ -152,7 +154,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `documentImport.ts` (507) ⚠️ | 导入 Word/PDF/Excel 转正文（用到 pdfjs、xlsx） |
 | `sse.ts` (108) | SSE 流式响应处理，用于 AI 对话逐字输出 |
 | `useLocalDraft.ts` (118) | 草稿自动存本地，防止编辑丢失 |
-| `contentHeadings.ts` | 给正文标题注入 id，供章节目录跳转 |
+| `contentHeadings.ts` (60) | 给正文标题注入 id，供章节目录跳转；h1/h2/h3 都算 |
+| `chapters.ts` (88) | 章节永久编号：保存正文时盖 `data-ch`，供「免费试看章节」定位 |
 | `editorImageExtension.ts` (113) / `videoExtension.ts` (99) | TipTap 图片 / 视频扩展 |
 | `editorSlashCommand.ts` (31) / `editorSlashItems.ts` (101) | 斜杠命令的机制与菜单项 |
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
@@ -183,8 +186,10 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 路径 | 职责 |
 |---|---|
-| `migrations/` | 39 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/` | 41 个数据库迁移脚本，按编号顺序执行 |
 | `migrations/00039_…submissions.sql` | 投稿表 + RLS + `review_submission()` 审核落地函数 |
+| `migrations/00040_…preview_chapters.sql` | `projects.preview_chapters` 列 + 重写 `get_project_content()`：目录全给、正文按章节切 |
+| `migrations/00041_…intro_leak.sql` | 收紧「引言免费」：必须真的切出章节、且引言 ≤2000 字符，否则不给 |
 | `schema.sql` | 完整表结构快照 |
 | `config.toml` | Supabase 本地配置 |
 | `functions/ai-assistant` | AI 对话（流式） |

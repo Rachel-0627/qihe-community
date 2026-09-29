@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchHomeCases, fetchHomeProjects, fetchHomeEvents, canAccessContent, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
+import { fetchHomeCases, fetchHomeProjects, fetchHomeEvents, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import CaseCard from '@/components/cards/CaseCard';
@@ -18,8 +18,7 @@ import type { CaseItem, ProjectItem, EventItem } from '@/types/types';
  */
 export default function HomeSections() {
   const { t } = useI18n();
-  const { user, profile, refreshProfile } = useAuth();
-  const tier = profile?.member_tier || 'guest';
+  const { user, refreshProfile } = useAuth();
 
   const [cases, setCases] = useState<CaseItem[] | null>(null);
   const [projects, setProjects] = useState<ProjectItem[] | null>(null);
@@ -77,7 +76,6 @@ export default function HomeSections() {
             <ProjectCard
               key={item.id}
               item={item}
-              locked={!canAccessContent(tier, item.access_level)}
               liked={interactions.like.has(item.id)}
               favorited={interactions.favorite.has(item.id)}
               onLike={() => handleInteraction('project', item, 'like')}

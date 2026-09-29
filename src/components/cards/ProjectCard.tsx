@@ -2,18 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Share2, Pin } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
-import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { totalCount, displayViews } from '@/lib/utils';
 import InteractionButton from './InteractionButton';
 import MediaFrame from './MediaFrame';
 import ShareDialog from '@/components/common/ShareDialog';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { ProjectItem } from '@/types/types';
 
 interface Props {
   item: ProjectItem;
-  locked?: boolean;
   liked?: boolean;
   favorited?: boolean;
   onLike?: () => void;
@@ -28,39 +24,27 @@ const accessLevelLabel: Record<string, { zh: string; en: string; className: stri
   private: { zh: '专属', en: 'Private', className: 'bg-[#ecebe7] text-[#0b0c0f]' },
 };
 
-export default function ProjectCard({ item, locked, liked, favorited, onLike, onFavorite }: Props) {
+export default function ProjectCard({ item, liked, favorited, onLike, onFavorite }: Props) {
   const { t, lang } = useI18n();
-  const { lockedDialog } = useSiteSettings();
   const navigate = useNavigate();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [posterOpen, setPosterOpen] = useState(false);
   const title = lang === 'en' && item.title_en ? item.title_en : item.title;
   const summary = lang === 'en' && item.summary_en ? item.summary_en : item.summary;
   const maturityLabel = lang === 'en' && item.maturity_en ? item.maturity_en : item.maturity;
   const access = accessLevelLabel[item.access_level] || accessLevelLabel.free;
 
-  const handleLockedClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setDialogOpen(true);
-  };
-
+  // 付费项目也放行进详情页。以前全文不可读，进去没意义所以弹窗拦下；
+  // 现在详情页会显示完整目录和免费试看章节，拦住反而看不到试看。
+  // 正文该扣的仍在数据库里扣，前端放行不等于放内容。
   const handleFooterClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
-    if (locked) {
-      setDialogOpen(true);
-    } else {
-      navigate(`/projects/${item.id}`);
-    }
+    navigate(`/projects/${item.id}`);
   };
 
   return (
     <>
       <article data-reveal className="magazine-card group flex h-full flex-col overflow-hidden cursor-pointer">
-        <Link
-          to={locked ? '#' : `/projects/${item.id}`}
-          onClick={locked ? handleLockedClick : undefined}
-          className="flex flex-1 flex-col focus:outline-none"
-        >
+        <Link to={`/projects/${item.id}`} className="flex flex-1 flex-col focus:outline-none">
           <div className="shrink-0">
             <MediaFrame src={item.cover_url} alt={title} />
           </div>
@@ -123,24 +107,6 @@ export default function ProjectCard({ item, locked, liked, favorited, onLike, on
           </span>
         </div>
       </article>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {lang === 'en' && lockedDialog.titleEn ? lockedDialog.titleEn : lockedDialog.title}
-            </DialogTitle>
-            <DialogDescription className="whitespace-pre-line text-pretty">
-              {lang === 'en' && lockedDialog.contentEn ? lockedDialog.contentEn : lockedDialog.content}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={() => setDialogOpen(false)} className="font-mono-label text-xs uppercase tracking-wider">
-              {lang === 'en' ? 'Got it' : '知道了'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <ShareDialog
         open={posterOpen}

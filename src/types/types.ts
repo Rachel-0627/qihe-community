@@ -69,6 +69,8 @@ export interface ProjectItem {
   content?: string;
   content_en?: string;
   external_url?: string;
+  /** 免费试看章节编号；同样不在列表查询里，仅后台编辑时带上 */
+  preview_chapters?: string[];
   video_url: string;
   scene: string;
   scene_en: string;
