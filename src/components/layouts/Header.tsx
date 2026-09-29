@@ -25,14 +25,14 @@ const DEFAULT_NAV_ITEMS = [
   { path: '/cases', key: 'nav_cases' },
   { path: '/projects', key: 'nav_projects' },
   { path: '/events', key: 'nav_events' },
-  { path: '/business', key: 'nav_business' },
+  { path: '/discuss', key: 'nav_discuss' },
   { path: '/tools', key: 'nav_tools' },
 ];
 
 export default function Header() {
   const { t, lang, toggleLang } = useI18n();
   const { user, profile, signOut } = useAuth();
-  const { brandName, brandNameEn, navLabels, businessCoop, tools } = useSiteSettings();
+  const { brandName, brandNameEn, navLabels, discuss, tools } = useSiteSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -46,12 +46,12 @@ export default function Header() {
   }, []);
 
   const navItems = useMemo(() => DEFAULT_NAV_ITEMS
-    .filter((item) => (item.path !== '/business' || businessCoop.visible) && (item.path !== '/tools' || tools.visible))
+    .filter((item) => (item.path !== '/discuss' || discuss.visible) && (item.path !== '/tools' || tools.visible))
     .map((item) => ({
       ...item,
-      zh: navLabels[item.path]?.zh ?? (item.path === '/business' ? '商务与合作' : item.path === '/tools' ? '工具' : item.path),
-      en: navLabels[item.path]?.en ?? (item.path === '/business' ? 'Business' : item.path === '/tools' ? 'Tools' : item.path),
-    })), [navLabels, businessCoop.visible, tools.visible]);
+      zh: navLabels[item.path]?.zh ?? (item.path === '/discuss' ? '分享讨论区' : item.path === '/tools' ? '工具' : item.path),
+      en: navLabels[item.path]?.en ?? (item.path === '/discuss' ? 'Discussion' : item.path === '/tools' ? 'Tools' : item.path),
+    })), [navLabels, discuss.visible, tools.visible]);
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);

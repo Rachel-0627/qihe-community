@@ -15,7 +15,7 @@ const TEXTAREA_KEYS = [
   'terms_content', 'privacy_content',
   'locked_project_dialog_content', 'locked_project_dialog_content_en',
   'footer_tagline', 'footer_tagline_en', 'footer_copyright', 'footer_copyright_en',
-  'business_coop_content', 'business_coop_content_en',
+  'discuss_content', 'discuss_content_en',
 ];
 
 // 版权/页脚 slogan 等单行短文本用更矮的编辑框
@@ -53,8 +53,8 @@ export default function AdminSiteSettings() {
         footer_tagline_en: 'Premium AI project community · Innovation lab × Digital art gallery',
         footer_copyright: '© 2026 AI 创业社区. 保留所有权利。',
         footer_copyright_en: '© 2026 AI Startup Community. All rights reserved.',
-        nav_business: '商务与合作',
-        nav_business_en: 'Business',
+        nav_discuss: '分享讨论区',
+        nav_discuss_en: 'Discussion',
         nav_tools: '工具',
         nav_tools_en: 'Tools',
       };
@@ -143,8 +143,8 @@ function labelFor(key: string, t: (zh: string, en: string) => string) {
     nav_projects_en: ['导航：项目库（英文）', 'Nav: Projects (English)'],
     nav_events: ['导航：城市组局', 'Nav: Events'],
     nav_events_en: ['导航：城市组局（英文）', 'Nav: Events (English)'],
-    nav_business: ['导航：商务与合作', 'Nav: Business'],
-    nav_business_en: ['导航：商务与合作（英文）', 'Nav: Business (English)'],
+    nav_discuss: ['导航：分享讨论区', 'Nav: Business'],
+    nav_discuss_en: ['导航：分享讨论区（英文）', 'Nav: Business (English)'],
     nav_tools: ['导航：工具', 'Nav: Tools'],
     nav_tools_en: ['导航：工具（英文）', 'Nav: Tools (English)'],
     locked_project_dialog_title: ['无权益项目弹窗标题', 'Locked project dialog title'],

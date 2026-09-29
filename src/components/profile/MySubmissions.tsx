@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Clock, CheckCircle2, XCircle, Trash2, Pencil } from 'lucide-react';
+import { SUBMIT_KIND_META } from '@/components/common/SubmitTabs';
 import { useI18n } from '@/contexts/I18nContext';
 import { Button } from '@/components/ui/button';
 import { deleteSubmission, fetchMySubmissions } from '@/lib/submissionsApi';
@@ -62,7 +63,8 @@ export default function MySubmissions() {
       {items.map((s) => {
         const meta = STATUS_META[s.status];
         const title = s.payload?.title || t('（无标题）', '(untitled)');
-        const kindLabel = s.kind === 'case' ? t('案例', 'Case') : t('项目', 'Project');
+        const kindMeta = SUBMIT_KIND_META[s.kind];
+        const kindLabel = t(kindMeta.zh, kindMeta.en);
         return (
           <li key={s.id} className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -93,7 +95,7 @@ export default function MySubmissions() {
               <div className="mt-3 flex items-center gap-2">
                 {s.status === 'rejected' && (
                   <Button asChild size="sm" variant="secondary">
-                    <Link to={`/submit/case?resubmit=${s.id}`}>
+                    <Link to={`${kindMeta.submitTo}?resubmit=${s.id}`}>
                       <Pencil className="mr-1.5 h-3.5 w-3.5" />
                       {t('修改后重新提交', 'Edit and resubmit')}
                     </Link>
@@ -108,7 +110,7 @@ export default function MySubmissions() {
 
             {s.status === 'approved' && s.target_id && (
               <Button asChild size="sm" variant="ghost" className="mt-3 px-0">
-                <Link to={`/${s.kind === 'case' ? 'cases' : 'projects'}/${s.target_id}`}>
+                <Link to={`${kindMeta.viewBase}/${s.target_id}`}>
                   {t('查看已发布内容 →', 'View published →')}
                 </Link>
               </Button>

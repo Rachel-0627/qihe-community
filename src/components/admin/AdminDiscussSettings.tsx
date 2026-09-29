@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 
-export default function AdminBusinessCoop() {
+export default function AdminDiscussSettings() {
   const { t } = useI18n();
   const { reload: reloadSiteSettings } = useSiteSettings();
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -23,9 +23,9 @@ export default function AdminBusinessCoop() {
         const map: Record<string, string> = {};
         rows.forEach((r) => { map[r.key] = r.value; });
         setSettings({
-          business_coop_visible: map.business_coop_visible ?? 'true',
-          business_coop_content: map.business_coop_content ?? '<p>欢迎与我们联系商务合作。</p>',
-          business_coop_content_en: map.business_coop_content_en ?? '<p>Welcome to contact us for business cooperation.</p>',
+          discuss_visible: map.discuss_visible ?? 'true',
+          discuss_content: map.discuss_content ?? '<p>欢迎与我们联系分享讨论。</p>',
+          discuss_content_en: map.discuss_content_en ?? '<p>Welcome to contact us for business cooperation.</p>',
         });
       })
       .catch(() => toast.error(t('加载失败', 'Load failed')))
@@ -92,8 +92,8 @@ export default function AdminBusinessCoop() {
     input.click();
   }, []);
 
-  const handleImportZh = makeImportHandler(zhEditorRef, (html) => setSettings((prev) => ({ ...prev, business_coop_content: html })));
-  const handleImportEn = makeImportHandler(enEditorRef, (html) => setSettings((prev) => ({ ...prev, business_coop_content_en: html })));
+  const handleImportZh = makeImportHandler(zhEditorRef, (html) => setSettings((prev) => ({ ...prev, discuss_content: html })));
+  const handleImportEn = makeImportHandler(enEditorRef, (html) => setSettings((prev) => ({ ...prev, discuss_content_en: html })));
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</p>;
@@ -107,11 +107,11 @@ export default function AdminBusinessCoop() {
           <p className="text-sm text-muted-foreground">{t('关闭后前台导航与页面入口将隐藏', 'Hide navigation and page entry when turned off')}</p>
         </div>
         <Switch
-          checked={settings.business_coop_visible !== 'false'}
+          checked={settings.discuss_visible !== 'false'}
           onCheckedChange={(checked) => {
             const value = checked ? 'true' : 'false';
-            setSettings((prev) => ({ ...prev, business_coop_visible: value }));
-            handleSave('business_coop_visible', value);
+            setSettings((prev) => ({ ...prev, discuss_visible: value }));
+            handleSave('discuss_visible', value);
           }}
         />
       </div>
@@ -120,14 +120,14 @@ export default function AdminBusinessCoop() {
         <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('中文内容', 'Chinese content')}</Label>
         <ImmersiveEditor
           ref={zhEditorRef}
-          value={settings.business_coop_content || ''}
-          onChange={(value) => setSettings((prev) => ({ ...prev, business_coop_content: value }))}
-          placeholder={t('编辑商务与合作页面内容', 'Edit business cooperation page content')}
+          value={settings.discuss_content || ''}
+          onChange={(value) => setSettings((prev) => ({ ...prev, discuss_content: value }))}
+          placeholder={t('编辑分享讨论区页面内容', 'Edit business cooperation page content')}
           uploadFolder="business"
           onImportFile={handleImportZh}
         />
         <div className="flex justify-end">
-          <Button onClick={() => handleSave('business_coop_content', settings.business_coop_content)} className="font-mono-label text-xs uppercase tracking-wider">
+          <Button onClick={() => handleSave('discuss_content', settings.discuss_content)} className="font-mono-label text-xs uppercase tracking-wider">
             {t('保存中文内容', 'Save Chinese content')}
           </Button>
         </div>
@@ -137,14 +137,14 @@ export default function AdminBusinessCoop() {
         <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('英文内容', 'English content')}</Label>
         <ImmersiveEditor
           ref={enEditorRef}
-          value={settings.business_coop_content_en || ''}
-          onChange={(value) => setSettings((prev) => ({ ...prev, business_coop_content_en: value }))}
+          value={settings.discuss_content_en || ''}
+          onChange={(value) => setSettings((prev) => ({ ...prev, discuss_content_en: value }))}
           placeholder={t('Edit business cooperation page content', 'Edit business cooperation page content')}
           uploadFolder="business"
           onImportFile={handleImportEn}
         />
         <div className="flex justify-end">
-          <Button onClick={() => handleSave('business_coop_content_en', settings.business_coop_content_en)} className="font-mono-label text-xs uppercase tracking-wider">
+          <Button onClick={() => handleSave('discuss_content_en', settings.discuss_content_en)} className="font-mono-label text-xs uppercase tracking-wider">
             {t('保存英文内容', 'Save English content')}
           </Button>
         </div>

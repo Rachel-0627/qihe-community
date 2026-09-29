@@ -67,6 +67,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 文件 | 职责 |
 |---|---|
+| `SubmitTabs.tsx` (50) | 投稿类型切换条 + 各类型的标签/路径映射，三处共用 |
 | `SubmissionForm.tsx` (184) | **投稿表单公共外壳**：登录判断、本地草稿、公共字段、提交与重投。两个投稿页复用它 |
 | `profile/MySubmissions.tsx` (120) | 个人中心「我的投稿」：状态、驳回理由、重投、撤回 |
 | `BrandMark.tsx` (75) | **品牌标识 SVG**。与 `public/favicon.svg` 同源，改动需两边同步 |
@@ -160,6 +161,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `editorSlashCommand.ts` (31) / `editorSlashItems.ts` (101) | 斜杠命令的机制与菜单项 |
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
 | `submissionsApi.ts` (135) | **投稿与审核的所有读写**。单独成文件，不往 api.ts 里堆 |
+| `discussionApi.ts` (78) | 讨论帖与评论的读写 |
+| `assistantQa.ts` (100) | 助手固定问答的匹配：标题 > 标签 > 正文加权，再用二字片段重合打破平局 |
 | `utils.ts` (59) | 通用小函数（className 合并等） |
 
 ## 十二、Hooks `src/hooks/`
@@ -186,11 +189,14 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 路径 | 职责 |
 |---|---|
-| `migrations/` | 42 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/` | 45 个数据库迁移脚本，按编号顺序执行 |
 | `migrations/00039_…submissions.sql` | 投稿表 + RLS + `review_submission()` 审核落地函数 |
 | `migrations/00040_…preview_chapters.sql` | `projects.preview_chapters` 列 + 重写 `get_project_content()`：目录全给、正文按章节切 |
 | `migrations/00041_…intro_leak.sql` | 收紧「引言免费」：必须真的切出章节、且引言 ≤2000 字符，否则不给 |
 | `migrations/00042_add_event_end_date.sql` | `events.event_end_date`；允许为空，必填在后台表单上强制 |
+| `migrations/00043_add_business_posts.sql` | 帖子 + 评论两张表；改写 `review_submission()` 加显式分支与兜底报错 |
+| `migrations/00044_add_business_post_images.sql` | 帖子加封面与配图列 |
+| `migrations/00045_rename_to_discussion.sql` | 「商务与合作」改为「分享讨论区」：表名/枚举值/设置键一起改，去掉分类 |
 | `schema.sql` | 完整表结构快照 |
 | `config.toml` | Supabase 本地配置 |
 | `functions/ai-assistant` | AI 对话（流式） |

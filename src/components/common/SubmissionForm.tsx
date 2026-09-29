@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { FileText, Boxes } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ImmersiveEditor from '@/components/editor/ImmersiveEditor';
+import SubmitTabs from '@/components/common/SubmitTabs';
 import FileUploadField from '@/components/common/FileUploadField';
 import { createSubmission, fetchSubmission, updateSubmission } from '@/lib/submissionsApi';
 import { loadDraft, removeDraft, saveDraft } from '@/lib/useLocalDraft';
 import type { SubmissionKind, SubmissionPayload } from '@/types/types';
-
-const SUBMIT_TABS = [
-  { kind: 'case' as const,    to: '/submit/case',    zh: '案例', en: 'Case',    Icon: FileText },
-  { kind: 'project' as const, to: '/submit/project', zh: '项目', en: 'Project', Icon: Boxes },
-];
 
 /** 表单值。公共字段固定，各内容类型的专有字段以字符串键追加。 */
 export interface SubmissionFormValues {
@@ -137,27 +132,9 @@ export default function SubmissionForm({
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">
       {/* 内容类型切换。改一条已有投稿 / 申请修改已发布内容时不给切——
           换了类型等于换了一条内容，语义上说不通 */}
-      {!resubmitId && !targetId && (
-        <div className="mb-8 flex items-center gap-1 rounded-xl border border-border bg-card/40 p-1.5">
-          {SUBMIT_TABS.map((tabItem) => {
-            const active = tabItem.kind === kind;
-            return (
-              <Link
-                key={tabItem.kind}
-                to={tabItem.to}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm transition-colors ${
-                  active
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <tabItem.Icon className="h-4 w-4" />
-                {t(tabItem.zh, tabItem.en)}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      {/* 内容类型切换。改一条已有投稿 / 申请修改已发布内容时不给切——
+          换了类型等于换了一条内容，语义上说不通 */}
+      {!resubmitId && !targetId && <SubmitTabs active={kind} />}
 
       <div className="border-b border-border pb-6">
         <p className="editorial-label text-accent">{t('投稿', 'Submit')}</p>

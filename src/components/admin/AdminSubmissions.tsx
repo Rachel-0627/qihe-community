@@ -4,6 +4,7 @@ import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { fetchSubmissionsForReview, reviewSubmission } from '@/lib/submissionsApi';
+import { SUBMIT_KIND_META } from '@/components/common/SubmitTabs';
 import type { ContentSubmission, SubmissionStatus } from '@/types/types';
 
 const TABS: { key: SubmissionStatus; label: string }[] = [
@@ -81,7 +82,7 @@ export default function AdminSubmissions() {
               <div className="min-w-0">
                 <p className="truncate font-medium">{s.payload?.title || '（无标题）'}</p>
                 <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                  {s.kind === 'case' ? '案例' : '项目'}
+                  {SUBMIT_KIND_META[s.kind].zh}
                   {s.target_id ? ' · 修改申请' : ' · 新投稿'}
                   {' · '}{who}
                   {' · '}{new Date(s.submitted_at).toLocaleString('zh-CN')}
@@ -118,11 +119,26 @@ export default function AdminSubmissions() {
                     </div>
                   </dl>
                 )}
-                {/* 投稿正文是用户提交的 HTML，仅管理员在后台预览时渲染 */}
-                <div
-                  className="prose prose-invert max-w-none text-sm"
-                  dangerouslySetInnerHTML={{ __html: s.payload?.content || '<p>（无正文）</p>' }}
-                />
+                {s.kind === 'discussion_post' ? (
+                  <>
+                    {Array.isArray(s.payload?.images) && s.payload.images.length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {s.payload.images.map((url: string) => (
+                          <img key={url} src={url} alt="" className="h-24 w-24 rounded border border-border object-cover" />
+                        ))}
+                      </div>
+                    )}
+                    {/* 帖子正文是纯文本，按文本渲染。
+                        当 HTML 渲染的话用户能往后台注入标签 */}
+                    <p className="whitespace-pre-line text-sm">{s.payload?.body || '（无正文）'}</p>
+                  </>
+                ) : (
+                  /* 案例/项目的正文是用户提交的 HTML，仅管理员在后台预览时渲染 */
+                  <div
+                    className="prose prose-invert max-w-none text-sm"
+                    dangerouslySetInnerHTML={{ __html: s.payload?.content || '<p>（无正文）</p>' }}
+                  />
+                )}
               </div>
             )}
 

@@ -315,7 +315,7 @@ export interface PromptCase {
 // 待审内容不进 cases / projects，只存在 content_submissions 里，
 // 审核通过时由 review_submission() 落地到正式表。
 
-export type SubmissionKind = 'case' | 'project';
+export type SubmissionKind = 'case' | 'project' | 'discussion_post';
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 
 /** 投稿里可编辑的字段。刻意不含 is_featured、base_likes、access_level
@@ -333,6 +333,10 @@ export interface SubmissionPayload {
   category_id?: string | null;
   author?: string;
   author_en?: string;
+  /** 讨论帖专有：纯文本正文与配图。正文不走富文本，
+   *  开放发帖的板块若渲染用户提交的 HTML，就多一个注入面 */
+  body?: string;
+  images?: string[];
   /** 项目专有 */
   scene?: string;
   scene_en?: string;
@@ -358,4 +362,34 @@ export interface ContentSubmission {
   updated_at: string;
   /** 后台列表联表带出的投稿人信息 */
   submitter?: { nickname: string | null; username: string | null; avatar_url: string | null };
+}
+
+// ============ 分享讨论区：帖子与评论 ============
+
+export interface DiscussionPost {
+  id: string;
+  title: string;
+  body: string;
+  cover_url: string;
+  /** 配图，详情页排在正文前面 */
+  images: string[];
+  author_id: string | null;
+  /** 发帖时的署名快照；profiles 的 RLS 不让游客读，所以冗余存一份 */
+  author_name: string;
+  author_avatar: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+  /** 列表查询联表带出的评论数 */
+  post_comments?: { count: number }[];
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string | null;
+  author_name: string;
+  author_avatar: string;
+  body: string;
+  created_at: string;
 }

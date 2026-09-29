@@ -6,7 +6,7 @@ import { FileText, FolderKanban, CalendarDays, Handshake, Wrench, SlidersHorizon
 import AdminCases from '@/components/admin/AdminCases';
 import AdminProjects from '@/components/admin/AdminProjects';
 import AdminEvents from '@/components/admin/AdminEvents';
-import AdminBusinessCoop from '@/components/admin/AdminBusinessCoop';
+import AdminDiscussSettings from '@/components/admin/AdminDiscussSettings';
 import AdminTools from '@/components/admin/AdminTools';
 import AdminCaseFilters from '@/components/admin/AdminCaseFilters';
 import AdminProjectFilters from '@/components/admin/AdminProjectFilters';
@@ -16,12 +16,12 @@ import AdminPromptCaseFilters from '@/components/admin/AdminPromptCaseFilters';
 
 /**
  * 内容管理（五大入口之一）：
- * 案例 / 项目库 / 城市组局 / 商务与合作 / 工具 五个板块的内容编辑合并到一个入口，
+ * 案例 / 项目库 / 城市组局 / 分享讨论区 / 工具 五个板块的内容编辑合并到一个入口，
  * 通过二级 Tab 切换；筛选配置以折叠面板内嵌在对应 Tab 里。
  */
 export default function AdminContentHub() {
   const { t } = useI18n();
-  const [section, setSection] = useState<'cases' | 'projects' | 'events' | 'business' | 'tools'>('cases');
+  const [section, setSection] = useState<'cases' | 'projects' | 'events' | 'discuss' | 'tools'>('cases');
   const [cfOpen, setCfOpen] = useState(false);
   const [pfOpen, setPfOpen] = useState(false);
   const [efOpen, setEfOpen] = useState(false);
@@ -31,7 +31,7 @@ export default function AdminContentHub() {
     <div>
       <div>
         <p className="editorial-label text-accent">{t('内容管理', 'Content')}</p>
-        <h2 className="mt-1 font-display text-xl font-medium">{t('案例 · 项目库 · 城市组局 · 商务与合作 · 工具', 'Cases · Projects · Events · Business · Tools')}</h2>
+        <h2 className="mt-1 font-display text-xl font-medium">{t('案例 · 项目库 · 城市组局 · 分享讨论区 · 工具', 'Cases · Projects · Events · Business · Tools')}</h2>
       </div>
 
       <Tabs value={section} onValueChange={(v) => setSection(v as typeof section)} className="mt-6">
@@ -45,8 +45,8 @@ export default function AdminContentHub() {
           <TabsTrigger value="events" className="gap-1.5 px-3 py-2 font-mono-label text-xs uppercase tracking-wider data-[state=active]:bg-card">
             <CalendarDays className="h-3.5 w-3.5" />{t('城市组局', 'Events')}
           </TabsTrigger>
-          <TabsTrigger value="business" className="gap-1.5 px-3 py-2 font-mono-label text-xs uppercase tracking-wider data-[state=active]:bg-card">
-            <Handshake className="h-3.5 w-3.5" />{t('商务与合作', 'Business')}
+          <TabsTrigger value="discuss" className="gap-1.5 px-3 py-2 font-mono-label text-xs uppercase tracking-wider data-[state=active]:bg-card">
+            <Handshake className="h-3.5 w-3.5" />{t('分享讨论区', 'Discussion')}
           </TabsTrigger>
           <TabsTrigger value="tools" className="gap-1.5 px-3 py-2 font-mono-label text-xs uppercase tracking-wider data-[state=active]:bg-card">
             <Wrench className="h-3.5 w-3.5" />{t('工具', 'Tools')}
@@ -101,8 +101,8 @@ export default function AdminContentHub() {
           <AdminEvents />
         </TabsContent>
 
-        <TabsContent value="business" className="mt-6">
-          <AdminBusinessCoop />
+        <TabsContent value="discuss" className="mt-6">
+          <AdminDiscussSettings />
         </TabsContent>
 
         <TabsContent value="tools" className="mt-6 space-y-8">

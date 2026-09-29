@@ -7,10 +7,22 @@ import { supabase } from '@/db/supabase';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { sendStreamRequest } from '@/lib/sse';
-import type { ChatMessage } from '@/types/types';
+import { findAnswer } from '@/lib/assistantQa';
+import type { ChatMessage, KnowledgeItem } from '@/types/types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+/**
+ * 是否走大模型。
+ *
+ * 目前是 false：ai-assistant 这个 Edge Function 仍然指向秒哒的网关，
+ * 迁移到独立 Supabase 后一直没接回来，调用必然失败。
+ * 所以先用后台「知识库」里的条目做固定问答。
+ *
+ * 接回大模型后：把这里改成 true 即可，下面 askLLM 的代码原样保留着。
+ */
+const USE_LLM = false;
 
 export default function AIAssistant() {
   const { t, lang } = useI18n();
@@ -21,12 +33,15 @@ export default function AIAssistant() {
   const [streaming, setStreaming] = useState(false);
   const [assistantName, setAssistantName] = useState('Aria');
   const [greeting, setGreeting] = useState('');
+  // 固定问答的数据源，就是后台「助手 → 知识库」里的条目
+  const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (open && messages.length === 0) {
-      import('@/lib/api').then(({ fetchAssistantConfig }) => {
+      import('@/lib/api').then(({ fetchAssistantConfig, fetchKnowledgeBase }) => {
+        fetchKnowledgeBase().then(setKnowledge).catch(() => setKnowledge([]));
         fetchAssistantConfig().then((cfg) => {
           if (cfg) {
             setAssistantName(lang === 'en' ? cfg.persona_name_en : cfg.persona_name);
@@ -42,26 +57,9 @@ export default function AIAssistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || streaming) return;
-
-    // AI 助手按用户计费限流，未登录无法使用
-    if (!user) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: t('请先登录后再和我聊天哦～', 'Please sign in first to chat with me.') },
-      ]);
-      return;
-    }
-
-    const userMsg: ChatMessage = { role: 'user', content: text };
-    const history = messages.filter((m) => m.content);
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    setStreaming(true);
-
-    const apiMessages = [...history, userMsg].map((m) => ({ role: m.role, content: m.content }));
+  /** 调大模型。目前 USE_LLM 为 false，这段不会执行，接回网关后直接开启即可 */
+  const askLLM = useCallback(async (text: string, history: ChatMessage[]) => {
+    const apiMessages = [...history, { role: 'user' as const, content: text }].map((m) => ({ role: m.role, content: m.content }));
     let acc = '';
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
@@ -120,7 +118,41 @@ export default function AIAssistant() {
         });
       },
     });
-  }, [input, streaming, messages, lang, t, user]);
+  }, [lang, t]);
+
+  const ask = useCallback(async (raw: string) => {
+    const text = raw.trim();
+    if (!text || streaming) return;
+
+    const history = messages.filter((m) => m.content);
+    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setInput('');
+
+    if (USE_LLM) {
+      // 大模型按用户计费限流，这条路径要求先登录
+      if (!user) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: t('请先登录后再和我聊天哦～', 'Please sign in first to chat with me.') }]);
+        return;
+      }
+      setStreaming(true);
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+      await askLLM(text, history);
+      return;
+    }
+
+    // 固定问答：本地匹配，不发请求，所以游客也能用
+    const hit = findAnswer(text, knowledge);
+    const reply = hit
+      ? hit.content
+      : t(
+          '这个我还答不上来。你可以换个说法，或者看看下面这些我知道的：',
+          "I don't have an answer for that yet. Try rephrasing, or pick one of these:",
+        );
+    // 稍等一下再出字，立刻蹦出来像是页面卡了一下，不像在回答
+    setTimeout(() => setMessages((prev) => [...prev, { role: 'assistant', content: reply }]), 260);
+  }, [streaming, messages, knowledge, user, t, askLLM]);
+
+  const handleSend = useCallback(() => { ask(input); }, [ask, input]);
 
   return (
     <>
@@ -186,6 +218,23 @@ export default function AIAssistant() {
                   </div>
                 </div>
               ))}
+
+              {/* 快捷问题：把知识库条目的标题列出来，点一下就问。
+                  固定问答只认得这几个话题，与其让人猜着输入，不如直接摆出来 */}
+              {!USE_LLM && knowledge.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {knowledge.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => ask(item.title)}
+                      className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                    >
+                      {item.title}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -201,18 +250,20 @@ export default function AIAssistant() {
                   }
                 }}
                 placeholder={
-                  user
+                  // 固定问答在本地匹配，不产生调用费用，游客也能问；
+                  // 接回大模型后（USE_LLM = true）才需要登录限流
+                  !USE_LLM || user
                     ? (lang === 'zh' ? `向 ${assistantName} 提问…` : `Ask ${assistantName}…`)
                     : t('登录后即可使用助手', 'Sign in to use the assistant')
                 }
-                disabled={!user}
+                disabled={USE_LLM && !user}
                 className="max-h-24 min-h-[40px] flex-1 resize-none border-border bg-background px-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50"
                 rows={1}
               />
               <Button
                 size="icon"
                 onClick={handleSend}
-                disabled={!user || streaming || !input.trim()}
+                disabled={(USE_LLM && !user) || streaming || !input.trim()}
                 className="h-10 w-10 shrink-0 border border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Send className="h-4 w-4" />

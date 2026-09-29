@@ -20,7 +20,7 @@ interface SiteSettingsContextValue {
     copyright: string;
     copyrightEn: string;
   };
-  businessCoop: {
+  discuss: {
     visible: boolean;
     content: string;
     contentEn: string;
@@ -38,7 +38,7 @@ const defaultNavLabels: Record<string, { zh: string; en: string }> = {
   '/cases': { zh: '案例', en: 'Cases' },
   '/projects': { zh: '项目库', en: 'Projects' },
   '/events': { zh: '城市组局', en: 'Events' },
-  '/business': { zh: '商务与合作', en: 'Business' },
+  '/discuss': { zh: '分享讨论区', en: 'Discussion' },
   '/tools': { zh: '工具', en: 'Tools' },
 };
 
@@ -56,10 +56,10 @@ const defaultFooter = {
   copyrightEn: '© 2026 AI Startup Community. All rights reserved.',
 };
 
-const defaultBusinessCoop = {
+const defaultDiscuss = {
   visible: true,
-  content: '<p>欢迎与我们联系商务合作。</p>',
-  contentEn: '<p>Welcome to contact us for business cooperation.</p>',
+  content: '<p>在这里分享你的实践、提出你的问题，和社区成员一起讨论。</p>',
+  contentEn: '<p>Share what you have built, ask what you are stuck on, and discuss with the community.</p>',
 };
 
 const defaultTools = {
@@ -76,7 +76,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   navLabels: defaultNavLabels,
   lockedDialog: defaultLockedDialog,
   footer: defaultFooter,
-  businessCoop: defaultBusinessCoop,
+  discuss: defaultDiscuss,
   tools: defaultTools,
   reload: () => {},
 });
@@ -89,7 +89,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [navLabels, setNavLabels] = useState(defaultNavLabels);
   const [lockedDialog, setLockedDialog] = useState(defaultLockedDialog);
   const [footer, setFooter] = useState(defaultFooter);
-  const [businessCoop, setBusinessCoop] = useState(defaultBusinessCoop);
+  const [discuss, setDiscuss] = useState(defaultDiscuss);
   const [tools, setTools] = useState(defaultTools);
 
   const load = useCallback(async () => {
@@ -114,7 +114,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       updateNav('/cases', 'nav_cases', 'nav_cases_en');
       updateNav('/projects', 'nav_projects', 'nav_projects_en');
       updateNav('/events', 'nav_events', 'nav_events_en');
-      updateNav('/business', 'nav_business', 'nav_business_en');
+      updateNav('/discuss', 'nav_discuss', 'nav_discuss_en');
       updateNav('/tools', 'nav_tools', 'nav_tools_en');
       setNavLabels(next);
 
@@ -132,10 +132,10 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
         copyrightEn: get('footer_copyright_en') || defaultFooter.copyrightEn,
       });
 
-      setBusinessCoop({
-        visible: get('business_coop_visible') !== 'false',
-        content: get('business_coop_content') || defaultBusinessCoop.content,
-        contentEn: get('business_coop_content_en') || defaultBusinessCoop.contentEn,
+      setDiscuss({
+        visible: get('discuss_visible') !== 'false',
+        content: get('discuss_content') || defaultDiscuss.content,
+        contentEn: get('discuss_content_en') || defaultDiscuss.contentEn,
       });
 
       setTools({
@@ -153,7 +153,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   return (
-    <SiteSettingsContext.Provider value={{ brandName, brandNameEn, termsContent, privacyContent, navLabels, lockedDialog, footer, businessCoop, tools, reload: load }}>
+    <SiteSettingsContext.Provider value={{ brandName, brandNameEn, termsContent, privacyContent, navLabels, lockedDialog, footer, discuss, tools, reload: load }}>
       {children}
     </SiteSettingsContext.Provider>
   );
