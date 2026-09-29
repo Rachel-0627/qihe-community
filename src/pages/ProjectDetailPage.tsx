@@ -14,6 +14,7 @@ import ChapterToc from '@/components/common/ChapterToc';
 import CommentsSection from '@/components/common/CommentsSection';
 import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
 import type { ProjectItem, ContentAccess, UnlockCountResult } from '@/types/types';
+import { useCodeCopy } from '@/hooks/useCodeCopy';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -117,6 +118,14 @@ export default function ProjectDetailPage() {
   const maturity = lang === 'en' && item?.maturity_en ? item.maturity_en : (item?.maturity ?? '');
   const rawContent = lang === 'en' && content?.en ? content.en : (content?.zh ?? '');
   const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+
+  // 正文里的代码块加复制按钮。内容是注入的 HTML，拿不到 React 节点，
+  // 只能等渲染完再操作 DOM；必须放在 processedContent 声明之后
+  useCodeCopy('#project-content', {
+    copy: t('复制', 'Copy'),
+    copied: t('已复制', 'Copied'),
+    failed: t('复制失败', 'Copy failed'),
+  }, processedContent);
   const accessLabel = item ? ACCESS_LABELS[item.access_level as ContentAccess] : undefined;
   const accessText = accessLabel ? (lang === 'en' ? accessLabel.en : accessLabel.zh) : '';
   const locked = item ? !canAccessContent(tier, item.access_level) : false;

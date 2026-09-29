@@ -13,6 +13,7 @@ import ChapterToc from '@/components/common/ChapterToc';
 import CommentsSection from '@/components/common/CommentsSection';
 import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
 import type { CaseItem } from '@/types/types';
+import { useCodeCopy } from '@/hooks/useCodeCopy';
 
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +72,14 @@ export default function CaseDetailPage() {
   const category = item?.categories ? (lang === 'en' && item.categories.name_en ? item.categories.name_en : item.categories.name) : null;
   const rawContent = lang === 'en' && item?.content_en ? item.content_en : (item?.content ?? '');
   const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+
+  // 正文里的代码块加复制按钮。内容是注入的 HTML，拿不到 React 节点，
+  // 只能等渲染完再操作 DOM；必须放在 processedContent 声明之后
+  useCodeCopy('#case-content', {
+    copy: t('复制', 'Copy'),
+    copied: t('已复制', 'Copied'),
+    failed: t('复制失败', 'Copy failed'),
+  }, processedContent);
 
   if (loading) {
     return (
