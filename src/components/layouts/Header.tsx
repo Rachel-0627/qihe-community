@@ -70,9 +70,12 @@ export default function Header() {
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">
-        <Link to="/" className="flex items-center gap-3 shrink-0">
-          <BrandMark size={48} className="shrink-0" />
-          <span className="font-display text-2xl font-semibold tracking-tight text-foreground">{t(brandName, brandNameEn)}</span>
+        <Link to="/" className="flex items-center gap-2 shrink-0 md:gap-3">
+          {/* 手机上收到 40px：头部一行在 360px 宽的机器上原本会撑破 */}
+          <BrandMark size={48} className="h-10 w-10 shrink-0 md:h-12 md:w-12" />
+          <span className="font-display text-xl font-semibold tracking-tight text-foreground md:text-2xl">
+            {t(brandName, brandNameEn)}
+          </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -92,7 +95,7 @@ export default function Header() {
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {/* 只放一个发布按钮，进去后在页面里用标签切换案例 / 项目。
               导航栏已经有 6 个栏目，再摆两个按钮窄屏会挤。 */}
-          <Button asChild variant="ghost" size="sm" className={PUBLISH_BTN}>
+          <Button asChild variant="ghost" size="sm" className={`hidden sm:inline-flex ${PUBLISH_BTN}`}>
             <Link to={user ? '/submit/case' : '/login'}>
               <PenSquare className="h-3.5 w-3.5" />
               {t('发布', 'Publish')}
@@ -175,6 +178,15 @@ export default function Header() {
                     {t(item.zh, item.en)}
                   </Link>
                 ))}
+                {/* 发布入口在手机上从顶部挪到这里——顶部一行放不下 */}
+                <Link
+                  to={user ? '/submit/case' : '/login'}
+                  onClick={() => setOpen(false)}
+                  className="mt-2 flex min-h-12 items-center gap-2 border-t border-border pt-4 font-mono-label text-lg tracking-[0.02em] text-muted-foreground hover:text-foreground sm:hidden"
+                >
+                  <PenSquare className="h-4 w-4" />
+                  {t('发布', 'Publish')}
+                </Link>
                 {profile?.role === 'admin' && (
                   <Link
                     to="/admin"

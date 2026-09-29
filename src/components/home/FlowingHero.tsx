@@ -67,7 +67,7 @@ export default function FlowingHero() {
               <p className="hero-label mb-6 font-mono text-[10px] uppercase tracking-[0.19em] text-muted-foreground">
                 QIHE COMMUNITY / AI BUILDERS NETWORK
               </p>
-              <h1 className="font-display text-[clamp(49px,15vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-foreground md:text-[clamp(54px,6.7vw,102px)]">
+              <h1 className="font-display text-[clamp(32px,11vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-foreground md:text-[clamp(54px,6.7vw,102px)]">
                 <span className="hero-title-line block">{titleLine1}</span>
                 {titleLine2 && <span className="hero-title-line gradient-text block">{titleLine2}</span>}
               </h1>
