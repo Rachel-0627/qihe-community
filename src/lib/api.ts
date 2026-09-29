@@ -1,5 +1,6 @@
 // @ts-ignore
 import { supabase } from '@/db/supabase';
+import { stampChapters } from '@/lib/chapters';
 import { rankBy } from '@/lib/ranking';
 import type {
   CaseItem,
@@ -527,9 +528,23 @@ async function projectColumns(): Promise<string> {
     : PROJECT_PUBLIC_COLUMNS;
 }
 
+/** 目录项：无论有没有权限，数据库都会返回完整目录 */
+export interface ContentChapter {
+  /** 永久编号；旧正文（还没盖过章）为 null */
+  ch: string | null;
+  text: string;
+  /** 正文被扣下了，前台显示成锁 */
+  locked: boolean;
+}
+
 export interface ProjectContent {
   allowed: boolean;
   reason?: 'not_found' | 'insufficient_tier';
+  /** true 表示 content 只是试看片段，不是全文 */
+  preview?: boolean;
+  headings?: ContentChapter[];
+  /** 已设为免费试看的章节编号（仅管理员视角有值） */
+  preview_chapters?: string[];
   content?: string;
   content_en?: string;
   external_url?: string;
@@ -599,7 +614,12 @@ export async function fetchProjectById(id: string): Promise<ProjectItem | null> 
 }
 
 export async function saveProject(item: Partial<ProjectItem>): Promise<void> {
-  const payload = ensureViewCeiling(await stripUnsupportedFields({ ...item }));
+  // 保存时给章节标题盖永久编号：免费试看名单记的是编号，
+  // 这样以后插入/删除章节，已勾选的免费章节不会错位到别的内容上
+  const stamped = { ...item };
+  if (typeof stamped.content === 'string') stamped.content = stampChapters(stamped.content);
+  if (typeof stamped.content_en === 'string') stamped.content_en = stampChapters(stamped.content_en);
+  const payload = ensureViewCeiling(await stripUnsupportedFields(stamped));
   if (payload.id) {
     const { error } = await supabase.from('projects').update(payload).eq('id', payload.id);
     if (error) throw error;

@@ -2,14 +2,16 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, Eye, ExternalLink, Lock, Bookmark, KeyRound } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useAuth } from '@/contexts/AuthContext';
+import type { ContentChapter } from '@/lib/api';
 import { fetchProjectById, fetchProjectContent, getUserInteractions, toggleInteractionV2, canAccessContent, ACCESS_LABELS, incrementContentView, getRemainingUnlockCount, unlockProjectWithFreeQuota } from '@/lib/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { totalCount } from '@/lib/utils';
-import { injectHeadingIds } from '@/lib/contentHeadings';
+import { injectHeadingIds, type ContentHeading } from '@/lib/contentHeadings';
 import ChapterToc from '@/components/common/ChapterToc';
 import CommentsSection from '@/components/common/CommentsSection';
 import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
@@ -19,12 +21,15 @@ import { useCodeCopy } from '@/hooks/useCodeCopy';
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, lang } = useI18n();
+  const { lockedDialog } = useSiteSettings();
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const [item, setItem] = useState<ProjectItem | null>(null);
   // 正文与外链不随列表下发，解锁后单独向服务端索取
   const [content, setContent] = useState<{ zh: string; en: string; url: string } | null>(null);
+  // 数据库返回的完整目录（含锁定标记）。权限不够时也有，这样目录始终完整
+  const [chapters, setChapters] = useState<ContentChapter[]>([]);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [favorited, setFavorited] = useState(false);
@@ -51,22 +56,22 @@ export default function ProjectDetailPage() {
       .catch(() => {});
   }, [id]);
 
-  // 有权限时才去取正文；服务端会再判定一次，前端拿不到不该看的内容
+  // 不论有没有权限都要请求：没权限时数据库会返回「完整目录 + 免费试看章节」。
+  // 切分在数据库里完成，前端永远拿不到不该看的正文。
   useEffect(() => {
-    // 注意：不能用下方的 locked 变量 —— 它在组件后半段才声明，
-    // 依赖数组在 render 期求值会撞上暂时性死区，这里用 tier 自行判定
-    if (!id || !item || !canAccessContent(tier, item.access_level)) { setContent(null); return; }
+    if (!id || !item) { setContent(null); setChapters([]); return; }
     let cancelled = false;
     fetchProjectContent(id)
       .then((res) => {
-        if (cancelled || !res.allowed) return;
+        if (cancelled) return;
+        setChapters(res.headings ?? []);
         setContent({ zh: res.content || '', en: res.content_en || '', url: res.external_url || '' });
       })
       .catch(() => {
         if (!cancelled) toast.error(t('项目正文加载失败', 'Failed to load project content'));
       });
     return () => { cancelled = true; };
-  }, [id, item, tier, t]);
+  }, [id, item, t]);
 
   useEffect(() => {
     if (user && id) {
@@ -118,6 +123,14 @@ export default function ProjectDetailPage() {
   const maturity = lang === 'en' && item?.maturity_en ? item.maturity_en : (item?.maturity ?? '');
   const rawContent = lang === 'en' && content?.en ? content.en : (content?.zh ?? '');
   const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+
+  // 目录以数据库返回的为准——它包含被锁住、正文没下发的章节。
+  // 旧正文还没盖过章节编号，退回用正文里解析出来的目录。
+  const tocHeadings = useMemo<ContentHeading[]>(() => {
+    const stamped = chapters.filter((c) => c.ch);
+    if (stamped.length === 0) return headings;
+    return stamped.map((c) => ({ id: c.ch as string, ch: c.ch as string, text: c.text, level: 2, locked: c.locked }));
+  }, [chapters, headings]);
 
   // 正文里的代码块加复制按钮。内容是注入的 HTML，拿不到 React 节点，
   // 只能等渲染完再操作 DOM；必须放在 processedContent 声明之后
@@ -206,6 +219,7 @@ export default function ProjectDetailPage() {
         </div>
         <h1 className="mt-3 font-display text-3xl font-medium leading-tight tracking-tight text-foreground text-balance md:text-4xl">{title}</h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground text-pretty">{summary}</p>
+
         <div className="mt-6 flex items-center justify-between border-y border-border py-4">
           <div className="flex items-center gap-4">
             <button type="button" onClick={handleLike} className={`flex items-center gap-1.5 font-mono-label text-xs transition-colors ${liked ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -218,19 +232,27 @@ export default function ProjectDetailPage() {
               <Eye className="h-4 w-4" />{totalCount(item.views, item.base_views)}
             </span>
           </div>
-          {externalUrl && (
-            <Button asChild variant="outline" size="sm" className="h-8 gap-1 border-border px-3 font-mono-label text-[10px] uppercase tracking-wider">
-              <a href={externalUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-3.5 w-3.5" />{t('访问项目', 'Visit project')}
-              </a>
-            </Button>
-          )}
           <ShareButton onClick={() => setPosterOpen(true)} />
         </div>
       </header>
 
+      {/* 外链按钮放在封面图上方靠右。不压在图上——封面往往是密集的说明长图，
+          压上去会挡住内容，手机上尤其明显。
+          不显示域名：飞书这类文档的网址是随机子域名（ecn3i3nh9c7v.feishu.cn），
+          露出来没有信息量，看着像乱码 */}
+      {externalUrl && (
+        <div className="mt-8 flex justify-end">
+          <Button asChild className="gap-2 font-mono-label text-xs uppercase tracking-wider">
+            <a href={externalUrl} target="_blank" rel="noreferrer">
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t('访问项目内容', 'View project content')}
+            </a>
+          </Button>
+        </div>
+      )}
+
       {item.cover_url && (
-        <div className="mt-8 overflow-hidden border border-border bg-card">
+        <div className="mt-3 overflow-hidden border border-border bg-card">
           <div className="bg-[var(--media-frame)] p-2 md:p-[10px]">
             <img
               src={item.cover_url}
@@ -242,45 +264,51 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {locked ? (
-        <div className="mt-10 flex flex-col items-center gap-4 border border-border bg-muted/40 px-6 py-12 text-center">
-          <Lock className="h-8 w-8 text-muted-foreground" />
-          <p className="font-display text-lg text-foreground">{t('该项目需要更高会员等级', 'This project requires a higher member tier')}</p>
-          <p className="max-w-md text-sm text-muted-foreground text-pretty">{t('升级会员或使用当前等级的免费解锁额度查看完整项目内容。', 'Upgrade your membership or use your free unlock quota for this level.')}</p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={openUnlockDialog} className="gap-1.5 font-mono-label text-xs uppercase tracking-wider">
-              <KeyRound className="h-3.5 w-3.5" />
-              {t('使用免费额度解锁', 'Unlock with free quota')}
-            </Button>
-            <Link to="/benefits">
-              <Button variant="outline" className="font-mono-label text-xs uppercase tracking-wider">{t('查看会员权益', 'View benefits')}</Button>
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="relative mt-10">
-            <div className="flex gap-12">
-              <div className="min-w-0 flex-1">
-                <div className="space-y-6">
-                  <div
-                    id="project-content"
-                    className="project-content"
-                    dangerouslySetInnerHTML={{ __html: processedContent }}
-                  />
-                  {item.video_url && (
-                    <div className="aspect-video w-full overflow-hidden border border-border">
-                      <video src={item.video_url} controls className="h-full w-full" />
-                    </div>
-                  )}
+      {/* 权限不够时也渲染正文区：里面是数据库切好的「引言 + 免费试看章节」，
+          右侧目录始终完整，被锁的章节只显示标题 */}
+      <div className="relative mt-10">
+        <div className="flex gap-12">
+          <div className="min-w-0 flex-1">
+            <div className="space-y-6">
+              <div
+                id="project-content"
+                className="project-content"
+                dangerouslySetInnerHTML={{ __html: processedContent }}
+              />
+
+              {locked ? (
+                <div className="flex flex-col items-center gap-4 border border-border bg-muted/40 px-6 py-12 text-center">
+                  <Lock className="h-8 w-8 text-muted-foreground" />
+                  {/* 文案沿用后台「锁定项目提示」的配置，原先用在列表页弹窗上 */}
+                  <p className="font-display text-lg text-foreground">
+                    {lang === 'en' && lockedDialog.titleEn ? lockedDialog.titleEn : lockedDialog.title}
+                  </p>
+                  <p className="max-w-md whitespace-pre-line text-sm text-muted-foreground text-pretty">
+                    {lang === 'en' && lockedDialog.contentEn ? lockedDialog.contentEn : lockedDialog.content}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Button onClick={openUnlockDialog} className="gap-1.5 font-mono-label text-xs uppercase tracking-wider">
+                      <KeyRound className="h-3.5 w-3.5" />
+                      {t('使用免费额度解锁', 'Unlock with free quota')}
+                    </Button>
+                    <Link to="/benefits">
+                      <Button variant="outline" className="font-mono-label text-xs uppercase tracking-wider">{t('查看会员权益', 'View benefits')}</Button>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <ChapterToc headings={headings} contentSelector="#project-content" className="w-56 shrink-0" />
+              ) : (
+                item.video_url && (
+                  <div className="aspect-video w-full overflow-hidden border border-border">
+                    <video src={item.video_url} controls className="h-full w-full" />
+                  </div>
+                )
+              )}
             </div>
           </div>
-          <CommentsSection />
-        </>
-      )}
+          <ChapterToc headings={tocHeadings} contentSelector="#project-content" className="w-56 shrink-0" />
+        </div>
+      </div>
+      {!locked && <CommentsSection />}
 
       {/* 解锁确认弹窗 */}
       <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>

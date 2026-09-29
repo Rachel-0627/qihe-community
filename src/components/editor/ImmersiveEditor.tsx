@@ -10,6 +10,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { SlashCommand } from '@/lib/editorSlashCommand';
 import EditorImageExtension from '@/lib/editorImageExtension';
 import VideoExtension from '@/lib/videoExtension';
+import { ChapterHeading } from '@/components/editor/ChapterHeading';
 import SlashCommandMenu from '@/components/editor/SlashCommand';
 import BubbleMenu from '@/components/editor/BubbleMenu';
 import { uploadMedia } from '@/lib/api';
@@ -33,9 +34,12 @@ export default forwardRef<ImmersiveEditorApi, ImmersiveEditorProps>(function Imm
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3] },
+        // 带上 1 级：库里有整篇用 h1 分章的文章，只认 h2/h3 的话，
+        // 这些 h1 会被编辑器降级成普通段落，标题不可逆地丢掉
+        heading: { levels: [1, 2, 3] },
         codeBlock: { HTMLAttributes: { class: 'immersive-codeblock' } },
       }),
+      ChapterHeading,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'immersive-link' } }),
       Underline,
       Highlight,
