@@ -116,6 +116,8 @@ export interface EventItem {
   location: string;
   location_en: string;
   event_date: string;
+  /** 结束时间；旧活动没有录，为空 */
+  event_end_date?: string | null;
   capacity: number;
   /** 是否在首页对应板块展示 */
   show_on_home: boolean;

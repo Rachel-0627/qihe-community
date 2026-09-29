@@ -55,14 +55,17 @@ export default function HomeStats() {
       <div ref={rootRef} className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4">
           {items.map((item, i) => (
+            // 标签在上、数字在下，左对齐成一组。
+            // 原先用 justify-between 把数字顶到左边、标签甩到右边，
+            // 屏幕越宽两者离得越远，看上去不像同一条数据
             <div
               key={item.key}
-              className={`flex min-h-[90px] items-end justify-between py-6 md:min-h-[118px] md:py-7 ${i % 2 === 1 ? 'border-l border-border pl-4 md:pl-6' : ''} ${i >= 2 ? 'border-t border-border md:border-t-0' : ''} ${i === 2 ? 'md:border-l md:pl-6' : ''} ${i === 3 ? 'md:pl-6' : ''}`}
+              className={`flex min-h-[90px] flex-col justify-end gap-1.5 py-6 md:min-h-[118px] md:py-7 ${i % 2 === 1 ? 'border-l border-border pl-4 md:pl-6' : ''} ${i >= 2 ? 'border-t border-border md:border-t-0' : ''} ${i === 2 ? 'md:border-l md:pl-6' : ''} ${i === 3 ? 'md:pl-6' : ''}`}
             >
-              <p className="font-display text-2xl font-medium tabular-nums text-foreground md:text-[32px] md:font-[540] md:tracking-[-.04em]">
+              <p className="editorial-label text-[11px] leading-none tracking-[0.1em] text-muted-foreground">{t(item.zh, item.en)}</p>
+              <p className="font-display text-[28px] font-medium leading-none tabular-nums text-foreground md:text-[34px] md:font-[540] md:tracking-[-.03em]">
                 {stats ? <span data-count={stats[item.key]}>{formatCount(stats[item.key], lang)}</span> : <span className="text-muted-foreground">—</span>}
               </p>
-              <p className="editorial-label mt-2 text-right text-[10px] leading-[1.6] tracking-[0.12em] text-muted-foreground">{t(item.zh, item.en)}</p>
             </div>
           ))}
         </div>

@@ -186,10 +186,11 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 路径 | 职责 |
 |---|---|
-| `migrations/` | 41 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/` | 42 个数据库迁移脚本，按编号顺序执行 |
 | `migrations/00039_…submissions.sql` | 投稿表 + RLS + `review_submission()` 审核落地函数 |
 | `migrations/00040_…preview_chapters.sql` | `projects.preview_chapters` 列 + 重写 `get_project_content()`：目录全给、正文按章节切 |
 | `migrations/00041_…intro_leak.sql` | 收紧「引言免费」：必须真的切出章节、且引言 ≤2000 字符，否则不给 |
+| `migrations/00042_add_event_end_date.sql` | `events.event_end_date`；允许为空，必填在后台表单上强制 |
 | `schema.sql` | 完整表结构快照 |
 | `config.toml` | Supabase 本地配置 |
 | `functions/ai-assistant` | AI 对话（流式） |

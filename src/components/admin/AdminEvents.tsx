@@ -23,6 +23,8 @@ const emptyEvent = (city: string, theme: string): Partial<EventItem> => ({
   title: '', title_en: '', summary: '', summary_en: '', cover_url: '', video_url: '',
   city, city_en: '', theme, theme_en: '', location: '', location_en: '',
   event_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
+  // 默认两小时，只是给个省事的起点，可以改
+  event_end_date: new Date(Date.now() + 7 * 86400000 + 2 * 3600000).toISOString().slice(0, 16),
   capacity: 50, sort_order: 0, show_on_home: true,
   likes: 0, favorites: 0, views: 0,
   base_likes: 0, base_favorites: 0, base_views: 0,
@@ -64,15 +66,29 @@ export default function AdminEvents() {
   }, [profile, navigate, t]);
 
   const openNew = () => { setEditing(emptyEvent(defaultCity, defaultTheme)); setOpen(true); };
-  const openEdit = (item: EventItem) => { setEditing({ ...item, event_date: item.event_date.slice(0, 16) }); setOpen(true); };
+  const openEdit = (item: EventItem) => {
+    setEditing({
+      ...item,
+      event_date: item.event_date.slice(0, 16),
+      // 旧活动没录结束时间，留空让管理员自己补，不替他猜一个
+      event_end_date: item.event_end_date ? item.event_end_date.slice(0, 16) : '',
+    });
+    setOpen(true);
+  };
 
   const handleSave = useCallback(async () => {
     if (!editing) return;
     if (!editing.title?.trim()) { toast.error(t('请填写标题', 'Title is required')); return; }
+    if (!editing.event_end_date) { toast.error(t('请填写结束时间', 'End time is required')); return; }
+    if (editing.event_date && new Date(editing.event_end_date) <= new Date(editing.event_date)) {
+      toast.error(t('结束时间要晚于开始时间', 'End time must be after the start time'));
+      return;
+    }
     const toInt = (n: unknown) => Math.max(0, Math.floor(Number(n) || 0));
     const payload = {
       ...editing,
       event_date: editing.event_date ? new Date(editing.event_date).toISOString() : new Date().toISOString(),
+      event_end_date: new Date(editing.event_end_date).toISOString(),
       base_likes: toInt(editing.base_likes),
       base_favorites: toInt(editing.base_favorites),
       base_views: toInt(editing.base_views),
@@ -154,7 +170,17 @@ export default function AdminEvents() {
                   <Field label={t('摘要（英）', 'Summary (EN)')}><Textarea value={editing.summary_en || ''} onChange={(e) => setEditing({ ...editing, summary_en: e.target.value })} className="px-3" rows={2} /></Field>
                   <FileUploadField label={t('封面图', 'Cover Image')} value={editing.cover_url || ''} onChange={(url) => setEditing({ ...editing, cover_url: url })} folder="events/covers" accept="image/jpeg,image/png,image/webp,image/gif" id={editing.id} />
                   <FileUploadField label={t('视频', 'Video')} value={editing.video_url || ''} onChange={(url) => setEditing({ ...editing, video_url: url })} folder="events/videos" accept="video/mp4" preview="video" id={editing.id} />
-                  <Field label={t('活动时间', 'Date')}><Input type="datetime-local" value={editing.event_date || ''} onChange={(e) => setEditing({ ...editing, event_date: e.target.value })} className="px-3" /></Field>
+                  <Field label={t('开始时间', 'Start time')}><Input type="datetime-local" value={editing.event_date || ''} onChange={(e) => setEditing({ ...editing, event_date: e.target.value })} className="px-3" /></Field>
+                  <Field label={t('结束时间', 'End time')}>
+                    <Input
+                      type="datetime-local"
+                      value={editing.event_end_date || ''}
+                      // 浏览器先挡一道，保存前再校验一次
+                      min={editing.event_date || undefined}
+                      onChange={(e) => setEditing({ ...editing, event_end_date: e.target.value })}
+                      className="px-3"
+                    />
+                  </Field>
                   <Field label={t('城市（中）', 'City (ZH)')}>
                     <Select value={editing.city || defaultCity} onValueChange={(v) => setEditing({ ...editing, city: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
