@@ -16,13 +16,32 @@ import { totalCount } from '@/lib/utils';
 import type { EventItem } from '@/types/types';
 import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
 
+function hhmm(d: Date) {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function formatDate(iso: string, lang: 'zh' | 'en') {
   const d = new Date(iso);
   const month =
     lang === 'en'
       ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()]
       : `${d.getMonth() + 1}月`;
-  return `${d.getFullYear()} ${month} ${d.getDate()}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${d.getFullYear()} ${month} ${d.getDate()}, ${hhmm(d)}`;
+}
+
+/**
+ * 活动时段。当天结束的只补一个时分（08:00 – 12:00），
+ * 跨天的才写完整日期，否则「3 日 20:00 – 09:00」会让人以为是笔误。
+ * 旧活动没录结束时间，就还是只显示开始时间。
+ */
+function formatRange(start: string, end: string | null | undefined, lang: 'zh' | 'en') {
+  const head = formatDate(start, lang);
+  if (!end) return head;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (Number.isNaN(e.getTime()) || e <= s) return head;
+  const sameDay = s.toDateString() === e.toDateString();
+  return `${head} – ${sameDay ? hhmm(e) : formatDate(end, lang)}`;
 }
 
 export default function EventDetailPage() {
@@ -257,7 +276,7 @@ export default function EventDetailPage() {
       <div className="mt-8 space-y-4 border border-border bg-card p-5">
         <div className="flex items-center gap-2 font-mono-label text-sm text-muted-foreground">
           <Calendar className="h-4 w-4 shrink-0" />
-          {formatDate(item.event_date, lang)}
+          {formatRange(item.event_date, item.event_end_date, lang)}
         </div>
         <div className="flex items-center gap-2 font-mono-label text-sm text-muted-foreground">
           <MapPin className="h-4 w-4 shrink-0" />

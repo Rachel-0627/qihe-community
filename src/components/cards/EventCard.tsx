@@ -21,10 +21,13 @@ interface Props {
 type EventStatus = 'open' | 'full' | 'ended';
 
 function getEventStatus(item: EventItem): EventStatus {
-  const eventTime = new Date(item.event_date).getTime();
+  // 按结束时间判断是否结束。只看开始时间的话，
+  // 一个 8:00–12:00 的活动 9 点就被标成「已结束」了。
+  // 旧活动没录结束时间，退回用开始时间。
+  const endTime = new Date(item.event_end_date || item.event_date).getTime();
   const capacity = item.capacity ?? 0;
   const registered = item.registered ?? 0;
-  if (eventTime < Date.now()) return 'ended';
+  if (endTime < Date.now()) return 'ended';
   if (capacity > 0 && registered >= capacity) return 'full';
   return 'open';
 }
