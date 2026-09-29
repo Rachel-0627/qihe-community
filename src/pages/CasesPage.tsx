@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import CaseCard from '@/components/cards/CaseCard';
 import type { Category, CaseItem } from '@/types/types';
+import { totalCount } from '@/lib/utils';
 
 type RankDim = 'latest' | 'hot' | 'favorite';
 
@@ -174,7 +175,13 @@ export default function CasesPage() {
                         {(lang === 'en' && item.title_en) ? item.title_en : item.title}
                       </p>
                       <div className="mt-1 flex items-center gap-3 font-mono-label text-[10px] text-muted-foreground">
-                        <span>{rankDim === 'favorite' ? `♥ ${item.favorites}` : rankDim === 'latest' ? `${item.views} views` : `♥ ${item.likes}`}</span>
+                        {/* 最热档同时显示点赞和收藏：排序算的是综合分，
+                          只露一个数会让人觉得"排序不对" */}
+                      <span>{rankDim === 'favorite'
+                          ? `☆ ${totalCount(item.favorites, item.base_favorites)}`
+                          : rankDim === 'latest'
+                            ? `${totalCount(item.views, item.base_views)} views`
+                            : `♥ ${totalCount(item.likes, item.base_likes)} · ☆ ${totalCount(item.favorites, item.base_favorites)}`}</span>
                       </div>
                     </div>
                   </Link>

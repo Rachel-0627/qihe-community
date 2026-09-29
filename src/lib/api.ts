@@ -1,5 +1,6 @@
 // @ts-ignore
 import { supabase } from '@/db/supabase';
+import { rankBy } from '@/lib/ranking';
 import type {
   CaseItem,
   Category,
@@ -410,14 +411,17 @@ export async function fetchCaseById(id: string): Promise<CaseItem | null> {
 }
 
 export async function fetchCaseRanking(dimension: 'latest' | 'hot' | 'favorite'): Promise<CaseItem[]> {
-  const orderCol = dimension === 'latest' ? 'created_at' : dimension === 'hot' ? 'likes' : 'favorites';
+  // 原来直接 .order('likes')，只按真实点赞排，忽略了运营基数 base_likes，
+  // 于是卡片显示 57 赞、排行榜却写 ♥1，同一篇文章两个数。
+  // 现在改为取一批候选再按热度分排序——数据库没法直接按计算式排序。
+  // 取 200 条近期内容作为候选：更老的内容经时间衰减后本来也进不了前 8。
   const { data, error } = await supabase
     .from('cases')
     .select('id, title, title_en, cover_url, likes, favorites, views, base_likes, base_favorites, base_views, created_at')
-    .order(orderCol, { ascending: false })
-    .limit(8);
+    .order('created_at', { ascending: false })
+    .limit(200);
   if (error) throw error;
-  return safeArray<CaseItem>(data);
+  return rankBy(safeArray<CaseItem>(data), dimension, 8);
 }
 
 function ensureViewCeiling(payload: Record<string, unknown>): Record<string, unknown> {
