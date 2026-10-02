@@ -1,22 +1,15 @@
 import { useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
-import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useReveal } from '@/hooks/useReveal';
 import PromptCaseLibrary from '@/components/tools/PromptCaseLibrary';
 
 export default function ToolsPage() {
   const { lang } = useI18n();
-  const { tools } = useSiteSettings();
   const revealRef = useReveal<HTMLDivElement>();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  if (!tools.visible) {
-    return <Navigate to="/" replace />;
-  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-1 pb-8 md:px-8" ref={revealRef}>

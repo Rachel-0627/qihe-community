@@ -5,7 +5,6 @@ import { fetchSiteSettings, saveSiteSetting } from '@/lib/api';
 import { importMarkdown, importDocx, importPdf, type ImportResult } from '@/lib/documentImport';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 
@@ -101,20 +100,6 @@ export default function AdminDiscussSettings() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between border border-border bg-card p-4">
-        <div className="space-y-0.5">
-          <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('前台显示', 'Visible on site')}</Label>
-          <p className="text-sm text-muted-foreground">{t('关闭后前台导航与页面入口将隐藏', 'Hide navigation and page entry when turned off')}</p>
-        </div>
-        <Switch
-          checked={settings.discuss_visible !== 'false'}
-          onCheckedChange={(checked) => {
-            const value = checked ? 'true' : 'false';
-            setSettings((prev) => ({ ...prev, discuss_visible: value }));
-            handleSave('discuss_visible', value);
-          }}
-        />
-      </div>
 
       <div className="space-y-3">
         <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('中文内容', 'Chinese content')}</Label>

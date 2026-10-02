@@ -32,7 +32,7 @@ const DEFAULT_NAV_ITEMS = [
 export default function Header() {
   const { t, lang, toggleLang } = useI18n();
   const { user, profile, signOut } = useAuth();
-  const { brandName, brandNameEn, navLabels, discuss, tools } = useSiteSettings();
+  const { brandName, brandNameEn, navLabels } = useSiteSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -45,13 +45,14 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // 导航不再按开关过滤：那两个开关挨在后台同一个页面上，很容易被误点，
+  // 一关整个板块就从站点消失，而且不容易联想到是它造成的
   const navItems = useMemo(() => DEFAULT_NAV_ITEMS
-    .filter((item) => (item.path !== '/discuss' || discuss.visible) && (item.path !== '/tools' || tools.visible))
     .map((item) => ({
       ...item,
       zh: navLabels[item.path]?.zh ?? (item.path === '/discuss' ? '分享讨论区' : item.path === '/tools' ? '工具' : item.path),
       en: navLabels[item.path]?.en ?? (item.path === '/discuss' ? 'Discussion' : item.path === '/tools' ? 'Tools' : item.path),
-    })), [navLabels, discuss.visible, tools.visible]);
+    })), [navLabels]);
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);

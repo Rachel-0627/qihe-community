@@ -21,12 +21,10 @@ interface SiteSettingsContextValue {
     copyrightEn: string;
   };
   discuss: {
-    visible: boolean;
     content: string;
     contentEn: string;
   };
   tools: {
-    visible: boolean;
     content: string;
     contentEn: string;
   };
@@ -57,13 +55,11 @@ const defaultFooter = {
 };
 
 const defaultDiscuss = {
-  visible: true,
   content: '<p>在这里分享你的实践、提出你的问题，和社区成员一起讨论。</p>',
   contentEn: '<p>Share what you have built, ask what you are stuck on, and discuss with the community.</p>',
 };
 
 const defaultTools = {
-  visible: true,
   content: '<p>这里汇集了社区精选的 AI 工具与资源。</p>',
   contentEn: '<p>Here are curated AI tools and resources from the community.</p>',
 };
@@ -133,13 +129,11 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       });
 
       setDiscuss({
-        visible: get('discuss_visible') !== 'false',
         content: get('discuss_content') || defaultDiscuss.content,
         contentEn: get('discuss_content_en') || defaultDiscuss.contentEn,
       });
 
       setTools({
-        visible: get('tools_visible') !== 'false',
         content: get('tools_content') || defaultTools.content,
         contentEn: get('tools_content_en') || defaultTools.contentEn,
       });

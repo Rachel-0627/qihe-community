@@ -5,7 +5,7 @@ import { useSiteContent } from '@/contexts/SiteContentContext';
 
 export default function Footer() {
   const { t } = useI18n();
-  const { brandName, brandNameEn, footer, discuss, tools } = useSiteSettings();
+  const { brandName, brandNameEn, footer } = useSiteSettings();
   // 页脚文案优先读后台「页面文案设置」（site_content 表），无值回退「品牌与导航」配置
   const { c } = useSiteContent();
   return (
@@ -31,12 +31,8 @@ export default function Footer() {
               <li><Link to="/cases" className="hover:text-accent transition-colors">{t('案例', 'Cases')}</Link></li>
               <li><Link to="/projects" className="hover:text-accent transition-colors">{t('项目库', 'Projects')}</Link></li>
               <li><Link to="/events" className="hover:text-accent transition-colors">{t('城市组局', 'Events')}</Link></li>
-              {discuss.visible && (
-                <li><Link to="/discuss" className="hover:text-accent transition-colors">{t('分享讨论区', 'Discussion')}</Link></li>
-              )}
-              {tools.visible && (
-                <li><Link to="/tools" className="hover:text-accent transition-colors">{t('工具', 'Tools')}</Link></li>
-              )}
+              <li><Link to="/discuss" className="hover:text-accent transition-colors">{t('分享讨论区', 'Discussion')}</Link></li>
+              <li><Link to="/tools" className="hover:text-accent transition-colors">{t('工具', 'Tools')}</Link></li>
             </ul>
           </div>
           <div className="md:col-span-2">

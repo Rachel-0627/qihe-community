@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { PenSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,8 +32,6 @@ export default function DiscussPage() {
   }, [t]);
 
   useEffect(load, [load]);
-
-  if (!discuss.visible) return <Navigate to="/" replace />;
 
   const content = lang === 'en' && discuss.contentEn ? discuss.contentEn : discuss.content;
 
