@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import HomePage from './pages/HomePage';
 import CasesPage from './pages/CasesPage';
@@ -29,6 +29,15 @@ export interface RouteConfig {
   public?: boolean;
 }
 
+
+/** 旧的 /business/<id> 链接要带着 id 跳到新路径。
+ *  直接 <Navigate to="/discuss"> 会把 id 丢掉，点进来只会回到列表，
+ *  看起来就像「点了没反应」。 */
+function RedirectDiscussPost() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={id ? `/discuss/${id}` : '/discuss'} replace />;
+}
+
 export const routes: RouteConfig[] = [
   { name: '首页', path: '/', element: <HomePage />, public: true },
   { name: '案例', path: '/cases', element: <CasesPage />, public: true },
@@ -41,7 +50,7 @@ export const routes: RouteConfig[] = [
   { name: '帖子详情', path: '/discuss/:id', element: <DiscussPostDetailPage />, public: true },
   // 板块原来叫「商务与合作」，旧链接可能已被收藏或分享出去，留个重定向
   { name: '旧商务页', path: '/business', element: <Navigate to="/discuss" replace />, public: true },
-  { name: '旧商务帖', path: '/business/:id', element: <Navigate to="/discuss" replace />, public: true },
+  { name: '旧商务帖', path: '/business/:id', element: <RedirectDiscussPost />, public: true },
   { name: '工具', path: '/tools', element: <ToolsPage />, public: true },
   { name: '权益', path: '/benefits', element: <BenefitsPage />, public: true },
   { name: '登录', path: '/login', element: <LoginPage />, public: true },

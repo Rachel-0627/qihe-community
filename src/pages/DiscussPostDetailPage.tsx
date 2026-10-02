@@ -27,7 +27,7 @@ export default function DiscussPostDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">
-      <Link to="/business" className="inline-flex items-center gap-1.5 font-mono-label text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
+      <Link to="/discuss" className="inline-flex items-center gap-1.5 font-mono-label text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('返回分享讨论区', 'Back to Business')}
       </Link>
@@ -49,13 +49,14 @@ export default function DiscussPostDetailPage() {
         </div>
       )}
 
-      {/* 配图排在正文前面。单张铺满，多张两列——
-          一列排下来在长帖里会把正文推得太远 */}
+      {/* 配图排在正文前面，一律整宽竖排。
+          原先「多张排两列」是按照片设想的，但实际贴的多是横向信息图和截图，
+          挤到半栏宽就看不清字了，等于白贴。整宽最差也只是占点篇幅。 */}
       {item.images?.length > 0 && (
-        <div className={`mt-6 grid gap-3 ${item.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        <div className="mt-6 flex flex-col gap-4">
           {item.images.map((url, i) => (
-            <a key={url} href={url} target="_blank" rel="noreferrer" className="overflow-hidden border border-border bg-card">
-              <img src={url} alt={`${item.title} ${i + 1}`} loading="lazy" className="w-full object-cover transition-transform hover:scale-[1.02]" />
+            <a key={url} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden border border-border bg-card">
+              <img src={url} alt={`${item.title} ${i + 1}`} loading="lazy" className="w-full object-contain" />
             </a>
           ))}
         </div>

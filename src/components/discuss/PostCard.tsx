@@ -17,7 +17,7 @@ export default function PostCard({ item }: { item: DiscussionPost }) {
   const count = commentCountOf(item);
 
   return (
-    <Link to={`/business/${item.id}`} className="block border-b border-border py-5 transition-colors hover:bg-card/60">
+    <Link to={`/discuss/${item.id}`} className="block border-b border-border py-5 transition-colors hover:bg-card/60">
       <div className="flex flex-wrap items-center gap-2">
         {item.is_pinned && (
           <span className="flex items-center gap-1 rounded border border-accent bg-accent px-1.5 py-0.5 font-mono-label text-[10px] uppercase tracking-wider text-accent-foreground">
