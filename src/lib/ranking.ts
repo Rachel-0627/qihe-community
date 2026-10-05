@@ -31,7 +31,7 @@ export const HOT_WEIGHTS = {
  * 乘时间衰减，否则老内容会永远霸榜，新投稿没有出头机会。
  *
  * 计入 base_* 运营基数，因为卡片上显示的就是含基数的总数。
- * 若这里只用真实值，就会出现"卡片显示 57 赞、排行榜写 ♥1"的矛盾。
+ * 若这里只用真实值，就会出现"卡片显示 57 赞、排行榜写 1 赞"的矛盾。
  */
 export function hotScore(item: RankableItem, now = Date.now()): number {
   const likes = totalCount(item.likes, item.base_likes);

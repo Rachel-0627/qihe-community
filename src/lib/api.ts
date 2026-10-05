@@ -413,7 +413,7 @@ export async function fetchCaseById(id: string): Promise<CaseItem | null> {
 
 export async function fetchCaseRanking(dimension: 'latest' | 'hot' | 'favorite'): Promise<CaseItem[]> {
   // 原来直接 .order('likes')，只按真实点赞排，忽略了运营基数 base_likes，
-  // 于是卡片显示 57 赞、排行榜却写 ♥1，同一篇文章两个数。
+  // 于是卡片显示 57 赞、排行榜却写 1 赞，同一篇文章两个数。
   // 现在改为取一批候选再按热度分排序——数据库没法直接按计算式排序。
   // 取 200 条近期内容作为候选：更老的内容经时间衰减后本来也进不了前 8。
   const { data, error } = await supabase
