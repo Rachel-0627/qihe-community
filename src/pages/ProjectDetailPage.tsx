@@ -124,7 +124,7 @@ export default function ProjectDetailPage() {
   const rawContent = lang === 'en' && content?.en ? content.en : (content?.zh ?? '');
   const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
 
-  // 目录以数据库返回的为准——它包含被锁住、正文没下发的章节。
+  // 目录以数据库返回的为准：它包含被锁住、正文没下发的章节。
   // 旧正文还没盖过章节编号，退回用正文里解析出来的目录。
   const tocHeadings = useMemo<ContentHeading[]>(() => {
     const stamped = chapters.filter((c) => c.ch);
@@ -236,7 +236,7 @@ export default function ProjectDetailPage() {
         </div>
       </header>
 
-      {/* 外链按钮放在封面图上方靠右。不压在图上——封面往往是密集的说明长图，
+      {/* 外链按钮放在封面图上方靠右。不压在图上：封面往往是密集的说明长图，
           压上去会挡住内容，手机上尤其明显。
           不显示域名：飞书这类文档的网址是随机子域名（ecn3i3nh9c7v.feishu.cn），
           露出来没有信息量，看着像乱码 */}

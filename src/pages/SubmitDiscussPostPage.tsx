@@ -15,11 +15,11 @@ import { useLocalDraft } from '@/lib/useLocalDraft';
 /**
  * 发布帖子。
  *
- * 没有复用 SubmissionForm：那个外壳固定有摘要、封面、富文本正文，
- * 帖子三样都不需要，塞进去会让共享组件到处是「这个类型不显示这个」的判断。
- * 顶部的类型切换条抽成了 SubmitTabs，两边共用。
+ * 未复用 SubmissionForm：该外壳固定包含摘要、封面与富文本正文，帖子均不需要，
+ * 并入会在共享组件中引入大量按类型判断是否显示的分支。
+ * 顶部类型切换条已抽成 SubmitTabs，两处共用。
  *
- * 帖子里不留联系方式：交流在评论区进行，这是产品上定好的。
+ * 帖子不含联系方式字段，交流在评论区进行。
  */
 export default function SubmitDiscussPostPage() {
   const { user } = useAuth();

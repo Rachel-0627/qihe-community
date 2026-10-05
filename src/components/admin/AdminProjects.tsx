@@ -70,7 +70,7 @@ export default function AdminProjects() {
 
   const openNew = () => { setEditing(emptyProject(defaultScene, defaultMaturity)); setOpen(true); };
   // 正文/外链受列级权限保护，列表数据里没有，必须单独取回后再打开编辑器。
-  // 取不到就不打开弹窗 —— 否则管理员会在「空正文」上点保存，把已有内容覆盖掉。
+  // 取不到就不打开弹窗，否则管理员会在「空正文」上点保存，把已有内容覆盖掉。
   const openEdit = async (item: ProjectItem) => {
     try {
       const res = await fetchProjectContent(item.id);

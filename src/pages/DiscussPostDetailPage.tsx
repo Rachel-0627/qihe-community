@@ -63,7 +63,7 @@ export default function DiscussPostDetailPage() {
       )}
 
       {/* 正文是纯文本，用 whitespace-pre-line 保住换行；
-          不走 dangerouslySetInnerHTML —— 用户输入的内容不能当 HTML 渲染 */}
+          不走 dangerouslySetInnerHTML：用户输入的内容不能当 HTML 渲染 */}
       <div className="mt-8 whitespace-pre-line text-base leading-relaxed text-foreground text-pretty">
         {item.body}
       </div>

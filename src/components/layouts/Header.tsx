@@ -179,7 +179,7 @@ export default function Header() {
                     {t(item.zh, item.en)}
                   </Link>
                 ))}
-                {/* 发布入口在手机上从顶部挪到这里——顶部一行放不下 */}
+                {/* 发布入口在手机上从顶部挪到这里，顶部一行放不下 */}
                 <Link
                   to={user ? '/submit/case' : '/login'}
                   onClick={() => setOpen(false)}

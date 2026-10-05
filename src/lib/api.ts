@@ -284,7 +284,7 @@ export async function deleteCategory(id: string): Promise<void> {
 
 // 首页三个板块的数据源。
 //
-// 三个板块各查各自的表 —— 案例只可能来自 cases、项目只可能来自 projects、
+// 三个板块各查各自的表：案例只可能来自 cases、项目只可能来自 projects、
 // 活动只可能来自 events，结构上就不存在「类别混乱」的可能。
 // 每个板块只取 show_on_home 为真的内容，再按 sort_order 排序取前 N 条。
 
@@ -342,7 +342,7 @@ export interface HomeStats {
 }
 
 /**
- * 首页数据带。每项独立容错 —— 任何一项取不到都只显示 0，
+ * 首页数据带。每项独立容错：任何一项取不到都只显示 0，
  * 不影响首页其余内容渲染。
  */
 export async function fetchHomeStats(): Promise<HomeStats> {
@@ -414,7 +414,7 @@ export async function fetchCaseById(id: string): Promise<CaseItem | null> {
 export async function fetchCaseRanking(dimension: 'latest' | 'hot' | 'favorite'): Promise<CaseItem[]> {
   // 原来直接 .order('likes')，只按真实点赞排，忽略了运营基数 base_likes，
   // 于是卡片显示 57 赞、排行榜却写 1 赞，同一篇文章两个数。
-  // 现在改为取一批候选再按热度分排序——数据库没法直接按计算式排序。
+  // 现在改为取一批候选再按热度分排序：数据库没法直接按计算式排序。
   // 取 200 条近期内容作为候选：更老的内容经时间衰减后本来也进不了前 8。
   const { data, error } = await supabase
     .from('cases')
@@ -478,7 +478,7 @@ export async function deleteCase(id: string): Promise<void> {
 // 项目列表/详情可公开读取的列。
 // content / content_en / external_url 已在数据库层用「列级权限」收回
 // （见 migrations/20260822090300_gate_project_content.sql），
-// 这里必须显式列出字段 —— 用 select('*') 会因为触碰到无权限的列而整个请求失败。
+// 这里必须显式列出字段：用 select('*') 会因为触碰到无权限的列而整个请求失败。
 const PROJECT_PUBLIC_COLUMNS =
   'id, title, title_en, summary, summary_en, cover_url, video_url, ' +
   'scene, scene_en, maturity, maturity_en, access_level, ' +
@@ -488,7 +488,7 @@ const PROJECT_PUBLIC_COLUMNS =
 /**
  * 「首页展示」字段（show_on_home）是后加的，而本项目的数据库与前端
  * 往往不是同时上线。迁移未执行时，把它写进查询会让整条请求以
- * 42703 column does not exist 失败 —— 项目列表、详情、后台会一起空白。
+ * 42703 column does not exist 失败，项目列表、详情、后台会一起空白。
  *
  * 这里探测一次并缓存：字段不存在就自动降级为「全部展示」，页面照常可用；
  * 迁移执行后无需改任何代码，刷新即生效。

@@ -1,6 +1,6 @@
 // 分享讨论区：帖子与评论的读写。
 //
-// 帖子本身用户没有写权限 —— 发帖走 content_submissions 投稿审核，
+// 帖子本身用户没有写权限：发帖走 content_submissions 投稿审核，
 // 管理员通过后由 review_submission() 落进 discussion_posts（见迁移 00043）。
 // 这里只负责读帖子，以及评论的增删。
 //
@@ -11,7 +11,7 @@ import type { DiscussionPost, PostComment } from '@/types/types';
 
 const asArray = <T,>(data: unknown): T[] => (Array.isArray(data) ? (data as T[]) : []);
 
-/** 评论数用联表 count 现算，不存计数列——计数列迟早会和真实值对不上 */
+/** 评论数用联表 count 现算，不存计数列：计数列迟早会和真实值对不上 */
 const POST_COLUMNS = '*, post_comments(count)';
 
 export async function fetchDiscussionPosts(): Promise<DiscussionPost[]> {

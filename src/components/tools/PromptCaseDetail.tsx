@@ -102,7 +102,7 @@ export default function PromptCaseDetail({ item, open, onClose }: PromptCaseDeta
       .catch((err) => console.error('fetch config error', err));
   }, [item?.id, user, open]);
 
-  // 案例库为空时调用方可能传入 undefined。守卫必须放在所有 hook 之后——
+  // 案例库为空时调用方可能传入 undefined。守卫必须放在所有 hook 之后：
   // 在 hook 之前 return 会让两次渲染的 hook 数量不一致，React 直接报错。
   if (!item) return null;
 
@@ -310,7 +310,7 @@ export default function PromptCaseDetail({ item, open, onClose }: PromptCaseDeta
             />
           </div>
 
-          {/* 可折叠隐藏与展开：生图请求设置（尺寸选择）—— 默认收起 */}
+          {/* 可折叠隐藏与展开：生图请求设置（尺寸选择），默认收起 */}
           <div className="mt-3 rounded-lg border border-border bg-card/60 overflow-hidden transition-all">
             <button
               type="button"
@@ -367,7 +367,7 @@ export default function PromptCaseDetail({ item, open, onClose }: PromptCaseDeta
             )}
           </div>
 
-          {/* 可折叠隐藏与展开：接口计费与尺寸对应说明 —— 默认收起 */}
+          {/* 可折叠隐藏与展开：接口计费与尺寸对应说明，默认收起 */}
           <div className="mt-2 rounded-lg border border-border/80 bg-muted/20 overflow-hidden transition-all">
             <button
               type="button"

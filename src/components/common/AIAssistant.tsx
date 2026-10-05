@@ -16,11 +16,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 /**
  * 是否走大模型。
  *
- * 目前是 false：ai-assistant 这个 Edge Function 仍然指向秒哒的网关，
- * 迁移到独立 Supabase 后一直没接回来，调用必然失败。
- * 所以先用后台「知识库」里的条目做固定问答。
+ * 当前为 false：ai-assistant 这个 Edge Function 仍指向秒哒的网关，
+ * 迁移到独立 Supabase 后未接回，调用必定失败，因此改用后台知识库做固定问答。
  *
- * 接回大模型后：把这里改成 true 即可，下面 askLLM 的代码原样保留着。
+ * 接回大模型后改为 true 即可，下方 askLLM 的实现保持原样。
  */
 const USE_LLM = false;
 

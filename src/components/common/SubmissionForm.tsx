@@ -41,7 +41,7 @@ interface SubmissionFormProps {
 
 /**
  * 投稿表单的公共外壳：登录判断、本地草稿、公共字段、提交与重投。
- * 案例和项目投稿页共用它，各自只关心自己的专有字段——
+ * 案例和项目投稿页共用它，各自只关心自己的专有字段，
  * 否则两个页面会各自躺着一份一模一样的逻辑，改一处要改两处。
  */
 export default function SubmissionForm({
@@ -130,9 +130,9 @@ export default function SubmissionForm({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">
-      {/* 内容类型切换。改一条已有投稿 / 申请修改已发布内容时不给切——
+      {/* 内容类型切换。改一条已有投稿 / 申请修改已发布内容时不给切，
           换了类型等于换了一条内容，语义上说不通 */}
-      {/* 内容类型切换。改一条已有投稿 / 申请修改已发布内容时不给切——
+      {/* 内容类型切换。改一条已有投稿 / 申请修改已发布内容时不给切，
           换了类型等于换了一条内容，语义上说不通 */}
       {!resubmitId && !targetId && <SubmitTabs active={kind} />}
 

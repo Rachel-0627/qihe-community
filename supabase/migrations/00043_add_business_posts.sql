@@ -1,8 +1,8 @@
--- 商务与合作：用户发帖 + 评论
+-- 分享讨论区：用户发帖 + 评论
 --
 -- 帖子走已有的投稿审核流程（content_submissions + review_submission），
 -- 审核通过才会写进 business_posts，所以这张表里只有已发布的内容，
--- 不需要 status 列 —— 待审核的帖子在 content_submissions 里，
+-- 不需要 status 列：待审核的帖子在 content_submissions 里，
 -- 「我的投稿」页面已经能看到。
 --
 -- 帖子里不存任何联系方式：交流只在评论区进行。
@@ -120,9 +120,9 @@ GRANT SELECT ON public.business_posts TO anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.post_comments TO authenticated;
 GRANT SELECT ON public.post_comments TO anon;
 
--- ── 审核函数：加商务帖分支 ─────────────────────────
+-- ── 审核函数：加讨论帖分支 ─────────────────────────
 -- 原函数的分支是「IF kind = 'case' ... ELSE 当作 project」。
--- 枚举一加新值，商务帖就会被悄悄插进 projects 表 —— 不报错，最难查的那种。
+-- 枚举一加新值，新类型就会被插进 projects 表，且不报错。
 -- 这里改成三个显式分支 + 兜底 RAISE。case 与 project 的处理逻辑原样保留。
 --
 -- 所有判断都用 kind::text 比较：新加的枚举值在同一个事务里不能被引用。

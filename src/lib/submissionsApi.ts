@@ -1,5 +1,5 @@
 // 用户投稿与管理员审核。
-// 单独成文件而不是塞进 api.ts —— 那个文件已经 1099 行，是待拆清单的第一项。
+// 单独成文件而不是塞进 api.ts：那个文件已经 1099 行，是待拆清单的第一项。
 //
 // 数据流：用户写入 content_submissions（待审）→ 管理员调 review_submission()
 // → 函数校验管理员身份后把内容落到 cases / projects。
@@ -116,7 +116,7 @@ export async function countPendingSubmissions(): Promise<number> {
 }
 
 /**
- * 审核。通过时由数据库函数把内容写进正式表——这一步必须走函数，
+ * 审核。通过时由数据库函数把内容写进正式表，这一步必须走函数，
  * 因为前台这个匿名/登录身份没有写 cases / projects 的权限。
  */
 export async function reviewSubmission(

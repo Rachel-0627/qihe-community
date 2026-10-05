@@ -15,11 +15,10 @@ interface Props {
 /**
  * 多图上传。
  *
- * 没复用 FileUploadField：那个是单值的（一个 url 进、一个 url 出），
- * 改成兼容多值会让所有现有调用方都要跟着判断类型。
+ * 未复用 FileUploadField：该组件是单值的，改为兼容多值会迫使所有现有调用方
+ * 判断类型。
  *
- * 顺序就是上传顺序，详情页按这个顺序排。想调顺序删了重传即可——
- * 加拖拽排序对这个使用量来说是过度设计。
+ * 排列顺序即上传顺序，详情页按此顺序展示；调整顺序需删除后重传。
  */
 export default function ImageListField({ value, onChange, folder, max = 9 }: Props) {
   const { t } = useI18n();

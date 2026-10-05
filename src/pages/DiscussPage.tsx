@@ -53,7 +53,7 @@ export default function DiscussPage() {
       />
 
       <div data-reveal className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-8">
-        {/* 未登录也显示，点了去登录页——这是这个板块最自然的注册入口 */}
+        {/* 未登录也显示，点了去登录页，这是这个板块最自然的注册入口 */}
         <Button asChild size="sm" className="gap-1.5 font-mono-label text-xs uppercase tracking-wider">
           <Link to={user ? '/submit/discuss' : '/login'}>
             <PenSquare className="h-3.5 w-3.5" />
