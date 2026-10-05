@@ -194,12 +194,6 @@ importers:
       marked:
         specifier: ^18.0.13
         version: 18.0.13
-      miaoda-react-devkit:
-        specifier: 0.1.1-beta.22
-        version: 0.1.1-beta.22(@sentry/core@9.47.1)(@sentry/react@9.47.1(react@18.3.1))(miaoda-sc-plugin@1.0.73(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7)))(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7))
-      miaoda-sc-plugin:
-        specifier: 1.0.73
-        version: 1.0.73(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7))
       motion:
         specifier: ^12.23.25
         version: 12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2280,10 +2274,6 @@ packages:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
     engines: {node: '>=12'}
 
-  ast-types@0.16.1:
-    resolution: {integrity: sha512-6t10qk83GOG8p0vKmaCr8eiilZwO171AvbROMtvvNiwrTly62t+7XkA8RdIIVbpMhCASAsxgAzdRSwh6nw/5Dg==}
-    engines: {node: '>=4'}
-
   async-function@1.0.0:
     resolution: {integrity: sha512-hsU18Ae8CDTR6Kgu9DYf0EbCr/a5iGL0rytQDobUcdpYOKokk8LEjVphnXkDkgpi0wYVsqrXuP0bZxJaTqdgoA==}
     engines: {node: '>= 0.4'}
@@ -2795,11 +2785,6 @@ packages:
   escape-string-regexp@5.0.0:
     resolution: {integrity: sha1-RoMSa1ALYXYvLb66zhgG6L4xscg=}
     engines: {node: '>=12'}
-
-  esprima@4.0.1:
-    resolution: {integrity: sha1-E7BM2z5sXRnfkatph6hpVhmwqnE=}
-    engines: {node: '>=4'}
-    hasBin: true
 
   estree-util-is-identifier-name@3.0.0:
     resolution: {integrity: sha512-hFtqIDZTIUZ9BXLb8y4pYGyk6+wekIivNVTcmvk8NoOh+VeRn5y6cEHzbURrWbfp1fIqdVipilzj+lfaadNZmg==}
@@ -3406,28 +3391,6 @@ packages:
   meshoptimizer@0.18.1:
     resolution: {integrity: sha512-ZhoIoL7TNV4s5B6+rx5mC//fw8/POGyNxS/DZyCJeiZ12ScLfVwRE/GfsxwiTkMYYD5DmK2/JXnEVXqL4rF+Sw==}
 
-  miaoda-react-devkit@0.1.1-beta.22:
-    resolution: {integrity: sha512-XTa4wqJxcswWnSfkRLUiMzyrR/YMQj2KCymynMjA9WFRWlT2+lXkXBDpz3Yjvy+SaL+5HB3zXneqqqoicxkBcQ==}
-    peerDependencies:
-      '@sentry/core': '>=8.0.0'
-      '@sentry/react': '>=8.0.0'
-      miaoda-sc-plugin: '>=1.0.0'
-      vite: '>=5.0.0'
-    peerDependenciesMeta:
-      '@sentry/core':
-        optional: true
-      '@sentry/react':
-        optional: true
-      miaoda-sc-plugin:
-        optional: true
-      vite:
-        optional: true
-
-  miaoda-sc-plugin@1.0.73:
-    resolution: {integrity: sha512-ipUy42iZpC69JQUNhrBTyADURjWh9DdAQBrDi60LmEgCxshWd5nZQgAkFZjXOL+OafwQf8ZcRKJ1k4plb/Wm1w==}
-    peerDependencies:
-      vite: ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
-
   micromark-core-commonmark@2.0.3:
     resolution: {integrity: sha512-RDBrHEMSxVFLg6xvnXmb1Ayr2WzLAWjeSATAoxwKYJV94TeNavgoIdA0a9ytzDSVzBy2YKFK+emCPOEibLeCrg==}
 
@@ -3984,10 +3947,6 @@ packages:
     resolution: {integrity: sha1-dKNwvYVxFuJFspzJc0DNQxoCpsc=}
     engines: {node: '>=8.10.0'}
 
-  recast@0.23.21:
-    resolution: {integrity: sha512-mFAyJq9vUbSTARLZUvAEf1z3YxlvAwswbmxMx2mPA/MSm4KmpwvwvhsH/NIrZhyOuwD60Lzyw2qh83uCbgTPYw==}
-    engines: {node: '>= 4'}
-
   recharts-scale@0.4.5:
     resolution: {integrity: sha512-kivNFO+0OcUNu7jQquLXAxz1FIwZj8nrj+YkOKc5694NbjCvcT6aSZiIzNzd2Kul4o4rTto8QVR9lMNtxD4G1w==}
 
@@ -4162,10 +4121,6 @@ packages:
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
-    engines: {node: '>=0.10.0'}
-
-  source-map@0.6.1:
-    resolution: {integrity: sha1-dHIq8y6WFOnCh6jQu95IteLxomM=}
     engines: {node: '>=0.10.0'}
 
   space-separated-tokens@2.0.2:
@@ -6503,10 +6458,6 @@ snapshots:
 
   assertion-error@2.0.1: {}
 
-  ast-types@0.16.1:
-    dependencies:
-      tslib: 2.8.1
-
   async-function@1.0.0: {}
 
   async-generator-function@1.0.0: {}
@@ -6999,8 +6950,6 @@ snapshots:
   escalade@3.2.0: {}
 
   escape-string-regexp@5.0.0: {}
-
-  esprima@4.0.1: {}
 
   estree-util-is-identifier-name@3.0.0: {}
 
@@ -7754,29 +7703,6 @@ snapshots:
 
   meshoptimizer@0.18.1: {}
 
-  miaoda-react-devkit@0.1.1-beta.22(@sentry/core@9.47.1)(@sentry/react@9.47.1(react@18.3.1))(miaoda-sc-plugin@1.0.73(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7)))(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7)):
-    dependencies:
-      '@babel/parser': 7.29.8
-      '@babel/traverse': 7.29.8
-      '@babel/types': 7.29.8
-    optionalDependencies:
-      '@sentry/core': 9.47.1
-      '@sentry/react': 9.47.1(react@18.3.1)
-      miaoda-sc-plugin: 1.0.73(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7))
-      vite: 8.2.2(@types/node@26.2.0)(jiti@1.21.7)
-    transitivePeerDependencies:
-      - supports-color
-
-  miaoda-sc-plugin@1.0.73(vite@8.2.2(@types/node@26.2.0)(jiti@1.21.7)):
-    dependencies:
-      '@babel/parser': 7.29.8
-      '@babel/traverse': 7.29.8
-      magic-string: 0.30.21
-      recast: 0.23.21
-      vite: 8.2.2(@types/node@26.2.0)(jiti@1.21.7)
-    transitivePeerDependencies:
-      - supports-color
-
   micromark-core-commonmark@2.0.3:
     dependencies:
       decode-named-character-reference: 1.3.0
@@ -8446,14 +8372,6 @@ snapshots:
     dependencies:
       picomatch: 2.3.2
 
-  recast@0.23.21:
-    dependencies:
-      ast-types: 0.16.1
-      esprima: 4.0.1
-      source-map: 0.6.1
-      tiny-invariant: 1.3.3
-      tslib: 2.8.1
-
   recharts-scale@0.4.5:
     dependencies:
       decimal.js-light: 2.5.1
@@ -8689,8 +8607,6 @@ snapshots:
       '@types/react': 19.2.18
 
   source-map-js@1.2.1: {}
-
-  source-map@0.6.1: {}
 
   space-separated-tokens@2.0.2: {}
 

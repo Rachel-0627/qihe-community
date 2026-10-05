@@ -1,5 +1,5 @@
 {
-  "name": "miaoda-react-admin",
+  "name": "qihe-community",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
@@ -70,8 +70,6 @@
     "lucide-react": "^0.576.0",
     "mammoth": "^1.12.1",
     "marked": "^18.0.13",
-    "miaoda-react-devkit": "0.1.1-beta.22",
-    "miaoda-sc-plugin": "1.0.73",
     "motion": "^12.23.25",
     "next-themes": "^0.4.6",
     "pdfjs-dist": "^6.2.108",
