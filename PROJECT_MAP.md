@@ -112,6 +112,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | 文件 | 职责 |
 |---|---|
 | `tools/PromptCaseLibrary.tsx` (271) ⚠️ | 提示词案例库列表 + 筛选 |
+| `tools/AiToolGrid.tsx` (97) | 收录的站外 AI 工具卡片墙，按分类筛选，新标签页跳转 |
 | `tools/PromptCaseDetail.tsx` (445) ⚠️ | 案例详情 + 调用生图 |
 | `events/EventCalendar.tsx` (162) | 活动日历视图 |
 | `profile/UserImageProviderConfig.tsx` (568) ⚠️ | 用户自配生图 API（含 Vault 密钥存取） |
@@ -133,7 +134,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `AdminCopywriting.tsx` (43) | 文案管理 |
 | `AdminContent.tsx` (99) | 通用内容编辑 |
 | `AdminAssistant.tsx` (157) | AI 助手配置 |
-| `AdminTools.tsx` (65) | 工具页配置 |
+| `AdminAiTools.tsx` (201) ⚠️ | AI 工具收录的增删改（名称 / 简介 / 网址 / 封面 / 分类 / 排序 / 上下架） |
 | `AdminSubmissions.tsx` (145) | **投稿审核**：预览、通过（落地到正式表）、驳回填理由 |
 | `NumberField.tsx` (36) | 后台专用数字输入框 |
 
@@ -162,6 +163,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
 | `submissionsApi.ts` (135) | **投稿与审核的所有读写**。单独成文件，不往 api.ts 里堆 |
 | `discussionApi.ts` (78) | 讨论帖与评论的读写 |
+| `aiToolsApi.ts` (52) | `ai_tools` 读写：前台只取已上架，后台取全部 |
 | `assistantQa.ts` (100) | 助手固定问答的匹配：标题 > 标签 > 正文加权，再用二字片段重合打破平局 |
 | `utils.ts` (59) | 通用小函数（className 合并等） |
 
@@ -196,6 +198,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `migrations/00042_add_event_end_date.sql` | `events.event_end_date`；允许为空，必填在后台表单上强制 |
 | `migrations/00043_add_business_posts.sql` | 帖子 + 评论两张表；改写 `review_submission()` 加显式分支与兜底报错 |
 | `migrations/00044_add_business_post_images.sql` | 帖子加封面与配图列 |
+| `migrations/00047_add_ai_tools.sql` | `ai_tools` 表 + RLS（公开读已上架 / 管理员全权）+ 首批 10 条收录 |
 | `migrations/00045_rename_to_discussion.sql` | 「商务与合作」改为「分享讨论区」：表名/枚举值/设置键一起改，去掉分类 |
 | `schema.sql` | 完整表结构快照 |
 | `config.toml` | Supabase 本地配置 |

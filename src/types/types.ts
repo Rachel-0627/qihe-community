@@ -393,3 +393,24 @@ export interface PostComment {
   body: string;
   created_at: string;
 }
+
+// ============ 工具栏目：收录的站外 AI 工具 ============
+
+export const AI_TOOL_CATEGORIES = ['图像处理', '文档办公', '音视频', '创意生成', '其他'] as const;
+export type AiToolCategory = (typeof AI_TOOL_CATEGORIES)[number];
+
+export interface AiTool {
+  id: string;
+  name: string;
+  summary: string;
+  /** 站外工具地址，点击在新标签页打开 */
+  url: string;
+  /** 封面图放在站点自己的 public/tools/ 下，不外链第三方图片 */
+  cover_url: string;
+  provider: string;
+  category: AiToolCategory;
+  sort_order: number;
+  is_visible: boolean;
+  created_at: string;
+  updated_at: string;
+}

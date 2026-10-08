@@ -7,7 +7,7 @@ import AdminCases from '@/components/admin/AdminCases';
 import AdminProjects from '@/components/admin/AdminProjects';
 import AdminEvents from '@/components/admin/AdminEvents';
 import AdminDiscussSettings from '@/components/admin/AdminDiscussSettings';
-import AdminTools from '@/components/admin/AdminTools';
+import AdminAiTools from '@/components/admin/AdminAiTools';
 import AdminCaseFilters from '@/components/admin/AdminCaseFilters';
 import AdminProjectFilters from '@/components/admin/AdminProjectFilters';
 import AdminEventFilters from '@/components/admin/AdminEventFilters';
@@ -120,7 +120,7 @@ export default function AdminContentHub() {
           </Collapsible>
           <AdminPromptCases />
           <div className="border-t border-border pt-8">
-            <AdminTools />
+            <AdminAiTools />
           </div>
         </TabsContent>
       </Tabs>
