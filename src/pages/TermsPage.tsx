@@ -6,13 +6,14 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export default function TermsPage() {
-  const { t } = useI18n();
-  const { brandName, termsContent } = useSiteSettings();
+  const { t, lang } = useI18n();
+  const { brandName, termsContent, termsContentEn } = useSiteSettings();
+  const activeContent = lang === 'en' && termsContentEn ? termsContentEn : termsContent;
 
   const html = useMemo(() => {
-    const raw = marked.parse(termsContent || '', { async: false }) as string;
+    const raw = marked.parse(activeContent || '', { async: false }) as string;
     return DOMPurify.sanitize(raw);
-  }, [termsContent]);
+  }, [activeContent]);
 
   const pageTitle = `${t('用户协议', 'Terms of Service')} - ${brandName || t('启禾社区', 'Qihe Community')}`;
 

@@ -50,8 +50,8 @@ export default function Header() {
   const navItems = useMemo(() => DEFAULT_NAV_ITEMS
     .map((item) => ({
       ...item,
-      zh: navLabels[item.path]?.zh ?? (item.path === '/discuss' ? '分享讨论区' : item.path === '/tools' ? '工具' : item.path),
-      en: navLabels[item.path]?.en ?? (item.path === '/discuss' ? 'Discussion' : item.path === '/tools' ? 'Tools' : item.path),
+      zh: navLabels[item.path]?.zh ?? (item.path === '/discuss' ? '广场' : item.path === '/tools' ? '工具' : item.path),
+      en: navLabels[item.path]?.en ?? (item.path === '/discuss' ? 'Plaza' : item.path === '/tools' ? 'Tools' : item.path),
     })), [navLabels]);
 
   const isActive = (path: string) =>

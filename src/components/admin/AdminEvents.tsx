@@ -20,8 +20,8 @@ import { totalCount } from '@/lib/utils';
 import type { EventItem, EventFilterOption, EventRegistrationExportRow } from '@/types/types';
 
 const emptyEvent = (city: string, theme: string): Partial<EventItem> => ({
-  title: '', title_en: '', summary: '', summary_en: '', cover_url: '', video_url: '',
-  city, city_en: '', theme, theme_en: '', location: '', location_en: '',
+  title: '', summary: '', cover_url: '', video_url: '',
+  city, theme, location: '',
   event_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
   // 默认两小时，只是给个省事的起点，可以改
   event_end_date: new Date(Date.now() + 7 * 86400000 + 2 * 3600000).toISOString().slice(0, 16),
@@ -164,10 +164,8 @@ export default function AdminEvents() {
             {editing && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label={t('标题（中）', 'Title (ZH)')}><Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="px-3" /></Field>
-                  <Field label={t('标题（英）', 'Title (EN)')}><Input value={editing.title_en || ''} onChange={(e) => setEditing({ ...editing, title_en: e.target.value })} className="px-3" /></Field>
-                  <Field label={t('摘要（中）', 'Summary (ZH)')}><Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="px-3" rows={2} /></Field>
-                  <Field label={t('摘要（英）', 'Summary (EN)')}><Textarea value={editing.summary_en || ''} onChange={(e) => setEditing({ ...editing, summary_en: e.target.value })} className="px-3" rows={2} /></Field>
+                  <Field label={t('标题', 'Title')}><Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="px-3" /></Field>
+                  <Field label={t('摘要', 'Summary')}><Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="px-3" rows={2} /></Field>
                   <FileUploadField label={t('封面图', 'Cover Image')} value={editing.cover_url || ''} onChange={(url) => setEditing({ ...editing, cover_url: url })} folder="events/covers" accept="image/jpeg,image/png,image/webp,image/gif" id={editing.id} />
                   <FileUploadField label={t('视频', 'Video')} value={editing.video_url || ''} onChange={(url) => setEditing({ ...editing, video_url: url })} folder="events/videos" accept="video/mp4" preview="video" id={editing.id} />
                   <Field label={t('开始时间', 'Start time')}><Input type="datetime-local" value={editing.event_date || ''} onChange={(e) => setEditing({ ...editing, event_date: e.target.value })} className="px-3" /></Field>
@@ -190,7 +188,6 @@ export default function AdminEvents() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label={t('城市（英）', 'City (EN)')}><Input value={editing.city_en || ''} onChange={(e) => setEditing({ ...editing, city_en: e.target.value })} className="px-3" /></Field>
                   <Field label={t('主题（中）', 'Theme (ZH)')}>
                     <Select value={editing.theme || defaultTheme} onValueChange={(v) => setEditing({ ...editing, theme: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -200,9 +197,7 @@ export default function AdminEvents() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label={t('主题（英）', 'Theme (EN)')}><Input value={editing.theme_en || ''} onChange={(e) => setEditing({ ...editing, theme_en: e.target.value })} className="px-3" /></Field>
-                  <Field label={t('地点（中）', 'Location (ZH)')}><Input value={editing.location || ''} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="px-3" /></Field>
-                  <Field label={t('地点（英）', 'Location (EN)')}><Input value={editing.location_en || ''} onChange={(e) => setEditing({ ...editing, location_en: e.target.value })} className="px-3" /></Field>
+                  <Field label={t('地点', 'Location')}><Input value={editing.location || ''} onChange={(e) => setEditing({ ...editing, location: e.target.value })} className="px-3" /></Field>
                   <Field label={t('名额', 'Capacity')}><Input type="number" value={editing.capacity || 0} onChange={(e) => setEditing({ ...editing, capacity: Number(e.target.value) })} className="px-3" /></Field>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

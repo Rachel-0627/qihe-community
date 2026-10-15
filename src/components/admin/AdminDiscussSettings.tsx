@@ -14,7 +14,6 @@ export default function AdminDiscussSettings() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const zhEditorRef = useRef<ImmersiveEditorApi>(null);
-  const enEditorRef = useRef<ImmersiveEditorApi>(null);
 
   const load = useCallback(() => {
     fetchSiteSettings()
@@ -23,8 +22,7 @@ export default function AdminDiscussSettings() {
         rows.forEach((r) => { map[r.key] = r.value; });
         setSettings({
           discuss_visible: map.discuss_visible ?? 'true',
-          discuss_content: map.discuss_content ?? '<p>欢迎与我们联系分享讨论。</p>',
-          discuss_content_en: map.discuss_content_en ?? '<p>Welcome to contact us for business cooperation.</p>',
+          discuss_content: map.discuss_content ?? '<p>在这里分享你的实践、提出你的问题，和社区成员一起讨论。</p>',
         });
       })
       .catch(() => toast.error(t('加载失败', 'Load failed')))
@@ -92,8 +90,6 @@ export default function AdminDiscussSettings() {
   }, []);
 
   const handleImportZh = makeImportHandler(zhEditorRef, (html) => setSettings((prev) => ({ ...prev, discuss_content: html })));
-  const handleImportEn = makeImportHandler(enEditorRef, (html) => setSettings((prev) => ({ ...prev, discuss_content_en: html })));
-
   if (loading) {
     return <p className="text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</p>;
   }
@@ -107,30 +103,13 @@ export default function AdminDiscussSettings() {
           ref={zhEditorRef}
           value={settings.discuss_content || ''}
           onChange={(value) => setSettings((prev) => ({ ...prev, discuss_content: value }))}
-          placeholder={t('编辑分享讨论区页面内容', 'Edit business cooperation page content')}
+          placeholder={t('编辑广场页面说明内容', 'Edit plaza page description')}
           uploadFolder="business"
           onImportFile={handleImportZh}
         />
         <div className="flex justify-end">
           <Button onClick={() => handleSave('discuss_content', settings.discuss_content)} className="font-mono-label text-xs uppercase tracking-wider">
             {t('保存中文内容', 'Save Chinese content')}
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('英文内容', 'English content')}</Label>
-        <ImmersiveEditor
-          ref={enEditorRef}
-          value={settings.discuss_content_en || ''}
-          onChange={(value) => setSettings((prev) => ({ ...prev, discuss_content_en: value }))}
-          placeholder={t('Edit business cooperation page content', 'Edit business cooperation page content')}
-          uploadFolder="business"
-          onImportFile={handleImportEn}
-        />
-        <div className="flex justify-end">
-          <Button onClick={() => handleSave('discuss_content_en', settings.discuss_content_en)} className="font-mono-label text-xs uppercase tracking-wider">
-            {t('保存英文内容', 'Save English content')}
           </Button>
         </div>
       </div>

@@ -15,7 +15,7 @@ import type { DiscussionPost } from '@/types/types';
 export default function DiscussPage() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
-  const { discuss } = useSiteSettings();
+  const { discuss, navLabels } = useSiteSettings();
   const revealRef = useReveal<HTMLDivElement>();
 
   const [posts, setPosts] = useState<DiscussionPost[]>([]);
@@ -34,13 +34,14 @@ export default function DiscussPage() {
   useEffect(load, [load]);
 
   const content = lang === 'en' && discuss.contentEn ? discuss.contentEn : discuss.content;
+  const plazaLabel = navLabels['/discuss'] ?? { zh: '广场', en: 'Plaza' };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16" ref={revealRef}>
       <div data-reveal className="border-b border-border pb-6">
-        <p className="editorial-label text-accent">{lang === 'en' ? 'Discussion' : '分享讨论区'}</p>
+        <p className="editorial-label text-accent">{lang === 'en' ? plazaLabel.en : plazaLabel.zh}</p>
         <h1 className="mt-2 font-display text-3xl font-medium text-foreground text-balance md:text-4xl">
-          {lang === 'en' ? 'Share & Discuss' : '分享讨论区'}
+          {lang === 'en' ? plazaLabel.en : plazaLabel.zh}
         </h1>
       </div>
 

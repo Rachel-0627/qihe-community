@@ -20,7 +20,7 @@ import type { PromptCase, PromptCaseFilter, PromptCaseAspectRatio } from '@/type
 const ASPECT_RATIOS: PromptCaseAspectRatio[] = ['3:4', '4:3', '9:16', '16:9', '2.35:1'];
 
 const emptyCase = (): Partial<PromptCase> => ({
-  title: '', title_en: '', description: '', description_en: '', prompt: '', prompt_en: '', cover_url: '', aspect_ratio: '4:3',
+  title: '', description: '', prompt: '', cover_url: '', aspect_ratio: '4:3',
   category_id: null, style_id: null, scene_id: null, sort_order: 0, is_active: true,
 });
 
@@ -94,17 +94,13 @@ export default function AdminPromptCases() {
             </DialogHeader>
             {editing && (
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label={t('标题（中）', 'Title (ZH)')}><Input value={editing.title || ''} onChange={(e) => update({ title: e.target.value })} className="px-3" /></Field>
-                  <Field label={t('标题（英）', 'Title (EN)')}><Input value={editing.title_en || ''} onChange={(e) => update({ title_en: e.target.value })} className="px-3" /></Field>
+                <div className="grid grid-cols-1 gap-4">
+                  <Field label={t('标题', 'Title')}><Input value={editing.title || ''} onChange={(e) => update({ title: e.target.value })} className="px-3" /></Field>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label={t('描述（中）', 'Description (ZH)')}>
+                <div className="grid grid-cols-1 gap-4">
+                  <Field label={t('描述', 'Description')}>
                     <Textarea value={editing.description || ''} onChange={(e) => update({ description: e.target.value })} rows={3} className="px-3" />
-                  </Field>
-                  <Field label={t('描述（英）', 'Description (EN)')}>
-                    <Textarea value={editing.description_en || ''} onChange={(e) => update({ description_en: e.target.value })} rows={3} className="px-3" />
                   </Field>
                 </div>
 
@@ -160,11 +156,8 @@ export default function AdminPromptCases() {
                   <NumberField label={t('排序', 'Sort Order')} value={editing.sort_order || 0} onChange={(v) => update({ sort_order: v })} />
                 </div>
 
-                <Field label={t('提示词（中）', 'Prompt (ZH)')}>
+                <Field label={t('提示词', 'Prompt')}>
                   <Textarea value={editing.prompt || ''} onChange={(e) => update({ prompt: e.target.value })} rows={5} className="px-3" />
-                </Field>
-                <Field label={t('提示词（英）', 'Prompt (EN)')}>
-                  <Textarea value={editing.prompt_en || ''} onChange={(e) => update({ prompt_en: e.target.value })} rows={5} className="px-3" />
                 </Field>
 
                 <div className="flex items-center gap-3">

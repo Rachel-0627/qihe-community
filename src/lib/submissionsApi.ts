@@ -65,7 +65,7 @@ export async function updateSubmission(
   return data as ContentSubmission;
 }
 
-/** 撤回投稿。已通过的删不掉（策略限制），前台也不该给入口。 */
+/** 删除投稿。普通用户只能删除自己未通过的投稿；管理员可以删除任意投稿记录。 */
 export async function deleteSubmission(id: string): Promise<void> {
   const { error } = await supabase.from('content_submissions').delete().eq('id', id);
   if (error) throw error;

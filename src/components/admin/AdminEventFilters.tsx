@@ -16,7 +16,7 @@ const GROUPS: { key: EventFilterOption['group']; zh: string; en: string }[] = [
   { key: 'theme', zh: '主题类型', en: 'Theme' },
 ];
 
-const emptyOption = (): Partial<EventFilterOption> => ({ group: 'city', name: '', name_en: '', sort_order: 0, is_active: true });
+const emptyOption = (): Partial<EventFilterOption> => ({ group: 'city', name: '', sort_order: 0, is_active: true });
 
 export default function AdminEventFilters() {
   const { t, lang } = useI18n();
@@ -43,7 +43,12 @@ export default function AdminEventFilters() {
       toast.success(t('保存成功', 'Saved successfully'));
       setEditing(null);
       load();
-    } catch { toast.error(t('保存失败', 'Save failed')); }
+    } catch (error) {
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String(error.message)
+        : t('保存失败', 'Save failed');
+      toast.error(message);
+    }
   }, [editing, load, t]);
 
   const handleDelete = async (id: string) => {
@@ -75,7 +80,6 @@ export default function AdminEventFilters() {
               </Select>
             </Field>
             <Field label={t('名称（中）', 'Name (ZH)')}><Input value={editing.name || ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="px-3" /></Field>
-            <Field label={t('名称（英）', 'Name (EN)')}><Input value={editing.name_en || ''} onChange={(e) => setEditing({ ...editing, name_en: e.target.value })} className="px-3" /></Field>
             <Field label={t('排序', 'Sort Order')}><Input type="number" value={editing.sort_order || 0} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} className="px-3" /></Field>
           </div>
           <div className="flex items-center gap-3">
@@ -101,7 +105,6 @@ export default function AdminEventFilters() {
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('名称', 'Name')}</th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('英文', 'English')}</th>
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('排序', 'Sort')}</th>
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('启用', 'Active')}</th>
                       <th className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('操作', 'Actions')}</th>
@@ -113,7 +116,6 @@ export default function AdminEventFilters() {
                     ) : g.items.map((item) => (
                       <tr key={item.id} className="border-b border-border last:border-0">
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{item.name}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.name_en}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.sort_order}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.is_active ? t('是', 'Yes') : t('否', 'No')}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-right">

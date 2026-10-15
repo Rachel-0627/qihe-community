@@ -250,6 +250,77 @@ export async function translateZhToEn(q: string): Promise<string> {
   return result || '';
 }
 
+const TRANSLATION_CHUNK_SIZE = 1800;
+
+function splitTranslationText(value: string): string[] {
+  const chunks: string[] = [];
+  let current = '';
+  for (const part of value.split(/(\n+)/)) {
+    if (current.length + part.length <= TRANSLATION_CHUNK_SIZE) {
+      current += part;
+      continue;
+    }
+    if (current) chunks.push(current);
+    if (part.length <= TRANSLATION_CHUNK_SIZE) {
+      current = part;
+      continue;
+    }
+    for (let index = 0; index < part.length; index += TRANSLATION_CHUNK_SIZE) {
+      chunks.push(part.slice(index, index + TRANSLATION_CHUNK_SIZE));
+    }
+    current = '';
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+/** 翻译长文本，按接口限制分段，保留原有换行。 */
+export async function translateZhToEnLong(value: string): Promise<string> {
+  const text = value ?? '';
+  if (!text.trim()) return '';
+  const chunks = splitTranslationText(text);
+  return (await Promise.all(chunks.map((chunk) => translateZhToEn(chunk)))).join('');
+}
+
+/** 翻译富文本正文，只替换文本节点，避免破坏编辑器生成的 HTML 标签。 */
+export async function translateHtmlZhToEn(value: string): Promise<string> {
+  const html = value ?? '';
+  if (!html.trim() || typeof DOMParser === 'undefined') return translateZhToEnLong(html);
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return translateZhToEnLong(html);
+  const walker = doc.createTreeWalker(root, 4);
+  const nodes: Text[] = [];
+  let node = walker.nextNode();
+  while (node) {
+    const textNode = node as Text;
+    const parent = textNode.parentElement?.tagName.toLowerCase();
+    if (textNode.textContent?.trim() && parent !== 'script' && parent !== 'style') nodes.push(textNode);
+    node = walker.nextNode();
+  }
+  await Promise.all(nodes.map(async (textNode) => {
+    textNode.textContent = await translateZhToEnLong(textNode.textContent || '');
+  }));
+  return root.innerHTML;
+}
+
+type TranslationSpec<T> = { zh: keyof T; en: keyof T; html?: boolean };
+
+async function withAutoTranslations<T extends Record<string, unknown>>(item: T, specs: TranslationSpec<T>[]): Promise<T> {
+  const translated = await Promise.all(specs.map(async ({ zh, en, html }) => {
+    const value = typeof item[zh] === 'string' ? String(item[zh]) : '';
+    try {
+      const result = html ? await translateHtmlZhToEn(value) : await translateZhToEnLong(value);
+      return [en, result] as const;
+    } catch {
+      // 自动翻译是辅助能力，服务不可用时不能阻断中文内容保存。
+      const existing = item[en];
+      return [en, typeof existing === 'string' ? existing : ''] as const;
+    }
+  }));
+  return { ...item, ...Object.fromEntries(translated) } as T;
+}
+
 // ============ Categories ============
 export async function fetchCategories(type?: 'case' | 'project' | 'event'): Promise<Category[]> {
   let query = supabase
@@ -264,7 +335,7 @@ export async function fetchCategories(type?: 'case' | 'project' | 'event'): Prom
 }
 
 export async function saveCategory(item: Partial<Category>): Promise<void> {
-  const payload = { ...item };
+  const payload = await withAutoTranslations({ ...item }, [{ zh: 'name', en: 'name_en' }]);
   if (payload.id) {
     const { error } = await supabase.from('categories').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -440,7 +511,13 @@ export async function saveCase(item: Partial<CaseItem>): Promise<void> {
   const { categories: _embeddedCategory, ...itemWithoutRelation } = item as Partial<CaseItem> & {
     categories?: unknown;
   };
-  const payload = ensureViewCeiling(await stripUnsupportedFields(itemWithoutRelation));
+  const translated = await withAutoTranslations(itemWithoutRelation, [
+    { zh: 'title', en: 'title_en' },
+    { zh: 'summary', en: 'summary_en' },
+    { zh: 'content', en: 'content_en', html: true },
+    { zh: 'author', en: 'author_en' },
+  ]);
+  const payload = ensureViewCeiling(await stripUnsupportedFields(translated));
   if (payload.id) {
     const { error } = await supabase.from('cases').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -456,7 +533,13 @@ export async function saveCaseAndReturn(item: Partial<CaseItem>): Promise<string
   const { categories: _embeddedCategory, ...itemWithoutRelation } = item as Partial<CaseItem> & {
     categories?: unknown;
   };
-  const payload = ensureViewCeiling(await stripUnsupportedFields(itemWithoutRelation));
+  const translated = await withAutoTranslations(itemWithoutRelation, [
+    { zh: 'title', en: 'title_en' },
+    { zh: 'summary', en: 'summary_en' },
+    { zh: 'content', en: 'content_en', html: true },
+    { zh: 'author', en: 'author_en' },
+  ]);
+  const payload = ensureViewCeiling(await stripUnsupportedFields(translated));
   if (payload.id) {
     const { error } = await supabase.from('cases').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -616,7 +699,14 @@ export async function fetchProjectById(id: string): Promise<ProjectItem | null> 
 export async function saveProject(item: Partial<ProjectItem>): Promise<void> {
   // 保存时给章节标题盖永久编号：免费试看名单记的是编号，
   // 这样以后插入/删除章节，已勾选的免费章节不会错位到别的内容上
-  const stamped = { ...item };
+  const translated = await withAutoTranslations({ ...item }, [
+    { zh: 'title', en: 'title_en' },
+    { zh: 'summary', en: 'summary_en' },
+    { zh: 'scene', en: 'scene_en' },
+    { zh: 'maturity', en: 'maturity_en' },
+    { zh: 'content', en: 'content_en', html: true },
+  ]);
+  const stamped = { ...translated };
   if (typeof stamped.content === 'string') stamped.content = stampChapters(stamped.content);
   if (typeof stamped.content_en === 'string') stamped.content_en = stampChapters(stamped.content_en);
   const payload = ensureViewCeiling(await stripUnsupportedFields(stamped));
@@ -722,7 +812,14 @@ export async function getEventRegistrationExport(eventId: string): Promise<Event
 }
 
 export async function saveEvent(item: Partial<EventItem>): Promise<void> {
-  const payload = ensureViewCeiling(await stripUnsupportedFields({ ...item }));
+  const translated = await withAutoTranslations({ ...item }, [
+    { zh: 'title', en: 'title_en' },
+    { zh: 'summary', en: 'summary_en' },
+    { zh: 'city', en: 'city_en' },
+    { zh: 'theme', en: 'theme_en' },
+    { zh: 'location', en: 'location_en' },
+  ]);
+  const payload = ensureViewCeiling(await stripUnsupportedFields(translated));
   if (payload.id) {
     const { error } = await supabase.from('events').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -813,11 +910,12 @@ export async function fetchLevelConfig(): Promise<LevelConfig[]> {
 
 export async function saveLevelConfig(items: LevelConfig[]): Promise<void> {
   for (const item of items) {
+    const translated = await withAutoTranslations({ ...item }, [{ zh: 'title', en: 'title_en' }]);
     const { error } = await supabase.from('level_config').update({
-      title: item.title,
-      title_en: item.title_en,
-      xp_threshold: item.xp_threshold,
-      free_unlock_count: item.free_unlock_count ?? 0,
+      title: translated.title,
+      title_en: translated.title_en,
+      xp_threshold: translated.xp_threshold,
+      free_unlock_count: translated.free_unlock_count ?? 0,
     }).eq('level', item.level);
     if (error) throw error;
   }
@@ -831,20 +929,26 @@ export async function fetchMemberBenefits(): Promise<MemberBenefit[]> {
 }
 
 export async function saveMemberBenefit(item: MemberBenefit): Promise<void> {
+  const translated = await withAutoTranslations({ ...item }, [{ zh: 'benefit_label', en: 'benefit_label_en' }]);
   // 前端补齐缺失 tier 时 id 为空，需要新建记录
   if (!item.id) {
     const { error } = await supabase.from('member_benefits').insert({
       tier: item.tier,
       benefit_key: item.benefit_key,
-      benefit_label: item.benefit_label,
-      benefit_label_en: item.benefit_label_en,
-      enabled: item.enabled,
-      sort_order: item.sort_order,
+      benefit_label: translated.benefit_label,
+      benefit_label_en: translated.benefit_label_en,
+      enabled: translated.enabled,
+      sort_order: translated.sort_order,
     });
     if (error) throw error;
     return;
   }
-  const { error } = await supabase.from('member_benefits').update({ enabled: item.enabled }).eq('id', item.id);
+  const { error } = await supabase.from('member_benefits').update({
+    benefit_label: translated.benefit_label,
+    benefit_label_en: translated.benefit_label_en,
+    enabled: translated.enabled,
+    sort_order: translated.sort_order,
+  }).eq('id', item.id);
   if (error) throw error;
 }
 
@@ -856,7 +960,8 @@ export async function fetchSiteContent(): Promise<SiteContent[]> {
 }
 
 export async function saveSiteContent(item: SiteContent): Promise<void> {
-  const { error } = await supabase.from('site_content').update({ value: item.value, value_en: item.value_en, image_url: item.image_url, updated_at: new Date().toISOString() }).eq('id', item.id);
+  const translated = await withAutoTranslations({ ...item }, [{ zh: 'value', en: 'value_en' }]);
+  const { error } = await supabase.from('site_content').update({ value: translated.value, value_en: translated.value_en, image_url: translated.image_url, updated_at: new Date().toISOString() }).eq('id', item.id);
   if (error) throw error;
 }
 
@@ -868,11 +973,16 @@ export async function fetchAssistantConfig(): Promise<AssistantConfig | null> {
 }
 
 export async function saveAssistantConfig(item: Partial<AssistantConfig>): Promise<void> {
+  const translated = await withAutoTranslations({ ...item }, [
+    { zh: 'persona_name', en: 'persona_name_en' },
+    { zh: 'system_prompt', en: 'system_prompt_en' },
+    { zh: 'greeting', en: 'greeting_en' },
+  ]);
   if (item.id) {
-    const { error } = await supabase.from('assistant_config').update({ ...item, updated_at: new Date().toISOString() }).eq('id', item.id);
+    const { error } = await supabase.from('assistant_config').update({ ...translated, updated_at: new Date().toISOString() }).eq('id', item.id);
     if (error) throw error;
   } else {
-    const { id, ...rest } = item;
+    const { id, ...rest } = translated;
     const { error } = await supabase.from('assistant_config').insert(rest);
     if (error) throw error;
   }
@@ -928,7 +1038,18 @@ export async function invokeAdminUsers<T>(action: string, payload?: Record<strin
   const { data, error } = await supabase.functions.invoke('admin-users', {
     body: { action, ...payload },
   });
-  if (error) throw error;
+  if (error) {
+    let serverMessage = '';
+    if (error.name === 'FunctionsHttpError' && error.context instanceof Response) {
+      try {
+        const body = await error.context.json() as { error?: unknown };
+        if (typeof body.error === 'string') serverMessage = body.error;
+      } catch {
+        // 响应不是 JSON 时保留 Supabase 原始错误。
+      }
+    }
+    throw new Error(serverMessage || error.message);
+  }
   return data as T;
 }
 
@@ -963,7 +1084,7 @@ export async function fetchProjectFilterOptions(): Promise<ProjectFilterOption[]
 }
 
 export async function saveProjectFilterOption(item: Partial<ProjectFilterOption>): Promise<void> {
-  const payload = { ...item };
+  const payload = await withAutoTranslations({ ...item }, [{ zh: 'name', en: 'name_en' }]);
   if (payload.id) {
     const { error } = await supabase.from('project_filter_options').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -992,7 +1113,7 @@ export async function fetchEventFilterOptions(): Promise<EventFilterOption[]> {
 }
 
 export async function saveEventFilterOption(item: Partial<EventFilterOption>): Promise<void> {
-  const payload = { ...item };
+  const payload = await withAutoTranslations({ ...item }, [{ zh: 'name', en: 'name_en' }]);
   if (payload.id) {
     const { error } = await supabase.from('event_filter_options').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -1009,6 +1130,24 @@ export async function deleteEventFilterOption(id: string): Promise<void> {
 }
 
 // ============ Site Settings ============
+const SITE_SETTING_EN_KEYS: Record<string, string> = {
+  brand_name: 'brand_name_en',
+  terms_content: 'terms_content_en',
+  privacy_content: 'privacy_content_en',
+  nav_home: 'nav_home_en',
+  nav_cases: 'nav_cases_en',
+  nav_projects: 'nav_projects_en',
+  nav_events: 'nav_events_en',
+  nav_discuss: 'nav_discuss_en',
+  nav_tools: 'nav_tools_en',
+  locked_project_dialog_title: 'locked_project_dialog_title_en',
+  locked_project_dialog_content: 'locked_project_dialog_content_en',
+  footer_tagline: 'footer_tagline_en',
+  footer_copyright: 'footer_copyright_en',
+  discuss_content: 'discuss_content_en',
+  tools_content: 'tools_content_en',
+};
+
 export async function fetchSiteSettings(): Promise<SiteSetting[]> {
   const { data, error } = await supabase.from('site_settings').select('*').order('key', { ascending: true }).limit(100);
   if (error) throw error;
@@ -1016,11 +1155,36 @@ export async function fetchSiteSettings(): Promise<SiteSetting[]> {
 }
 
 export async function saveSiteSetting(item: SiteSetting): Promise<void> {
-  const { error } = await supabase.from('site_settings').upsert(
+  const englishKey = item.key.endsWith('_en') ? item.key : SITE_SETTING_EN_KEYS[item.key];
+  if (item.key.endsWith('_en')) {
+    const { error } = await supabase.from('site_settings').upsert(
+      { key: item.key, value: item.value, updated_at: new Date().toISOString() },
+      { onConflict: 'key' },
+    );
+    if (error) throw error;
+    return;
+  }
+  let translated: string | null = null;
+  if (englishKey) {
+    try {
+      translated = item.key === 'discuss_content' || item.key === 'tools_content'
+        ? await translateHtmlZhToEn(item.value)
+        : await translateZhToEnLong(item.value);
+    } catch {
+      // 先保证中文设置可以保存；翻译服务恢复后再补齐英文镜像。
+    }
+  }
+  const { error: chineseError } = await supabase.from('site_settings').upsert(
     { key: item.key, value: item.value, updated_at: new Date().toISOString() },
     { onConflict: 'key' }
   );
-  if (error) throw error;
+  if (chineseError) throw chineseError;
+  if (!englishKey || translated === null) return;
+  const { error: englishError } = await supabase.from('site_settings').upsert(
+    { key: englishKey, value: translated, updated_at: new Date().toISOString() },
+    { onConflict: 'key' },
+  );
+  if (englishError) throw englishError;
 }
 
 // ============ Prompt Case Library ============
@@ -1069,7 +1233,12 @@ export async function savePromptCase(item: Partial<PromptCase>): Promise<void> {
     scene?: unknown;
     created_at?: unknown;
   };
-  const payload = { ...cleanItem, updated_at: new Date().toISOString() };
+  const translated = await withAutoTranslations(cleanItem, [
+    { zh: 'title', en: 'title_en' },
+    { zh: 'description', en: 'description_en' },
+    { zh: 'prompt', en: 'prompt_en' },
+  ]);
+  const payload = { ...translated, updated_at: new Date().toISOString() };
   if (payload.id) {
     const { error } = await supabase.from('prompt_cases').update(payload).eq('id', payload.id);
     if (error) throw error;
@@ -1098,7 +1267,7 @@ export async function deletePromptCase(id: string): Promise<void> {
 }
 
 export async function savePromptCaseFilter(item: Partial<PromptCaseFilter>): Promise<void> {
-  const payload = { ...item };
+  const payload = await withAutoTranslations({ ...item }, [{ zh: 'name', en: 'name_en' }]);
   if (payload.id) {
     const { error } = await supabase.from('prompt_case_filters').update(payload).eq('id', payload.id);
     if (error) throw error;

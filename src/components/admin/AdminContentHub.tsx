@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { FileText, FolderKanban, CalendarDays, Handshake, Wrench, SlidersHorizontal, ChevronDown } from 'lucide-react';
@@ -16,11 +17,13 @@ import AdminPromptCaseFilters from '@/components/admin/AdminPromptCaseFilters';
 
 /**
  * 内容管理（五大入口之一）：
- * 案例 / 项目库 / 城市组局 / 分享讨论区 / 工具 五个板块的内容编辑合并到一个入口，
+ * 案例 / 项目库 / 城市组局 / 广场 / 工具 五个板块的内容编辑合并到一个入口，
  * 通过二级 Tab 切换；筛选配置以折叠面板内嵌在对应 Tab 里。
  */
 export default function AdminContentHub() {
   const { t } = useI18n();
+  const { navLabels } = useSiteSettings();
+  const plazaLabel = navLabels['/discuss'] ?? { zh: '广场', en: 'Plaza' };
   const [section, setSection] = useState<'cases' | 'projects' | 'events' | 'discuss' | 'tools'>('cases');
   const [cfOpen, setCfOpen] = useState(false);
   const [pfOpen, setPfOpen] = useState(false);
@@ -31,7 +34,7 @@ export default function AdminContentHub() {
     <div>
       <div>
         <p className="editorial-label text-accent">{t('内容管理', 'Content')}</p>
-        <h2 className="mt-1 font-display text-xl font-medium">{t('案例 · 项目库 · 城市组局 · 分享讨论区 · 工具', 'Cases · Projects · Events · Business · Tools')}</h2>
+        <h2 className="mt-1 font-display text-xl font-medium">{t(`案例 · 项目库 · 城市组局 · ${plazaLabel.zh} · 工具`, `Cases · Projects · Events · ${plazaLabel.en} · Tools`)}</h2>
       </div>
 
       <Tabs value={section} onValueChange={(v) => setSection(v as typeof section)} className="mt-6">
@@ -46,7 +49,7 @@ export default function AdminContentHub() {
             <CalendarDays className="h-3.5 w-3.5" />{t('城市组局', 'Events')}
           </TabsTrigger>
           <TabsTrigger value="discuss" className="gap-1.5 px-3 py-2 font-mono-label text-xs uppercase tracking-wider data-[state=active]:bg-card">
-            <Handshake className="h-3.5 w-3.5" />{t('分享讨论区', 'Discussion')}
+            <Handshake className="h-3.5 w-3.5" />{t(plazaLabel.zh, plazaLabel.en)}
           </TabsTrigger>
           <TabsTrigger value="tools" className="gap-1.5 px-3 py-2 font-mono-label text-xs uppercase tracking-wider data-[state=active]:bg-card">
             <Wrench className="h-3.5 w-3.5" />{t('工具', 'Tools')}

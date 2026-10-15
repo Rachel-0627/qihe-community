@@ -6,13 +6,14 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export default function PrivacyPage() {
-  const { t } = useI18n();
-  const { brandName, privacyContent } = useSiteSettings();
+  const { t, lang } = useI18n();
+  const { brandName, privacyContent, privacyContentEn } = useSiteSettings();
+  const activeContent = lang === 'en' && privacyContentEn ? privacyContentEn : privacyContent;
 
   const html = useMemo(() => {
-    const raw = marked.parse(privacyContent || '', { async: false }) as string;
+    const raw = marked.parse(activeContent || '', { async: false }) as string;
     return DOMPurify.sanitize(raw);
-  }, [privacyContent]);
+  }, [activeContent]);
 
   const pageTitle = `${t('隐私政策', 'Privacy Policy')} - ${brandName || t('启禾社区', 'Qihe Community')}`;
 

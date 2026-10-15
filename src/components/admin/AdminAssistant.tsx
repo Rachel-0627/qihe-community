@@ -80,16 +80,11 @@ export default function AdminAssistant() {
         </div>
 
         {config && (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label={t('人设名称（中）', 'Persona Name (ZH)')}><Input value={config.persona_name} onChange={(e) => updateConfig({ persona_name: e.target.value })} className="px-3" /></Field>
-            <Field label={t('人设名称（英）', 'Persona Name (EN)')}><Input value={config.persona_name_en} onChange={(e) => updateConfig({ persona_name_en: e.target.value })} className="px-3" /></Field>
-            <Field label={t('欢迎语（中）', 'Greeting (ZH)')}><Textarea value={config.greeting} onChange={(e) => updateConfig({ greeting: e.target.value })} className="px-3" rows={2} /></Field>
-            <Field label={t('欢迎语（英）', 'Greeting (EN)')}><Textarea value={config.greeting_en} onChange={(e) => updateConfig({ greeting_en: e.target.value })} className="px-3" rows={2} /></Field>
+          <div className="mt-6 grid grid-cols-1 gap-4">
+            <Field label={t('人设名称', 'Persona Name')}><Input value={config.persona_name} onChange={(e) => updateConfig({ persona_name: e.target.value })} className="px-3" /></Field>
+            <Field label={t('欢迎语', 'Greeting')}><Textarea value={config.greeting} onChange={(e) => updateConfig({ greeting: e.target.value })} className="px-3" rows={2} /></Field>
             <div className="sm:col-span-2">
-              <Field label={t('系统提示词（中）', 'System Prompt (ZH)')}><Textarea value={config.system_prompt} onChange={(e) => updateConfig({ system_prompt: e.target.value })} className="px-3" rows={4} /></Field>
-            </div>
-            <div className="sm:col-span-2">
-              <Field label={t('系统提示词（英）', 'System Prompt (EN)')}><Textarea value={config.system_prompt_en} onChange={(e) => updateConfig({ system_prompt_en: e.target.value })} className="px-3" rows={4} /></Field>
+              <Field label={t('系统提示词', 'System Prompt')}><Textarea value={config.system_prompt} onChange={(e) => updateConfig({ system_prompt: e.target.value })} className="px-3" rows={4} /></Field>
             </div>
           </div>
         )}

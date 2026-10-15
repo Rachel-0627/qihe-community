@@ -1,13 +1,10 @@
 import { ArrowLeft, Undo2, Redo2, Eye, Send, Loader2, CheckCircle2, AlertCircle, FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface EditorToolbarProps {
   onBack: () => void;
-  lang: 'zh' | 'en';
-  onToggleLang: () => void;
   saveStatus: SaveStatus;
   canUndo: boolean;
   canRedo: boolean;
@@ -46,8 +43,6 @@ function StatusBadge({ status }: { status: SaveStatus }) {
 
 export default function EditorToolbar({
   onBack,
-  lang,
-  onToggleLang,
   saveStatus,
   canUndo,
   canRedo,
@@ -64,22 +59,6 @@ export default function EditorToolbar({
         <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="mr-1 h-4 w-4" /> 返回
         </Button>
-        <div className="hidden items-center rounded-md border border-border/50 p-0.5 md:flex">
-          <button
-            type="button"
-            onClick={() => lang !== 'zh' && onToggleLang()}
-            className={cn('rounded px-2.5 py-1 text-xs font-medium transition-colors', lang === 'zh' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground')}
-          >
-            中文
-          </button>
-          <button
-            type="button"
-            onClick={() => lang !== 'en' && onToggleLang()}
-            className={cn('rounded px-2.5 py-1 text-xs font-medium transition-colors', lang === 'en' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground')}
-          >
-            English
-          </button>
-        </div>
         <div className="ml-2 hidden md:block">
           <StatusBadge status={saveStatus} />
         </div>

@@ -141,10 +141,6 @@ export default function AdminBenefits() {
                   <Input value={lv.title} onChange={(e) => updateLevel(lv.level, { title: e.target.value })} className="h-8 px-2 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="font-mono-label text-[10px] uppercase tracking-wider text-muted-foreground">{t('称号（英）', 'Title (EN)')}</Label>
-                  <Input value={lv.title_en} onChange={(e) => updateLevel(lv.level, { title_en: e.target.value })} className="h-8 px-2 text-sm" />
-                </div>
-                <div className="space-y-1.5">
                   <Label className="font-mono-label text-[10px] uppercase tracking-wider text-muted-foreground">{t('XP 阈值', 'XP Threshold')}</Label>
                   <Input type="number" value={lv.xp_threshold} onChange={(e) => updateLevel(lv.level, { xp_threshold: Number(e.target.value) })} className="h-8 px-2 font-mono-label text-sm" />
                 </div>

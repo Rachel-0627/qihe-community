@@ -26,9 +26,7 @@ export default function CaseEditorPage() {
   const { profile, loading: authLoading } = useAuth();
   const { t } = useI18n();
 
-  const [lang, setLang] = useState<'zh' | 'en'>('zh');
   const [zh, setZh] = useState<Bilingual>(emptyBilingual());
-  const [en, setEn] = useState<Bilingual>(emptyBilingual());
   const [coverUrl, setCoverUrl] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [showOnHome, setShowOnHome] = useState(false);
@@ -71,7 +69,6 @@ export default function CaseEditorPage() {
           return;
         }
         setZh({ title: item.title || '', summary: item.summary || '', content: item.content || '' });
-        setEn({ title: item.title_en || '', summary: item.summary_en || '', content: item.content_en || '' });
         setCoverUrl(item.cover_url || '');
         setCategoryId(item.category_id);
         setShowOnHome(item.show_on_home);
@@ -84,14 +81,10 @@ export default function CaseEditorPage() {
       });
   }, [id, isEdit, navigate, t]);
 
-  const current = lang === 'zh' ? zh : en;
-  const setCurrent = useCallback(
-    (patch: Partial<Bilingual>) => {
-      if (lang === 'zh') setZh((p) => ({ ...p, ...patch }));
-      else setEn((p) => ({ ...p, ...patch }));
-    },
-    [lang]
-  );
+  const current = zh;
+  const setCurrent = useCallback((patch: Partial<Bilingual>) => {
+    setZh((p) => ({ ...p, ...patch }));
+  }, []);
 
   // 自动保存：构建完整 payload（含两套语言），debounce 1.5s
   const doSave = useCallback(async () => {
@@ -100,16 +93,12 @@ export default function CaseEditorPage() {
     try {
       const payload: Partial<CaseItem> = {
         title: zh.title,
-        title_en: en.title,
         summary: zh.summary,
-        summary_en: en.summary,
         content: zh.content,
-        content_en: en.content,
         cover_url: coverUrl,
         category_id: categoryId,
         show_on_home: showOnHome,
         author,
-        author_en: author,
         sort_order: 0,
         is_featured: false,
       };
@@ -121,7 +110,7 @@ export default function CaseEditorPage() {
     } catch {
       setSaveStatus('error');
     }
-  }, [zh, en, coverUrl, categoryId, showOnHome, author, caseId]);
+  }, [zh, coverUrl, categoryId, showOnHome, author, caseId]);
 
   // 标记脏数据并触发防抖保存
   const scheduleSave = useCallback(() => {
@@ -145,14 +134,6 @@ export default function CaseEditorPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [doSave]);
 
-  // 切换语言：先保存当前，避免丢失
-  const handleToggleLang = useCallback(() => {
-    if (dirtyRef.current) {
-      doSave();
-    }
-    setLang((l) => (l === 'zh' ? 'en' : 'zh'));
-  }, [doSave]);
-
   // 发布
   const handlePublish = useCallback(async () => {
     if (!zh.title.trim()) {
@@ -164,16 +145,12 @@ export default function CaseEditorPage() {
       const payload: Partial<CaseItem> = {
         id: caseId,
         title: zh.title,
-        title_en: en.title,
         summary: zh.summary,
-        summary_en: en.summary,
         content: zh.content,
-        content_en: en.content,
         cover_url: coverUrl,
         category_id: categoryId,
         show_on_home: showOnHome,
         author,
-        author_en: author,
         sort_order: 0,
         is_featured: false,
       };
@@ -187,7 +164,7 @@ export default function CaseEditorPage() {
       setSaveStatus('error');
       toast.error('发布失败，请重试');
     }
-  }, [zh, en, coverUrl, categoryId, showOnHome, author, caseId, isEdit, navigate]);
+  }, [zh, coverUrl, categoryId, showOnHome, author, caseId, isEdit, navigate]);
 
   // 导入文件
   const handleImportFile = useCallback(async () => {
@@ -254,8 +231,6 @@ export default function CaseEditorPage() {
       <div className="min-h-screen bg-background">
         <EditorToolbar
           onBack={() => setPreview(false)}
-          lang={lang}
-          onToggleLang={handleToggleLang}
           saveStatus={saveStatus}
           canUndo={false}
           canRedo={false}
@@ -270,7 +245,7 @@ export default function CaseEditorPage() {
         <PublishPanel
           open={publishOpen}
           onOpenChange={setPublishOpen}
-          lang={lang}
+          lang="zh"
           title={current.title}
           summary={current.summary}
           coverUrl={coverUrl}
@@ -298,8 +273,6 @@ export default function CaseEditorPage() {
     <div className="min-h-screen bg-background">
       <EditorToolbar
         onBack={() => navigate('/admin')}
-        lang={lang}
-        onToggleLang={handleToggleLang}
         saveStatus={saveStatus}
         canUndo={false}
         canRedo={false}
@@ -347,7 +320,7 @@ export default function CaseEditorPage() {
           }}
           uploadFolder="cases"
           uploadId={caseId}
-          placeholder={lang === 'en' ? 'Type / for commands, or start writing…' : '输入 / 插入内容块，或直接开始写作…'}
+          placeholder="输入 / 插入内容块，或直接开始写作…"
           onImportFile={handleImportFile}
         />
       </div>
@@ -355,7 +328,7 @@ export default function CaseEditorPage() {
       <PublishPanel
         open={publishOpen}
         onOpenChange={setPublishOpen}
-        lang={lang}
+        lang="zh"
         title={current.title}
         summary={current.summary}
         coverUrl={coverUrl}

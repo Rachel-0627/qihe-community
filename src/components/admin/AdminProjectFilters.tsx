@@ -17,7 +17,7 @@ const GROUPS: { key: ProjectFilterOption['group']; zh: string; en: string }[] = 
   { key: 'category', zh: '类别', en: 'Category' },
 ];
 
-const emptyOption = (): Partial<ProjectFilterOption> => ({ group: 'scene', name: '', name_en: '', sort_order: 0, is_active: true, is_featured: false });
+const emptyOption = (): Partial<ProjectFilterOption> => ({ group: 'scene', name: '', sort_order: 0, is_active: true, is_featured: false });
 
 export default function AdminProjectFilters() {
   const { t, lang } = useI18n();
@@ -76,7 +76,6 @@ export default function AdminProjectFilters() {
               </Select>
             </Field>
             <Field label={t('名称（中）', 'Name (ZH)')}><Input value={editing.name || ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="px-3" /></Field>
-            <Field label={t('名称（英）', 'Name (EN)')}><Input value={editing.name_en || ''} onChange={(e) => setEditing({ ...editing, name_en: e.target.value })} className="px-3" /></Field>
             <Field label={t('排序', 'Sort Order')}><Input type="number" value={editing.sort_order || 0} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} className="px-3" /></Field>
           </div>
           <div className="flex items-center gap-3">
@@ -106,7 +105,6 @@ export default function AdminProjectFilters() {
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('名称', 'Name')}</th>
-                      <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('英文', 'English')}</th>
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('排序', 'Sort')}</th>
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('启用', 'Active')}</th>
                       <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('首页展示', 'Featured')}</th>
@@ -119,7 +117,6 @@ export default function AdminProjectFilters() {
                     ) : g.items.map((item) => (
                       <tr key={item.id} className="border-b border-border last:border-0">
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{item.name}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.name_en}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.sort_order}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.is_active ? t('是', 'Yes') : t('否', 'No')}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.is_featured ? t('是', 'Yes') : t('否', 'No')}</td>

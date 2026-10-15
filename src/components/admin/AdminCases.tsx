@@ -13,11 +13,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Plus, Loader2, Pin } from 'lucide-react';
+import { Pencil, Trash2, Plus, Pin } from 'lucide-react';
 import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 import FileUploadField from '@/components/common/FileUploadField';
 import NumberField from '@/components/admin/NumberField';
-import { translateZhToEn, toggleCasePinned } from '@/lib/api';
+import { toggleCasePinned } from '@/lib/api';
 import { useLocalDraft } from '@/lib/useLocalDraft';
 import { totalCount } from '@/lib/utils';
 import type { CaseItem, Category } from '@/types/types';
@@ -42,7 +42,6 @@ export default function AdminCases() {
   const [open, setOpen] = useState(false);
   // 数据库迁移未执行时，这个开关存不进去，置灰并说明原因，避免静默失效
   const [homeToggleReady, setHomeToggleReady] = useState(true);
-  const [translating, setTranslating] = useState<{ title: boolean; summary: boolean }>({ title: false, summary: false });
   const editorRef = useRef<ImmersiveEditorApi>(null);
 
   const { clearDraft: clearCaseDraft } = useLocalDraft<Partial<CaseItem>>(
@@ -66,23 +65,6 @@ export default function AdminCases() {
 
   const openNew = () => { setEditing(emptyCase()); setOpen(true); };
   const openEdit = (item: CaseItem) => { setEditing({ ...item }); setOpen(true); };
-
-  const autoTranslate = async (key: 'title' | 'summary') => {
-    if (!editing) return;
-    const zh = editing[key];
-    if (!zh?.trim()) return;
-    const enKey = key === 'title' ? 'title_en' : 'summary_en';
-    if (editing[enKey]?.trim()) return; // 已有英文内容时不自动覆盖
-    setTranslating((p) => ({ ...p, [key]: true }));
-    try {
-      const en = await translateZhToEn(zh);
-      if (en) setEditing((prev) => prev ? { ...prev, [enKey]: en } : prev);
-    } catch {
-      toast.error(t('翻译失败', 'Translation failed'));
-    } finally {
-      setTranslating((p) => ({ ...p, [key]: false }));
-    }
-  };
 
   const handleTogglePinned = async (item: CaseItem) => {
     const nextPinned = !item.is_pinned;
@@ -201,16 +183,14 @@ export default function AdminCases() {
                 <div className="space-y-1.5">
                   <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">
                     {t('标题', 'Title')}
-                    {translating.title && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
                   </Label>
-                  <Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} onBlur={() => autoTranslate('title')} className="px-3" />
+                  <Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="px-3" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">
                     {t('摘要', 'Summary')}
-                    {translating.summary && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
                   </Label>
-                  <Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} onBlur={() => autoTranslate('summary')} className="px-3" rows={2} />
+                  <Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="px-3" rows={2} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('作者', 'Author')}</Label>

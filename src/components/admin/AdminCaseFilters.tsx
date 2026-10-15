@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import type { Category } from '@/types/types';
 
-const emptyCategory = (): Partial<Category> => ({ name: '', name_en: '', slug: '', sort_order: 0, type: 'case' });
+const emptyCategory = (): Partial<Category> => ({ name: '', slug: '', sort_order: 0, type: 'case' });
 
 export default function AdminCaseFilters() {
   const { t, lang } = useI18n();
@@ -62,7 +62,6 @@ export default function AdminCaseFilters() {
         <div className="mt-6 space-y-4 border border-border bg-card p-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t('名称（中）', 'Name (ZH)')}><Input value={editing.name || ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="px-3" /></Field>
-            <Field label={t('名称（英）', 'Name (EN)')}><Input value={editing.name_en || ''} onChange={(e) => setEditing({ ...editing, name_en: e.target.value })} className="px-3" /></Field>
             <Field label={t('标识', 'Slug')}><Input value={editing.slug || ''} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} className="px-3" placeholder={editing.name || ''} /></Field>
             <Field label={t('排序', 'Sort Order')}><Input type="number" value={editing.sort_order || 0} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} className="px-3" /></Field>
           </div>
@@ -78,7 +77,6 @@ export default function AdminCaseFilters() {
           <thead>
             <tr className="border-b border-border bg-muted/40">
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('名称', 'Name')}</th>
-              <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('英文', 'English')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('标识', 'Slug')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('排序', 'Sort')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('操作', 'Actions')}</th>
@@ -92,7 +90,6 @@ export default function AdminCaseFilters() {
             ) : items.map((item) => (
               <tr key={item.id} className="border-b border-border last:border-0">
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{item.name}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.name_en}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.slug}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.sort_order}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">

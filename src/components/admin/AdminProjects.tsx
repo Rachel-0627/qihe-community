@@ -13,11 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AnimatedDialogContent } from '@/components/common/AnimatedDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Plus, Loader2, Pin } from 'lucide-react';
+import { Pencil, Trash2, Plus, Pin } from 'lucide-react';
 import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 import FileUploadField from '@/components/common/FileUploadField';
 import NumberField from '@/components/admin/NumberField';
-import { translateZhToEn, fetchProjectContent, toggleProjectPinned } from '@/lib/api';
+import { fetchProjectContent, toggleProjectPinned } from '@/lib/api';
 import { importMarkdown, importDocx, importPdf, type ImportResult } from '@/lib/documentImport';
 import { useLocalDraft } from '@/lib/useLocalDraft';
 import { totalCount } from '@/lib/utils';
@@ -47,7 +47,6 @@ export default function AdminProjects() {
   // 数据库迁移未执行时，这个开关存不进去，置灰并说明原因，避免静默失效
   const [homeToggleReady, setHomeToggleReady] = useState(true);
   const [filterOptions, setFilterOptions] = useState<ProjectFilterOption[]>([]);
-  const [translating, setTranslating] = useState<{ title: boolean; summary: boolean }>({ title: false, summary: false });
   const editorRef = useRef<ImmersiveEditorApi>(null);
 
   const sceneOptions = filterOptions.filter((o) => o.group === 'scene' && o.is_active);
@@ -94,23 +93,6 @@ export default function AdminProjects() {
     (draft) => setEditing((prev) => (prev ? { ...prev, ...draft } : prev)),
     open
   );
-
-  const autoTranslate = async (key: 'title' | 'summary') => {
-    if (!editing) return;
-    const zh = editing[key];
-    if (!zh?.trim()) return;
-    const enKey = key === 'title' ? 'title_en' : 'summary_en';
-    if (editing[enKey]?.trim()) return;
-    setTranslating((p) => ({ ...p, [key]: true }));
-    try {
-      const en = await translateZhToEn(zh);
-      if (en) setEditing((prev) => prev ? { ...prev, [enKey]: en } : prev);
-    } catch {
-      toast.error(t('翻译失败', 'Translation failed'));
-    } finally {
-      setTranslating((p) => ({ ...p, [key]: false }));
-    }
-  };
 
   const handleSave = useCallback(async () => {
     if (!editing) return;
@@ -221,14 +203,12 @@ export default function AdminProjects() {
                 <div className="grid grid-cols-1 gap-4">
                   <Field label={t('标题', 'Title')}>
                     <div className="relative">
-                      <Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} onBlur={() => autoTranslate('title')} className="px-3" />
-                      {translating.title && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+                      <Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="px-3" />
                     </div>
                   </Field>
                   <Field label={t('摘要', 'Summary')}>
                     <div className="relative">
-                      <Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} onBlur={() => autoTranslate('summary')} className="px-3" rows={2} />
-                      {translating.summary && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />}
+                      <Textarea value={editing.summary || ''} onChange={(e) => setEditing({ ...editing, summary: e.target.value })} className="px-3" rows={2} />
                     </div>
                   </Field>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

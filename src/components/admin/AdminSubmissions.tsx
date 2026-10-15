@@ -1,10 +1,21 @@
+import { Check, ChevronDown, ChevronUp, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { SUBMIT_KIND_META } from '@/components/common/SubmitTabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { fetchSubmissionsForReview, reviewSubmission } from '@/lib/submissionsApi';
-import { SUBMIT_KIND_META } from '@/components/common/SubmitTabs';
+import { deleteSubmission, fetchSubmissionsForReview, reviewSubmission } from '@/lib/submissionsApi';
 import type { ContentSubmission, SubmissionStatus } from '@/types/types';
 
 const TABS: { key: SubmissionStatus; label: string }[] = [
@@ -50,6 +61,25 @@ export default function AdminSubmissions() {
     }
   }, [notes, tab, load]);
 
+  const remove = useCallback(async (id: string) => {
+    setBusyId(id);
+    try {
+      await deleteSubmission(id);
+      setItems((current) => current.filter((item) => item.id !== id));
+      setOpenId((current) => current === id ? null : current);
+      setNotes((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      toast.success('投稿已删除');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '删除失败');
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -88,10 +118,42 @@ export default function AdminSubmissions() {
                   {' · '}{new Date(s.submitted_at).toLocaleString('zh-CN')}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setOpenId(open ? null : s.id)}>
-                {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                预览
-              </Button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => setOpenId(open ? null : s.id)}>
+                  {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  预览
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      disabled={busyId === s.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      删除
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="max-w-[calc(100%-2rem)] md:max-w-lg">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>确认删除这条投稿？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        删除后无法恢复。若投稿已通过，此操作不会删除已经发布的正式内容。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => remove(s.id)}
+                      >
+                        删除投稿
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
 
             {open && (

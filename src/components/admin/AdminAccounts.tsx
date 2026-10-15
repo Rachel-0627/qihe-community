@@ -76,7 +76,12 @@ export default function AdminAccounts() {
       setNewPassword('');
       loadUsers();
     } catch (err) {
-      toast.error((err as Error).message || t('创建失败', 'Create failed'));
+      const message = err instanceof Error ? err.message : '';
+      if (/already exists|already been registered/i.test(message)) {
+        toast.error(t('该用户名已存在，请换一个用户名', 'Username already exists. Please choose another one.'));
+      } else {
+        toast.error(message || t('创建失败', 'Create failed'));
+      }
     }
   };
 
@@ -133,6 +138,22 @@ export default function AdminAccounts() {
   };
 
   const currentUsername = profile?.username || '';
+  const accountGroups = [
+    {
+      key: 'admins',
+      label: t('管理员列表', 'Admin List'),
+      title: t('管理员账号', 'Admin Accounts'),
+      empty: t('暂无管理员账号', 'No admin accounts'),
+      items: users.filter((user) => user.role === 'admin'),
+    },
+    {
+      key: 'users',
+      label: t('用户列表', 'User List'),
+      title: t('普通用户账号', 'User Accounts'),
+      empty: t('暂无普通用户账号', 'No user accounts'),
+      items: users.filter((user) => user.role !== 'admin'),
+    },
+  ];
 
   return (
     <div className="space-y-10">
@@ -188,60 +209,70 @@ export default function AdminAccounts() {
               <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('至少 6 位字符', 'At least 6 characters')} className="px-3" />
             </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {t('请使用未注册过的用户名；创建后，对方可直接用此用户名和密码登录。', 'Use a new username. The collaborator can then sign in with this username and password.')}
+          </p>
           <Button type="submit" size="sm" className="gap-1.5 font-mono-label text-[10px]">
             <Plus className="h-3.5 w-3.5" />{t('创建管理员', 'Create Admin')}
           </Button>
         </form>
       </section>
 
-      {/* Admin list */}
-      <section>
-        <p className="editorial-label text-accent">{t('账号列表', 'Account List')}</p>
-        <h2 className="mt-1 font-display text-xl font-medium">{t('管理员账号', 'Admin Accounts')}</h2>
+      {accountGroups.map((group) => (
+        <section key={group.key}>
+          <p className="editorial-label text-accent">{group.label}</p>
+          <h2 className="mt-1 font-display text-xl font-medium">{group.title}</h2>
 
-        {loading ? (
-          <div className="mt-6 space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full bg-muted" />)}
-          </div>
-        ) : (
-          <div className="mt-6 w-full max-w-full overflow-x-auto border border-border bg-card">
-            <table className="w-full min-w-[640px] border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('用户名', 'Username')}</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('角色', 'Role')}</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('会员', 'Tier')}</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('等级', 'Level')}</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('操作', 'Actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-border last:border-0">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">
-                      {u.username}
-                      {u.id === profile?.id && <span className="ml-2 font-mono-label text-[10px] text-accent">{t('当前', 'Current')}</span>}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{u.role}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{u.member_tier}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">Lv.{u.level}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => { setEditUserId(u.id); setEditUsername(u.username || ''); setResetPassword(''); }} className="font-mono-label text-[10px]">{t('编辑', 'Edit')}</Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} disabled={u.id === profile?.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+          {loading ? (
+            <div className="mt-6 space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-16 w-full bg-muted" />)}
+            </div>
+          ) : group.items.length === 0 ? (
+            <p className="mt-6 rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              {group.empty}
+            </p>
+          ) : (
+            <div className="mt-6 w-full max-w-full overflow-x-auto border border-border bg-card">
+              <table className="w-full min-w-[640px] border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('用户名', 'Username')}</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('角色', 'Role')}</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('会员', 'Tier')}</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('等级', 'Level')}</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('操作', 'Actions')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {group.items.map((u) => (
+                    <tr key={u.id} className="border-b border-border last:border-0">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">
+                        {u.username}
+                        {u.id === profile?.id && <span className="ml-2 font-mono-label text-[10px] text-accent">{t('当前', 'Current')}</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{u.role}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{u.member_tier}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">Lv.{u.level}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => { setEditUserId(u.id); setEditUsername(u.username || ''); setResetPassword(''); }} className="font-mono-label text-[10px]">{t('编辑', 'Edit')}</Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} disabled={u.id === profile?.id} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ))}
 
-        {/* Edit dialog inline */}
-        {editUserId && (
+      {/* Edit dialog inline */}
+      {editUserId && (
+        <section>
           <div className="mt-6 magazine-card space-y-4 p-5 lg:max-w-xl">
             <h3 className="font-display text-base font-medium">{t('编辑账号', 'Edit Account')}</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -260,8 +291,8 @@ export default function AdminAccounts() {
               <Button size="sm" variant="ghost" onClick={() => { setEditUserId(null); setEditUsername(''); setResetPassword(''); }} className="font-mono-label text-[10px]">{t('取消', 'Cancel')}</Button>
             </div>
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

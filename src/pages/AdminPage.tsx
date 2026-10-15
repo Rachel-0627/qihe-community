@@ -1,30 +1,29 @@
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Inbox, LayoutDashboard, LayoutGrid, Menu, PenLine, Settings2, Sparkles, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useI18n } from '@/contexts/I18nContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { LayoutGrid, PenLine, Settings2, Sparkles, Users, ArrowLeft, Menu, Inbox } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import AdminAccounts from '@/components/admin/AdminAccounts';
+import AdminAssistant from '@/components/admin/AdminAssistant';
+import AdminBenefits from '@/components/admin/AdminBenefits';
 import AdminContentHub from '@/components/admin/AdminContentHub';
 import AdminCopywriting from '@/components/admin/AdminCopywriting';
-import AdminBenefits from '@/components/admin/AdminBenefits';
-import AdminAssistant from '@/components/admin/AdminAssistant';
-import AdminAccounts from '@/components/admin/AdminAccounts';
+import AdminOverview from '@/components/admin/AdminOverview';
 import AdminSubmissions from '@/components/admin/AdminSubmissions';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useAuth } from '@/contexts/AuthContext';
+import { useI18n } from '@/contexts/I18nContext';
 
-type TabKey = 'content' | 'submissions' | 'copywriting' | 'benefits' | 'assistant' | 'accounts';
+type TabKey = 'overview' | 'content' | 'submissions' | 'copywriting' | 'benefits' | 'assistant' | 'accounts';
 
 /**
- * 后台管理：五大入口（内容管理 / 网站文案 / 权益管理 / 智能助手 / 账号管理）。
- * 原十个分散入口已合并：
- * - 内容管理 = 案例管理 + 项目管理 + 项目筛选 + 活动管理 + 活动筛选
- * - 网站文案 = 站点设置（品牌/导航/协议） + 站点内容（首页 Hero / 页脚）
+ * 后台按站长任务组织：工作台集中待办与快捷入口，其余模块负责具体维护。
+ * 内容中心合并案例、项目、活动、广场和工具；页面装修统一全站设置与首页/页脚。
  */
 export default function AdminPage() {
   const { t } = useI18n();
   const { profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabKey>('content');
+  const [tab, setTab] = useState<TabKey>('overview');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -39,16 +38,18 @@ export default function AdminPage() {
   if (profile.role !== 'admin') return null;
 
   const tabs: { key: TabKey; zh: string; en: string; icon: React.ReactNode }[] = [
-    { key: 'content', zh: '内容管理', en: 'Content', icon: <LayoutGrid className="h-4 w-4" /> },
+    { key: 'overview', zh: '工作台', en: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { key: 'content', zh: '内容中心', en: 'Content', icon: <LayoutGrid className="h-4 w-4" /> },
     { key: 'submissions', zh: '投稿审核', en: 'Submissions', icon: <Inbox className="h-4 w-4" /> },
-    { key: 'copywriting', zh: '网站文案', en: 'Site Copywriting', icon: <PenLine className="h-4 w-4" /> },
-    { key: 'benefits', zh: '权益管理', en: 'Benefits', icon: <Settings2 className="h-4 w-4" /> },
+    { key: 'copywriting', zh: '页面装修', en: 'Site Appearance', icon: <PenLine className="h-4 w-4" /> },
+    { key: 'benefits', zh: '会员与权益', en: 'Membership', icon: <Settings2 className="h-4 w-4" /> },
     { key: 'assistant', zh: '智能助手', en: 'AI Assistant', icon: <Sparkles className="h-4 w-4" /> },
     { key: 'accounts', zh: '账号管理', en: 'Accounts', icon: <Users className="h-4 w-4" /> },
   ];
 
   const renderTab = () => {
     switch (tab) {
+      case 'overview': return <AdminOverview onNavigate={setTab} />;
       case 'content': return <AdminContentHub />;
       case 'submissions': return <AdminSubmissions />;
       case 'copywriting': return <AdminCopywriting />;
@@ -87,7 +88,7 @@ export default function AdminPage() {
           </Button>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden"><Menu className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" className="lg:hidden"><Menu className="h-4 w-4" /></Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 bg-sidebar">
               <SheetTitle className="font-display text-base">{t('管理导航', 'Admin Nav')}</SheetTitle>

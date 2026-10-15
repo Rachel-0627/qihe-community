@@ -6,7 +6,9 @@ interface SiteSettingsContextValue {
   brandName: string;
   brandNameEn: string;
   termsContent: string;
+  termsContentEn: string;
   privacyContent: string;
+  privacyContentEn: string;
   navLabels: Record<string, { zh: string; en: string }>;
   lockedDialog: {
     title: string;
@@ -36,7 +38,7 @@ const defaultNavLabels: Record<string, { zh: string; en: string }> = {
   '/cases': { zh: '案例', en: 'Cases' },
   '/projects': { zh: '项目库', en: 'Projects' },
   '/events': { zh: '城市组局', en: 'Events' },
-  '/discuss': { zh: '分享讨论区', en: 'Discussion' },
+  '/discuss': { zh: '广场', en: 'Plaza' },
   '/tools': { zh: '工具', en: 'Tools' },
 };
 
@@ -56,7 +58,7 @@ const defaultFooter = {
 
 const defaultDiscuss = {
   content: '<p>在这里分享你的实践、提出你的问题，和社区成员一起讨论。</p>',
-  contentEn: '<p>Share what you have built, ask what you are stuck on, and discuss with the community.</p>',
+  contentEn: '<p>Share what you have built, ask questions, and discuss with the community.</p>',
 };
 
 const defaultTools = {
@@ -68,7 +70,9 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   brandName: '启禾社区',
   brandNameEn: 'Qihe Community',
   termsContent: '',
+  termsContentEn: '',
   privacyContent: '',
+  privacyContentEn: '',
   navLabels: defaultNavLabels,
   lockedDialog: defaultLockedDialog,
   footer: defaultFooter,
@@ -81,7 +85,9 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [brandName, setBrandName] = useState('启禾社区');
   const [brandNameEn, setBrandNameEn] = useState('Qihe Community');
   const [termsContent, setTermsContent] = useState('');
+  const [termsContentEn, setTermsContentEn] = useState('');
   const [privacyContent, setPrivacyContent] = useState('');
+  const [privacyContentEn, setPrivacyContentEn] = useState('');
   const [navLabels, setNavLabels] = useState(defaultNavLabels);
   const [lockedDialog, setLockedDialog] = useState(defaultLockedDialog);
   const [footer, setFooter] = useState(defaultFooter);
@@ -97,7 +103,9 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       if (name) setBrandName(name);
       if (nameEn) setBrandNameEn(nameEn);
       setTermsContent(get('terms_content'));
+      setTermsContentEn(get('terms_content_en'));
       setPrivacyContent(get('privacy_content'));
+      setPrivacyContentEn(get('privacy_content_en'));
 
       const next: Record<string, { zh: string; en: string }> = { ...defaultNavLabels };
       const updateNav = (path: string, zhKey: string, enKey: string) => {
@@ -147,7 +155,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   return (
-    <SiteSettingsContext.Provider value={{ brandName, brandNameEn, termsContent, privacyContent, navLabels, lockedDialog, footer, discuss, tools, reload: load }}>
+    <SiteSettingsContext.Provider value={{ brandName, brandNameEn, termsContent, termsContentEn, privacyContent, privacyContentEn, navLabels, lockedDialog, footer, discuss, tools, reload: load }}>
       {children}
     </SiteSettingsContext.Provider>
   );

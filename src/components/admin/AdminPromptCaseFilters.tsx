@@ -21,7 +21,7 @@ const groupLabel = (group: PromptCaseFilterGroup, t: (zh: string, en: string) =>
   }
 };
 
-const emptyFilter = (): Partial<PromptCaseFilter> => ({ group: 'category', name: '', name_en: '', sort_order: 0, is_active: true });
+const emptyFilter = (): Partial<PromptCaseFilter> => ({ group: 'category', name: '', sort_order: 0, is_active: true });
 
 export default function AdminPromptCaseFilters() {
   const { t, lang } = useI18n();
@@ -82,7 +82,6 @@ export default function AdminPromptCaseFilters() {
               </Select>
             </Field>
             <Field label={t('名称（中）', 'Name (ZH)')}><Input value={editing.name || ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="px-3" /></Field>
-            <Field label={t('名称（英）', 'Name (EN)')}><Input value={editing.name_en || ''} onChange={(e) => setEditing({ ...editing, name_en: e.target.value })} className="px-3" /></Field>
             <Field label={t('排序', 'Sort Order')}><Input type="number" value={editing.sort_order || 0} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} className="px-3" /></Field>
           </div>
           <div className="flex gap-2">
@@ -98,7 +97,6 @@ export default function AdminPromptCaseFilters() {
             <tr className="border-b border-border bg-muted/40">
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('维度', 'Group')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('名称', 'Name')}</th>
-              <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('英文', 'English')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('排序', 'Sort')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-right font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('操作', 'Actions')}</th>
             </tr>
@@ -112,7 +110,6 @@ export default function AdminPromptCaseFilters() {
               <tr key={item.id} className="border-b border-border last:border-0">
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{groupLabel(item.group, t)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{item.name}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.name_en}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{item.sort_order}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
