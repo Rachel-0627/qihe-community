@@ -11,6 +11,11 @@ import SubmitTabs from '@/components/common/SubmitTabs';
 import FileUploadField from '@/components/common/FileUploadField';
 import { createSubmission, fetchSubmission, updateSubmission } from '@/lib/submissionsApi';
 import { loadDraft, removeDraft, saveDraft } from '@/lib/useLocalDraft';
+import { findSecrets, type SecretHit } from '@/lib/secretScan';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { SubmissionKind, SubmissionPayload } from '@/types/types';
 
 /** 表单值。公共字段固定，各内容类型的专有字段以字符串键追加。 */
@@ -69,6 +74,8 @@ export default function SubmissionForm({
 
   const [values, setValues] = useState<SubmissionFormValues>(empty);
   const [submitting, setSubmitting] = useState(false);
+  /** 扫出的疑似密钥；非空时弹确认框 */
+  const [secretHits, setSecretHits] = useState<SecretHit[]>([]);
   const [loading, setLoading] = useState(!!resubmitId);
 
   useEffect(() => {
@@ -102,12 +109,8 @@ export default function SubmissionForm({
     toast.success(t('草稿已保存到本机浏览器', 'Draft saved in this browser'));
   }, [draftKey, values, t]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!values.title.trim()) return toast.error(t('请填写标题', 'Title is required'));
-    if (!values.content.trim()) return toast.error(t('请填写正文', 'Content is required'));
-    const extraError = validateExtra?.(values);
-    if (extraError) return toast.error(extraError);
-
+  /** 真正提交。密钥确认通过后也走这里 */
+  const doSubmit = useCallback(async () => {
     setSubmitting(true);
     try {
       const payload = buildPayload(values);
@@ -123,7 +126,23 @@ export default function SubmissionForm({
     } finally {
       setSubmitting(false);
     }
-  }, [values, validateExtra, buildPayload, resubmitId, targetId, kind, draftKey, navigate, t]);
+  }, [values, buildPayload, resubmitId, targetId, kind, draftKey, navigate, t]);
+
+  const handleSubmit = useCallback(() => {
+    if (!values.title.trim()) return toast.error(t('请填写标题', 'Title is required'));
+    if (!values.content.trim()) return toast.error(t('请填写正文', 'Content is required'));
+    const extraError = validateExtra?.(values);
+    if (extraError) return toast.error(extraError);
+
+    // 投稿是公开内容，先看看有没有把自己的 API 密钥一起粘进来。
+    // 只提醒不拦截：站点内容本来就在讲 AI 工具，万一误判不能让人发不出去。
+    const hits = findSecrets(values.title, values.summary, values.content);
+    if (hits.length > 0) {
+      setSecretHits(hits);
+      return;
+    }
+    void doSubmit();
+  }, [values, validateExtra, doSubmit, t]);
 
   if (!user) return <Navigate to="/login" replace state={{ from: `/submit/${kind}` }} />;
   if (loading) return <div className="py-24 text-center text-muted-foreground">{t('载入中…', 'Loading…')}</div>;
@@ -196,6 +215,40 @@ export default function SubmissionForm({
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={secretHits.length > 0} onOpenChange={(o) => { if (!o) setSecretHits([]); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('内容里好像有一把真的密钥', 'This looks like a real API key')}</AlertDialogTitle>
+            <AlertDialogDescription className="text-pretty">
+              {t(
+                '投稿发布后所有人都能看到。下面这些看着像能直接用的 API 密钥，建议先删掉或替换成占位符：',
+                'Submissions are public. These look like working API keys — consider removing them or replacing with placeholders:'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <ul className="space-y-1.5 border border-border bg-muted/50 p-3">
+            {secretHits.map((h) => (
+              <li key={h.masked} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">{h.label}</span>
+                <code className="font-mono-label text-xs text-foreground">{h.masked}</code>
+              </li>
+            ))}
+          </ul>
+
+          <p className="text-xs text-muted-foreground">
+            {t('如果这只是文章里举的例子，可以直接继续发布。', 'If these are just examples in your article, go ahead and publish.')}
+          </p>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('返回修改', 'Go back and edit')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setSecretHits([]); void doSubmit(); }}>
+              {t('确认是示例，继续发布', 'They are examples, publish')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -68,7 +68,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | 文件 | 职责 |
 |---|---|
 | `SubmitTabs.tsx` (50) | 投稿类型切换条 + 各类型的标签/路径映射，三处共用 |
-| `SubmissionForm.tsx` (184) | **投稿表单公共外壳**：登录判断、本地草稿、公共字段、提交与重投。两个投稿页复用它 |
+| `SubmissionForm.tsx` (254) ⚠️ | **投稿表单公共外壳**：登录判断、本地草稿、公共字段、提交与重投。两个投稿页复用它。提交前用 `secretScan` 查一遍密钥，**只提醒不拦截**（误判时不能让人发不出去）|
 | `profile/MySubmissions.tsx` (120) | 个人中心「我的投稿」：状态、驳回理由、重投、撤回 |
 | `BrandMark.tsx` (75) | **品牌标识 SVG**。与 `public/favicon.svg` 同源，改动需两边同步 |
 | `PageMeta.tsx` (22) | 逐页设置标题等元信息 |
@@ -167,6 +167,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `discussionApi.ts` (78) | 讨论帖与评论的读写 |
 | `aiToolsApi.ts` (52) | `ai_tools` 读写：前台只取已上架，后台取全部 |
 | `assistantQa.ts` (100) | 助手固定问答的匹配：标题 > 标签 > 正文加权，再用二字片段重合打破平局 |
+| `secretScan.ts` (84) | **扫描文本里疑似真实的 API 密钥**，用在投稿提交前。难点是压误报——站点内容本来就在讲 AI 工具，`sk-your-key` 这类示例必须放过，所以只认「够长 + 够随机 + 不含占位符字样」的 |
 | `feedback.ts` (40) | **失败提示的统一出口**。把「加载失败」「操作失败」统一成「说清什么没出来 + 为什么 + 给重试按钮」。`t` 由调用方传入以跟随中英切换。**前台新增失败提示一律走这里**，后台暂未接入 |
 | `utils.ts` (59) | 通用小函数（className 合并等） |
 
