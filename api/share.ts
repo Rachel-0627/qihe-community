@@ -76,12 +76,64 @@ function applyShareFields(html: string, fields: ShareFields, imageChanged: boole
 
 const BASE_COLUMNS = 'title,title_en,summary,summary_en,cover_url';
 
+/** 注入正文的上限。目前最长的一篇一万两千字，留足余量又不至于把响应撑大 */
+const MAX_BODY_CHARS = 30000;
+
+/**
+ * 给搜索引擎看的正文。
+ *
+ * 站点是单页应用，HTML 里只有一个空的 <div id="root">，正文要等 JS 跑完才出现。
+ * 百度基本不执行 JS，所以不处理的话，文章对百度约等于不存在。
+ *
+ * 放进 <noscript>：内容和页面上渲染出来的完全一致（不是给爬虫单独编一套，
+ * 那是作弊会被惩罚），普通用户看不到也不影响体验，不执行 JS 的爬虫能完整读到。
+ */
+function buildCrawlerBody(title: string, summary: string, content: string): string {
+  const safe = content
+    // 正文里真出现这个字符串会把 noscript 提前闭合，后面的内容全漏到页面上
+    .replace(/<\/noscript>/gi, '')
+    // 正文是后台录入的 HTML，正常不会有脚本，这里是兜底
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .slice(0, MAX_BODY_CHARS);
+
+  return (
+    '<noscript>' +
+    `<h1>${escapeHtml(title)}</h1>` +
+    (summary ? `<p>${escapeHtml(summary)}</p>` : '') +
+    safe +
+    '</noscript>'
+  );
+}
+
+/** 结构化数据，帮搜索引擎认出这是一篇文章而不是一个普通页面 */
+function buildJsonLd(fields: { title: string; description: string; image: string; url: string }): string {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: fields.title,
+    description: fields.description,
+    image: fields.image,
+    url: fields.url,
+    publisher: { '@type': 'Organization', name: '启禾社区' },
+  };
+  // </script> 同样会提前闭合，JSON 里出现就转义掉
+  const json = JSON.stringify(data).replace(/<\//g, '<\\/');
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
 // path 用于反推 og:url —— 重写之后 req.url 变成 /api/share?...，
 // 拿不到用户访问的原地址，不反推的话分享出去的链接会指向这个内部接口。
-const TYPES: Record<string, { table: string; path: string; columns: string }> = {
-  case: { table: 'cases', path: 'cases', columns: BASE_COLUMNS },
-  project: { table: 'projects', path: 'projects', columns: BASE_COLUMNS },
-  event: { table: 'events', path: 'events', columns: `${BASE_COLUMNS},city,city_en,event_date` },
+// hasBody：只有案例的正文匿名可读。项目的正文被付费墙挡着（列级权限），
+// 活动压根没有正文字段 —— 两者都只注入标题与摘要，不能把付费内容漏给爬虫。
+const TYPES: Record<string, { table: string; path: string; columns: string; hasBody: boolean }> = {
+  case: { table: 'cases', path: 'cases', columns: `${BASE_COLUMNS},content,content_en`, hasBody: true },
+  project: { table: 'projects', path: 'projects', columns: BASE_COLUMNS, hasBody: false },
+  event: {
+    table: 'events',
+    path: 'events',
+    columns: `${BASE_COLUMNS},city,city_en,event_date`,
+    hasBody: false,
+  },
 };
 
 /**
@@ -185,16 +237,20 @@ export default async function handler(req: any, res: any) {
       description = head ? `${head}｜${summary}` : summary;
     }
 
-    const html = applyShareFields(
-      baseHtml,
-      {
-        title: `${title} · 启禾社区`,
-        description: clamp(description) || '聚焦 AI 实践的共创社区，汇聚案例、项目与城市组局活动。',
-        image: cover || `${origin}/share-cover.png`,
-        url: `${origin}/${meta.path}/${encodeURIComponent(id)}`,
-      },
-      Boolean(cover)
-    );
+    const fields = {
+      title: `${title} · 启禾社区`,
+      description: clamp(description) || '聚焦 AI 实践的共创社区，汇聚案例、项目与城市组局活动。',
+      image: cover || `${origin}/share-cover.png`,
+      url: `${origin}/${meta.path}/${encodeURIComponent(id)}`,
+    };
+
+    let html = applyShareFields(baseHtml, fields, Boolean(cover));
+
+    // 正文与结构化数据塞在 #root 后面：#root 必须保持为空，
+    // React 挂载时会清空它，写进去的东西会被直接抹掉。
+    const body = meta.hasBody ? (row['content'] || row['content_en'] || '') : '';
+    const injected = buildCrawlerBody(title, description, body) + buildJsonLd(fields);
+    html = html.replace('<div id="root"></div>', `<div id="root"></div>${injected}`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
