@@ -17,11 +17,12 @@
 
 ```bash
 pnpm install        # 安装依赖
+npm run dev         # 本地开发服务器，默认 http://localhost:5173
+npm run build       # 构建到 dist/
 npm run lint        # 类型检查 + 代码检查 + 规则扫描 + 试构建
 ```
 
-> `dev` 与 `build` 两个命令目前在 `package.json` 里是禁用状态（留着的平台限制），
-> 日常用 `lint` 做检查，正式构建交给 Vercel。需要本地起服务时再解开。
+> 提交前至少跑一遍 `npm run lint`，它把上面几项都串起来跑了一遍。
 
 ### 环境变量
 
