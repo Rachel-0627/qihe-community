@@ -159,6 +159,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `contentHeadings.ts` (60) | 给正文标题注入 id，供章节目录跳转；h1/h2/h3 都算 |
 | `chapters.ts` (88) | 章节永久编号：保存正文时盖 `data-ch`，供「免费试看章节」定位 |
 | `editorImageExtension.ts` (113) / `videoExtension.ts` (99) | TipTap 图片 / 视频扩展 |
+| `promptBlockExtension.ts` (62) | **提示词块**。存成 `<div data-prompt>`，前台由 `useCodeCopy` 加复制按钮。单独立节点而不用代码块，是为了以后能给提示词加「一键运行」时和真正的代码区分开 |
 | `editorSlashCommand.ts` (31) / `editorSlashItems.ts` (101) | 斜杠命令的机制与菜单项 |
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
 | `submissionsApi.ts` (135) | **投稿与审核的所有读写**。单独成文件，不往 api.ts 里堆 |
@@ -176,6 +177,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `use-mobile.tsx` (19) | 判断是否移动端 |
 | `use-debounce.ts` (15) | 防抖 |
 | `use-go-back.ts` (17) | 返回上一页 |
+| `useCodeCopy.ts` (95) | 给正文里的**代码块与提示词块**加复制按钮。正文是注入的 HTML，拿不到 React 节点，只能渲染后操作 DOM。提示词块取文时会先摘掉按钮本身，否则会把「复制」二字一起复制走 |
 
 ## 十三、类型与数据层
 

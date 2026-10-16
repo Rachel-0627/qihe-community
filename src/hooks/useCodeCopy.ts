@@ -25,8 +25,10 @@ export function useCodeCopy(selector: string, labels: Labels, ready: unknown) {
     const created: HTMLButtonElement[] = [];
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    root.querySelectorAll('pre').forEach((pre) => {
-      const el = pre as HTMLElement;
+    // 代码块和提示词块共用这一套按钮：两者都是"整块内容原样拿走"，
+    // 没必要为提示词再写一遍复制逻辑。
+    root.querySelectorAll('pre, [data-prompt]').forEach((node) => {
+      const el = node as HTMLElement;
       // 内容重渲染时可能重复扫描到同一个块，打个标记避免插两个按钮
       if (el.dataset.copyReady === '1') return;
       el.dataset.copyReady = '1';
@@ -44,7 +46,17 @@ export function useCodeCopy(selector: string, labels: Labels, ready: unknown) {
         // 取 textContent 而不是 innerText：后者会受 CSS 影响，
         // 代码块里的空行和缩进可能被吃掉
         const code = el.querySelector('code');
-        const text = (code ?? el).textContent ?? '';
+        let text: string;
+        if (code) {
+          text = code.textContent ?? '';
+        } else {
+          // 提示词块没有 <code>，直接取整块文字会把按钮自己的"复制"
+          // 也带上，所以先复制一份节点、把按钮摘掉再取
+          const clone = el.cloneNode(true) as HTMLElement;
+          clone.querySelectorAll('.code-copy-btn').forEach((b) => b.remove());
+          text = clone.textContent ?? '';
+        }
+        text = text.trim();
         try {
           await navigator.clipboard.writeText(text);
           btn.textContent = labels.copied;

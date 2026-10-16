@@ -10,6 +10,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { SlashCommand } from '@/lib/editorSlashCommand';
 import EditorImageExtension from '@/lib/editorImageExtension';
 import VideoExtension from '@/lib/videoExtension';
+import PromptBlockExtension from '@/lib/promptBlockExtension';
 import { ChapterHeading } from '@/components/editor/ChapterHeading';
 import SlashCommandMenu from '@/components/editor/SlashCommand';
 import BubbleMenu from '@/components/editor/BubbleMenu';
@@ -47,6 +48,7 @@ export default forwardRef<ImmersiveEditorApi, ImmersiveEditorProps>(function Imm
       Placeholder.configure({ placeholder }),
       EditorImageExtension,
       VideoExtension,
+      PromptBlockExtension,
       SlashCommand.configure({
         suggestion: {
           char: '/',

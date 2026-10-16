@@ -11,6 +11,7 @@ import {
   Code2,
   Minus,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 
 export interface SlashItem {
@@ -84,6 +85,13 @@ export const slashItems: SlashItem[] = [
     keywords: ['代码', 'code', 'block', 'pre'],
     icon: Code2,
     action: (editor) => editor.chain().focus().toggleCodeBlock().run(),
+  },
+  {
+    title: '提示词',
+    description: '读者可一键复制的提示词',
+    keywords: ['提示词', 'prompt', 'tishici', 'ai'],
+    icon: Sparkles,
+    action: (editor) => editor.chain().focus().setPromptBlock().run(),
   },
   {
     title: '分割线',

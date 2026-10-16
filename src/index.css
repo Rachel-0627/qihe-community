@@ -478,6 +478,7 @@
   transition: opacity 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 pre:hover > .code-copy-btn,
+[data-prompt]:hover > .code-copy-btn,
 .code-copy-btn:focus-visible {
   opacity: 1;
 }
@@ -492,4 +493,36 @@ pre:hover > .code-copy-btn,
 }
 @media (hover: none) {
   .code-copy-btn { opacity: 1; }
+}
+
+/* 提示词块：读者要能一眼认出"这段是可以拿走直接用的"。
+   刻意不做成代码块那种等宽深色——提示词多是中文长句，
+   等宽字体读起来费劲。左侧色条 + 浅底，和正文拉开层次即可。
+   编辑器里和前台用同一套样式，所见即所得。 */
+.prompt-block {
+  position: relative;
+  margin: 1.5rem 0;
+  padding: 2.4rem 1.1rem 1.1rem;
+  background: hsl(var(--muted) / 0.55);
+  border: 1px solid hsl(var(--border));
+  border-left: 3px solid hsl(var(--primary));
+  border-radius: 8px;
+}
+.prompt-block::before {
+  content: '提示词';
+  position: absolute;
+  top: 0.7rem;
+  left: 1.1rem;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: hsl(var(--primary));
+}
+/* 块内段落收紧一点，避免整块显得松垮 */
+.prompt-block > p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.prompt-block > p + p {
+  margin-top: 0.6rem;
 }
