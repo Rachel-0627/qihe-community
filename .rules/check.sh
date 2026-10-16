@@ -1,4 +1,9 @@
 #!/bin/bash
+# 这些规则靠 ast-grep 扫描。没装就跳过，而不是让整条 lint 链断在这里。
+if ! command -v ast-grep >/dev/null 2>&1; then
+    echo "跳过 ast-grep 规则检查：本机未安装 ast-grep（安装：brew install ast-grep）"
+    exit 0
+fi
 
 ast-grep scan -r .rules/SelectItem.yml
 

@@ -220,6 +220,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `vercel.json` | Vercel 构建与 SPA 路由重写。**删了会构建失败**。详情页两条重写规则必须排在 `/(.*)` 兜底之前，否则不生效 |
 | `vite.config.ts` / `tailwind.config.js` / `postcss.config.js` | 构建与样式配置 |
 | `biome.json` | 代码格式化配置 |
+| `.rules/` | `npm run lint` 调用的自定义检查。`check.sh` 跑 ast-grep 规则（本机没装会跳过而不是报错）；`testBuild.sh` 试跑一次构建，产物写到 `node_modules/.test-build`。**两个 .sh 需要可执行权限**，否则 lint 会报 Permission denied |
 | `.env` | 环境变量，**已在 .gitignore 内**。`VITE_SUPABASE_URL` 必须指向 `https://rrotrtbhqthvfuteoryv.supabase.co`，别用秒哒的 `backend.appmiaoda.com`（见下方待办 7）|
 | `.env.vercel` | 从 Vercel 拉下来的快照，**可能过期**，不要当作真实配置的依据 |
 

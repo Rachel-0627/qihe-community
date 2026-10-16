@@ -1,102 +1,74 @@
-# 欢迎使用你的秒哒应用代码包
-秒哒应用链接
-    URL:https://www.miaoda.cn/projects/app-du7cn8oyrwn5
+# 启禾社区 QIHE
 
-## 介绍
+聚焦 AI 实践的共创社区：汇聚案例、项目、城市组局活动与精选工具，
+目标是带各行各业的人把 AI 真正用进自己的工作里。
 
-项目介绍
-
-## 目录结构
-
-```
-├── README.md # 说明文档
-├── components.json # 组件库配置
-├── index.html # 入口文件
-├── package.json # 包管理
-├── postcss.config.js # postcss 配置
-├── public # 静态资源目录
-│   ├── favicon.png # 图标
-│   └── images # 图片资源
-├── src # 源码目录
-│   ├── App.tsx # 入口文件
-│   ├── components # 组件目录
-│   ├── contexts # 上下文目录
-│   ├── db # 数据库配置目录
-│   ├── hooks # 通用钩子函数目录
-│   ├── index.css # 全局样式
-│   ├── layout # 布局目录
-│   ├── lib # 工具库目录
-│   ├── main.tsx # 入口文件
-│   ├── routes.tsx # 路由配置
-│   ├── pages # 页面目录
-│   ├── services  # 数据库交互目录
-│   ├── types   # 类型定义目录
-├── tsconfig.app.json  # ts 前端配置文件
-├── tsconfig.json # ts 配置文件
-├── tsconfig.node.json # ts node端配置文件
-└── vite.config.ts # vite 配置文件
-```
+线上地址：<https://qihe.bj.cn>
 
 ## 技术栈
 
-Vite、TypeScript、React、Supabase
+| 层 | 用什么 |
+|---|---|
+| 前端 | React 18 + TypeScript + Vite + Tailwind + shadcn/ui |
+| 后端 | Supabase（Postgres + Auth + Storage + Edge Functions） |
+| 部署 | Vercel，推 `main` 自动部署 |
 
-## 本地开发
+## 本地跑起来
 
-### 如何在本地编辑代码？
-
-您可以选择 [VSCode](https://code.visualstudio.com/Download) 或者您常用的任何 IDE 编辑器，唯一的要求是安装 Node.js 和 npm.
-
-### 环境要求
-
-```
-# Node.js ≥ 20
-# npm ≥ 10
-例如：
-# node -v   # v20.18.3
-# npm -v    # 10.8.2
+```bash
+pnpm install        # 安装依赖
+npm run lint        # 类型检查 + 代码检查 + 规则扫描 + 试构建
 ```
 
-具体安装步骤如下：
+> `dev` 与 `build` 两个命令目前在 `package.json` 里是禁用状态（留着的平台限制），
+> 日常用 `lint` 做检查，正式构建交给 Vercel。需要本地起服务时再解开。
 
-### 在 Windows 上安装 Node.js
+### 环境变量
 
-```
-# Step 1: 访问Node.js官网：https://nodejs.org/，点击下载后，会根据你的系统自动选择合适的版本（32位或64位）。
-# Step 2: 运行安装程序：下载完成后，双击运行安装程序。
-# Step 3: 完成安装：按照安装向导完成安装过程。
-# Step 4: 验证安装：在命令提示符（cmd）或IDE终端（terminal）中输入 node -v 和 npm -v 来检查 Node.js 和 npm 是否正确安装。
-```
+复制 `.env.example` 为 `.env` 并填写：
 
-### 在 macOS 上安装 Node.js
+| 变量 | 说明 |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase 项目地址，必须是 `https://rrotrtbhqthvfuteoryv.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
 
-```
-# Step 1: 使用Homebrew安装（推荐方法）：打开终端。输入命令brew install node并回车。如果尚未安装Homebrew，需要先安装Homebrew，
-可以通过在终端中运行如下命令来安装：
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-或者使用官网安装程序：访问Node.js官网。下载macOS的.pkg安装包。打开下载的.pkg文件，按照提示完成安装。
-# Step 2: 验证安装：在命令提示符（cmd）或IDE终端（terminal）中输入 node -v 和 npm -v 来检查 Node.js 和 npm 是否正确安装。
-```
+服务端函数（`api/`）另外需要在 Vercel 配 `SUPABASE_URL`、`SUPABASE_ANON_KEY`——
+它们读不到 `VITE_` 开头的变量。
 
-### 安装完后按照如下步骤操作：
+⚠️ `.env` 不在版本库里，容易指错后端。确认线上实际连的是哪个库：
 
-```
-# Step 1: 下载代码包
-# Step 2: 解压代码包
-# Step 3: 用IDE打开代码包，进入代码目录
-# Step 4: IDE终端输入命令行，安装依赖：npm i
-# Step 5: IDE终端输入命令行，启动开发服务器：npm run dev -- --host 127.0.0.1
+```bash
+curl -s https://qihe.bj.cn/ | grep -o 'assets/index-[^"]*\.js'   # 拿到产物名
+curl -s https://qihe.bj.cn/assets/index-xxxx.js | grep -o 'https://[a-z0-9]*\.supabase\.co'
 ```
 
-### 如何开发后端服务？
+## 代码结构
 
-配置环境变量，安装相关依赖
-如需使用数据库，请使用 supabase 官方版本或自行部署开源版本的 Supabase
+每个文件、每个模块负责什么，见 **[PROJECT_MAP.md](PROJECT_MAP.md)**——
+新增或改动文件时要同步更新它。
 
-### 如何配置应用中的三方 API？
+```
+src/pages/        页面
+src/components/   组件（layouts / home / cards / editor / admin / common）
+src/contexts/     全局状态（登录、站点设置、文案、中英切换）
+src/lib/          数据读写与工具函数
+supabase/         数据库迁移与 Edge Functions
+api/              Vercel 服务端函数（详情页分享卡片）
+.rules/           ast-grep 自定义规则，由 npm run lint 调用
+```
 
-具体三方 API 调用方法，请参考帮助文档：[源码导出](https://cloud.baidu.com/doc/MIAODA/s/Xmewgmsq7)，了解更多详细内容。
+## 几个容易踩的点
 
-## 了解更多
+- **分享卡片**：详情页的标题与封面由 `api/share.ts` 在服务端写入 HTML，
+  因为微信等抓取方不执行 JS。改动 `vercel.json` 的重写规则时，
+  详情页两条必须排在 `/(.*)` 兜底之前。
+- **AI 助手与翻译**：两个 Edge Function 仍调用外部网关（见 `MIGRATION.md`），
+  依赖 `INTEGRATIONS_API_KEY`。
+- **登录邮箱格式**：用户名会拼成 `<用户名>@miaoda.com` 去调 Supabase Auth，
+  这是历史格式，老用户的账号都按这个存，不能随便改。
 
-您也可以查看帮助文档：[源码导出](https://cloud.baidu.com/doc/MIAODA/s/Xmewgmsq7)，了解更多详细内容。
+## 相关文档
+
+- [PROJECT_MAP.md](PROJECT_MAP.md) — 文件与模块职责清单
+- [MIGRATION.md](MIGRATION.md) — 迁移到 Vercel + Supabase 的历史记录
+- `docs/prd.md` / `docs/DESIGN.md` — 产品需求与设计说明
