@@ -216,7 +216,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `public/favicon.png` | 图标兜底 |
 | `public/share-cover.png` | **分享卡片封面**（1200×588），由首屏截图裁切而来。`index.html` 的 `og:image` 指向它，换图要保持同名同尺寸 |
 | `public/images/` | 站点图片 |
-| `api/share.ts` | **详情页分享卡片**。`/cases/:id`、`/projects/:id` 经 `vercel.json` 重写到这里，按 id 查库把标题/摘要/封面写进 HTML 的 meta，再返回完整单页应用。不按 UA 区分爬虫（微信抓取端与内置浏览器 UA 相同，认错会让真人白屏）。任何异常都退回默认 `index.html`。需要 Vercel 环境变量 `SUPABASE_URL`、`SUPABASE_ANON_KEY`（服务端读不到 `VITE_` 开头的） |
+| `api/share.ts` | **详情页分享卡片**。`/cases/:id`、`/projects/:id`、`/events/:id` 经 `vercel.json` 重写到这里，按 id 查库把标题/摘要/封面写进 HTML 的 meta，再返回完整单页应用。活动的描述会带上城市与时间，时间**必须按 Asia/Shanghai 格式化**——函数跑在 UTC 服务器上，直接取本地时间会差 8 小时。不按 UA 区分爬虫（微信抓取端与内置浏览器 UA 相同，认错会让真人白屏）。任何异常都退回默认 `index.html`。需要 Vercel 环境变量 `SUPABASE_URL`、`SUPABASE_ANON_KEY`（服务端读不到 `VITE_` 开头的） |
 | `vercel.json` | Vercel 构建与 SPA 路由重写。**删了会构建失败**。详情页两条重写规则必须排在 `/(.*)` 兜底之前，否则不生效 |
 | `vite.config.ts` / `tailwind.config.js` / `postcss.config.js` | 构建与样式配置 |
 | `biome.json` | 代码格式化配置 |

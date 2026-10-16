@@ -74,17 +74,37 @@ function applyShareFields(html: string, fields: ShareFields, imageChanged: boole
   return out;
 }
 
-const TABLES: Record<string, string> = {
-  case: 'cases',
-  project: 'projects',
+const BASE_COLUMNS = 'title,title_en,summary,summary_en,cover_url';
+
+// path 用于反推 og:url —— 重写之后 req.url 变成 /api/share?...，
+// 拿不到用户访问的原地址，不反推的话分享出去的链接会指向这个内部接口。
+const TYPES: Record<string, { table: string; path: string; columns: string }> = {
+  case: { table: 'cases', path: 'cases', columns: BASE_COLUMNS },
+  project: { table: 'projects', path: 'projects', columns: BASE_COLUMNS },
+  event: { table: 'events', path: 'events', columns: `${BASE_COLUMNS},city,city_en,event_date` },
 };
 
-// 重写之后 req.url 变成 /api/share?...，拿不到用户访问的原地址，
-// og:url 必须按类型反推，否则分享出去的链接会指向这个内部接口。
-const PATHS: Record<string, string> = {
-  case: 'cases',
-  project: 'projects',
-};
+/**
+ * 活动时间。必须显式指定 Asia/Shanghai：
+ * 前端那套取的是浏览器本地时区，而这里跑在服务器上（UTC），
+ * 直接 getMonth()/getDate() 会比国内早 8 小时，日期可能整个差一天。
+ */
+function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(d);
+  } catch {
+    return '';
+  }
+}
 
 export default async function handler(req: any, res: any) {
   const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -111,9 +131,9 @@ export default async function handler(req: any, res: any) {
 
   const type = String(req.query?.type ?? '');
   const id = String(req.query?.id ?? '');
-  const table = TABLES[type];
+  const meta = TYPES[type];
 
-  if (!table || !id) {
+  if (!meta || !id) {
     sendBase();
     return;
   }
@@ -128,9 +148,9 @@ export default async function handler(req: any, res: any) {
 
   try {
     const query =
-      `${supabaseUrl}/rest/v1/${table}` +
+      `${supabaseUrl}/rest/v1/${meta.table}` +
       `?id=eq.${encodeURIComponent(id)}` +
-      `&select=title,title_en,summary,summary_en,cover_url&limit=1`;
+      `&select=${meta.columns}&limit=1`;
 
     const dataRes = await fetch(query, {
       headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
@@ -155,13 +175,23 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
+    // 活动卡片把城市和时间放在最前面：转发到群里时，
+    // 这两样比摘要更能决定别人要不要点进来。
+    let description = summary;
+    if (type === 'event') {
+      const city = (row['city'] || row['city_en'] || '').trim();
+      const when = formatEventTime(row['event_date'] || '');
+      const head = [city, when].filter(Boolean).join(' · ');
+      description = head ? `${head}｜${summary}` : summary;
+    }
+
     const html = applyShareFields(
       baseHtml,
       {
         title: `${title} · 启禾社区`,
-        description: clamp(summary) || '聚焦 AI 实践的共创社区，汇聚案例、项目与城市组局活动。',
+        description: clamp(description) || '聚焦 AI 实践的共创社区，汇聚案例、项目与城市组局活动。',
         image: cover || `${origin}/share-cover.png`,
-        url: `${origin}/${PATHS[type]}/${encodeURIComponent(id)}`,
+        url: `${origin}/${meta.path}/${encodeURIComponent(id)}`,
       },
       Boolean(cover)
     );

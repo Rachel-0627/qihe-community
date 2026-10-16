@@ -7,6 +7,7 @@
   "rewrites": [
     { "source": "/cases/:id", "destination": "/api/share?type=case&id=:id" },
     { "source": "/projects/:id", "destination": "/api/share?type=project&id=:id" },
+    { "source": "/events/:id", "destination": "/api/share?type=event&id=:id" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
