@@ -213,7 +213,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | 路径 | 职责 |
 |---|---|
 | `public/favicon.svg` | 标签页图标（矢量，现代浏览器优先用） |
-| `public/favicon.png` | 图标兜底，同时用作分享缩略图 |
+| `public/favicon.png` | 图标兜底 |
+| `public/share-cover.png` | **分享卡片封面**（1200×588），由首屏截图裁切而来。`index.html` 的 `og:image` 指向它，换图要保持同名同尺寸 |
 | `public/images/` | 站点图片 |
 | `vercel.json` | Vercel 构建与 SPA 路由重写。**删了会构建失败** |
 | `vite.config.ts` / `tailwind.config.js` / `postcss.config.js` | 构建与样式配置 |
