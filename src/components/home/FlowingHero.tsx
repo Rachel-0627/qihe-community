@@ -67,7 +67,10 @@ export default function FlowingHero() {
               <p className="hero-label mb-6 font-mono text-[10px] uppercase tracking-[0.19em] text-muted-foreground">
                 QIHE COMMUNITY / AI BUILDERS NETWORK
               </p>
-              <h1 className="font-display text-[clamp(32px,11vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-foreground md:text-[clamp(54px,6.7vw,102px)]">
+              {/* 桌面端字号按「最长一行要能塞进左栏」倒推：左栏约占容器 52%，
+                  标题再大就会从词中间折行（例如「让普通人从会／用AI」）。
+                  换更长的标题时，这里要跟着往下调。 */}
+              <h1 className="font-display text-[clamp(32px,11vw,70px)] font-medium leading-[.94] tracking-[-.065em] text-foreground md:text-[clamp(45px,5.9vw,75px)]">
                 <span className="hero-title-line block">{titleLine1}</span>
                 {titleLine2 && <span className="hero-title-line gradient-text block">{titleLine2}</span>}
               </h1>
