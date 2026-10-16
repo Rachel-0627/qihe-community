@@ -39,10 +39,34 @@ export default Node.create({
 
   addCommands() {
     return {
+      /**
+       * 气泡菜单的按钮会显示激活态，所以再点一次要能取消。
+       *
+       * 两个坑：
+       * 1. 不能用 toggleWrap —— 整段全选时它判断不出已在块里，会再套一层；
+       * 2. 取消时不能直接 lift —— 光标只在某一段里，那样只会把这一段提出来，
+       *    块里其余段落还留在原处。所以先把选区撑满整个块，再整体提出。
+       */
       setPromptBlock:
         () =>
-        ({ commands }) =>
-          commands.wrapIn(this.name),
+        ({ state, chain, editor }) => {
+          if (!editor.isActive(this.name)) {
+            return chain().wrapIn(this.name).run();
+          }
+          const { $from } = state.selection;
+          for (let depth = $from.depth; depth > 0; depth--) {
+            if ($from.node(depth).type.name === this.name) {
+              // 端点各往里收一格：块的边界本身装的是段落而不是文字，
+              // 选区正好落在边界上，ProseMirror 会报 "not pointing into
+              // a node with inline content"
+              return chain()
+                .setTextSelection({ from: $from.start(depth) + 1, to: $from.end(depth) - 1 })
+                .lift(this.name)
+                .run();
+            }
+          }
+          return false;
+        },
     };
   },
 

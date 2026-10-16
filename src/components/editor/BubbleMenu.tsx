@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { BubbleMenu as TiptapBubbleMenu } from '@tiptap/react/menus';
-import { Bold, Italic, Link2, Quote, Code, Heading2, Heading3, Type, MoreHorizontal, Strikethrough, Highlighter, AlignLeft, AlignCenter, AlignRight, Trash2 } from 'lucide-react';
+import { Bold, Italic, Link2, Quote, Code, Heading2, Heading3, Type, MoreHorizontal, Strikethrough, Highlighter, AlignLeft, AlignCenter, AlignRight, Trash2, Sparkles } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -107,6 +107,15 @@ export default function BubbleMenu({ editor }: BubbleMenuProps) {
             </ToolButton>
             <ToolButton title="行内代码" active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()}>
               <Code className="h-4 w-4" />
+            </ToolButton>
+            {/* 提示词块：选中几段再点，读者在前台就能整段一键复制。
+                斜杠菜单里也有，但那个要先记得住，这里是选中即见。 */}
+            <ToolButton
+              title="设为提示词"
+              active={editor.isActive('promptBlock')}
+              onClick={() => editor.chain().focus().setPromptBlock().run()}
+            >
+              <Sparkles className="h-4 w-4" />
             </ToolButton>
             <Popover open={linkOpen} onOpenChange={setLinkOpen}>
               <PopoverTrigger asChild>

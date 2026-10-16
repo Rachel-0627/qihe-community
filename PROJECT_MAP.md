@@ -103,7 +103,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `ImmersiveEditor.tsx` (212) ⚠️ | 编辑器主体。标题级别含 h1（库里有整篇用 h1 分章的文章） |
 | `ChapterHeading.ts` (30) | 让标题保住 `data-ch` 属性。ProseMirror 只保留声明过的属性，不声明会被丢掉 |
 | `EditorToolbar.tsx` (107) | 顶部工具栏 |
-| `BubbleMenu.tsx` (165) | 选中文字时浮出的气泡菜单 |
+| `BubbleMenu.tsx` (173) | 选中文字时浮出的气泡菜单。含「设为提示词」按钮（选中即见，比斜杠命令好找），可再点取消 |
 | `SlashCommand.tsx` (96) | 斜杠命令菜单 |
 | `PublishPanel.tsx` (128) | 发布设置面板 |
 | `EditorPreview.tsx` | 预览模式 |
@@ -160,7 +160,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `contentHeadings.ts` (60) | 给正文标题注入 id，供章节目录跳转；h1/h2/h3 都算 |
 | `chapters.ts` (88) | 章节永久编号：保存正文时盖 `data-ch`，供「免费试看章节」定位 |
 | `editorImageExtension.ts` (113) / `videoExtension.ts` (99) | TipTap 图片 / 视频扩展 |
-| `promptBlockExtension.ts` (62) | **提示词块**。存成 `<div data-prompt>`，前台由 `useCodeCopy` 加复制按钮。单独立节点而不用代码块，是为了以后能给提示词加「一键运行」时和真正的代码区分开 |
+| `promptBlockExtension.ts` (80) | **提示词块**。存成 `<div data-prompt>`，前台由 `useCodeCopy` 加复制按钮。单独立节点而不用代码块，是为了以后能给提示词加「一键运行」时和真正的代码区分开。取消时要先把选区撑满整个块再 lift，否则只会提出光标所在那一段 |
 | `editorSlashCommand.ts` (31) / `editorSlashItems.ts` (101) | 斜杠命令的机制与菜单项 |
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
 | `submissionsApi.ts` (135) | **投稿与审核的所有读写**。单独成文件，不往 api.ts 里堆 |
