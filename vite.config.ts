@@ -16,7 +16,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      // 用 import.meta.dirname 而不是 __dirname：Vite 以后会换成原生方式读配置，
+      // 那种方式不认 __dirname，别名一旦失效，全项目的 @/ 导入都会找不到。
+      // 需要 Node 20.11+，见 package.json 的 engines。
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   optimizeDeps: {
