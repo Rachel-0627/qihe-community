@@ -1,0 +1,12 @@
+# 启禾社区 https://qihe.bj.cn
+# 内容页欢迎抓取；个人中心、投稿、后台这些要登录才有意义的页面不必收录。
+
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /profile
+Disallow: /submit/
+Disallow: /login
+
+Sitemap: https://qihe.bj.cn/sitemap.xml

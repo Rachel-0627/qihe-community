@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/cases/:id", "destination": "/api/share?type=case&id=:id" },
     { "source": "/projects/:id", "destination": "/api/share?type=project&id=:id" },
     { "source": "/events/:id", "destination": "/api/share?type=event&id=:id" },
