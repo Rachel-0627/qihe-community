@@ -72,6 +72,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `profile/MySubmissions.tsx` (120) | 个人中心「我的投稿」：状态、驳回理由、重投、撤回 |
 | `BrandMark.tsx` (75) | **品牌标识 SVG**。与 `public/favicon.svg` 同源，改动需两边同步 |
 | `PageMeta.tsx` (22) | 逐页设置标题等元信息 |
+| `AppErrorFallback.tsx` (45) | **整站崩溃时的兜底页**。挂在 Router 与 I18nProvider 之外，所以不能用 Link、也拿不到 `t()`，文案中英并列硬写 |
 | `RouteGuard.tsx` (67) | 路由守卫，拦截未登录/无权限访问 |
 | `RichTextEditor.tsx` (460) ⚠️ | 富文本编辑器（基于 TipTap） |
 | `AIAssistant.tsx` (226) ⚠️ | 前台 AI 助手浮窗 |
@@ -166,6 +167,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `discussionApi.ts` (78) | 讨论帖与评论的读写 |
 | `aiToolsApi.ts` (52) | `ai_tools` 读写：前台只取已上架，后台取全部 |
 | `assistantQa.ts` (100) | 助手固定问答的匹配：标题 > 标签 > 正文加权，再用二字片段重合打破平局 |
+| `feedback.ts` (40) | **失败提示的统一出口**。把「加载失败」「操作失败」统一成「说清什么没出来 + 为什么 + 给重试按钮」。`t` 由调用方传入以跟随中英切换。**前台新增失败提示一律走这里**，后台暂未接入 |
 | `utils.ts` (59) | 通用小函数（className 合并等） |
 
 ## 十二、Hooks `src/hooks/`

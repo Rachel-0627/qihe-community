@@ -5,7 +5,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReveal } from '@/hooks/useReveal';
 import { fetchCategories, fetchCases, fetchCaseRanking, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
-import { toast } from 'sonner';
+import { notifyLoadFailed, notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Skeleton } from '@/components/ui/skeleton';
 import CaseCard from '@/components/cards/CaseCard';
 import type { Category, CaseItem } from '@/types/types';
@@ -41,7 +41,7 @@ export default function CasesPage() {
 
   const loadCases = useCallback((catId: string | null) => {
     setLoading(true);
-    fetchCases(catId).then((data) => setCases(data)).catch(() => toast.error(t('加载案例失败', 'Failed to load cases'))).finally(() => setLoading(false));
+    fetchCases(catId).then((data) => setCases(data)).catch(() => notifyLoadFailed(t, { zh: '案例', en: 'cases' }, () => loadCases(catId))).finally(() => setLoading(false));
   }, [t]);
 
   const loadRanking = useCallback((dim: RankDim) => {
@@ -60,7 +60,7 @@ export default function CasesPage() {
 
   const handleInteraction = async (item: CaseItem, type: 'like' | 'favorite') => {
     if (!user) {
-      toast.error(t('请先登录后再操作', 'Please sign in first'));
+      notifyNeedLogin(t);
       return;
     }
     const isActive = interactions[type].has(item.id);
@@ -78,7 +78,7 @@ export default function CasesPage() {
         refreshProfile().catch(() => {});
       }
     } catch {
-      toast.error(t('操作失败', 'Action failed'));
+      notifyActionFailed(t);
     }
   };
 

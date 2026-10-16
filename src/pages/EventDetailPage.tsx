@@ -5,6 +5,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchEventById, getUserInteractions, toggleInteractionV2, incrementContentView, registerEvent, cancelRegistration, getUserRegistrations } from '@/lib/api';
 import { toast } from 'sonner';
+import { notifyLoadFailed, notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,7 +67,7 @@ export default function EventDetailPage() {
     setLoading(true);
     fetchEventById(id)
       .then(setItem)
-      .catch(() => toast.error(t('加载活动失败', 'Failed to load event')))
+      .catch(() => notifyLoadFailed(t, { zh: '这个活动', en: 'this event' }, () => window.location.reload()))
       .finally(() => setLoading(false));
   }, [id, t]);
 
@@ -93,7 +94,7 @@ export default function EventDetailPage() {
   }, [user, id]);
 
   const handleInteraction = useCallback(async (type: 'like' | 'favorite') => {
-    if (!user || !item) { toast.error(t('请先登录后再操作', 'Please sign in to interact')); return; }
+    if (!user || !item) { notifyNeedLogin(t); return; }
     try {
       const res = await toggleInteractionV2(user.id, 'event', item.id, type);
       if (type === 'like') setLiked(res.action === 'added');
@@ -106,7 +107,7 @@ export default function EventDetailPage() {
           refreshProfile().catch(() => {});
         }
       }
-    } catch { toast.error(t('操作失败', 'Action failed')); }
+    } catch { notifyActionFailed(t); }
   }, [user, item, t, refreshProfile]);
 
   const resetForm = useCallback(() => {
@@ -115,13 +116,13 @@ export default function EventDetailPage() {
   }, []);
 
   const openRegisterDialog = useCallback(() => {
-    if (!user || !item) { toast.error(t('请先登录后再报名', 'Please sign in to register')); return; }
+    if (!user || !item) { notifyNeedLogin(t); return; }
     resetForm();
     setRegisterDialogOpen(true);
   }, [user, item, resetForm, t]);
 
   const handleRegister = useCallback(async () => {
-    if (!user || !item) { toast.error(t('请先登录后再报名', 'Please sign in to register')); return; }
+    if (!user || !item) { notifyNeedLogin(t); return; }
     if (registered) {
       // 取消报名
       setBusy(true);

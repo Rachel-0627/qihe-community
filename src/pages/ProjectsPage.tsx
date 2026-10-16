@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useReveal } from '@/hooks/useReveal';
 import { fetchProjects, getUserInteractions, toggleInteractionV2, fetchProjectFilterOptions } from '@/lib/api';
 import { toast } from 'sonner';
+import { notifyLoadFailed, notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProjectCard from '@/components/cards/ProjectCard';
 import type { ProjectItem, ProjectFilterOption } from '@/types/types';
@@ -29,7 +30,7 @@ export default function ProjectsPage() {
     setLoading(true);
     fetchProjects({ scene: activeFilter === 'scene' ? scene ?? undefined : undefined, maturity: activeFilter === 'maturity' ? maturity ?? undefined : undefined, hotOnly: activeFilter === 'hot' ? hotOnly : undefined })
       .then(setProjects)
-      .catch(() => toast.error(t('加载项目失败', 'Failed to load projects')))
+      .catch(() => notifyLoadFailed(t, { zh: '项目', en: 'projects' }, load))
       .finally(() => setLoading(false));
   }, [activeFilter, scene, maturity, hotOnly, t]);
 
@@ -59,7 +60,7 @@ export default function ProjectsPage() {
   };
 
   const handleInteraction = async (item: ProjectItem, type: 'like' | 'favorite') => {
-    if (!user) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
+    if (!user) { notifyNeedLogin(t); return; }
     const isActive = interactions[type].has(item.id);
     try {
       const res = await toggleInteractionV2(user.id, 'project', item.id, type);
@@ -74,7 +75,7 @@ export default function ProjectsPage() {
         toast.success(t(`+${res.actor_xp} XP`, `+${res.actor_xp} XP`));
         refreshProfile().catch(() => {});
       }
-    } catch { toast.error(t('操作失败', 'Action failed')); }
+    } catch { notifyActionFailed(t); }
   };
 
   const filterTabs: [FilterKey, string, string][] = [

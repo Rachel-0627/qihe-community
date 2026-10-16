@@ -5,6 +5,7 @@ import { fetchPromptCaseFilters, fetchPromptCases } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { notifyLoadFailed } from '@/lib/feedback';
 import PromptCaseDetail from './PromptCaseDetail';
 import type { PromptCase, PromptCaseFilter, PromptCaseFilterGroup } from '@/types/types';
 
@@ -36,7 +37,7 @@ export default function PromptCaseLibrary() {
         setCases(caseRows);
         setFilters(filterRows);
       })
-      .catch(() => toast.error(t('加载案例失败', 'Failed to load prompt cases')))
+      .catch(() => notifyLoadFailed(t, { zh: '提示词案例', en: 'prompt cases' }, () => window.location.reload()))
       .finally(() => setLoading(false));
   }, [t]);
 

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import PageMeta from '@/components/common/PageMeta';
 import { fetchCaseById, getUserInteractions, toggleInteractionV2, incrementContentView } from '@/lib/api';
-import { toast } from 'sonner';
+import { notifyLoadFailed, notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { totalCount } from '@/lib/utils';
@@ -35,7 +35,7 @@ export default function CaseDetailPage() {
     setLoading(true);
     fetchCaseById(id)
       .then(setItem)
-      .catch(() => toast.error(t('加载案例失败', 'Failed to load case')))
+      .catch(() => notifyLoadFailed(t, { zh: '这篇案例', en: 'this case' }, () => window.location.reload()))
       .finally(() => setLoading(false));
   }, [id, t]);
 
@@ -56,7 +56,7 @@ export default function CaseDetailPage() {
   }, [user, id]);
 
   const handleInteraction = useCallback(async (type: 'like' | 'favorite') => {
-    if (!user || !item) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
+    if (!user || !item) { notifyNeedLogin(t); return; }
     const isActive = type === 'like' ? liked : favorited;
     try {
       const res = await toggleInteractionV2(user.id, 'case', item.id, type);
@@ -66,7 +66,7 @@ export default function CaseDetailPage() {
       if (res.actor_xp > 0) {
         refreshProfile().catch(() => {});
       }
-    } catch { toast.error(t('操作失败', 'Action failed')); }
+    } catch { notifyActionFailed(t); }
   }, [user, item, liked, favorited, t, refreshProfile]);
 
   const title = lang === 'en' && item?.title_en ? item.title_en : (item?.title ?? '');

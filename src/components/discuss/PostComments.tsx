@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { notifyLoadFailed } from '@/lib/feedback';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ export default function PostComments({ postId }: { postId: string }) {
   const load = useCallback(() => {
     fetchPostComments(postId)
       .then(setComments)
-      .catch(() => toast.error(t('评论加载失败', 'Failed to load comments')))
+      .catch(() => notifyLoadFailed(t, { zh: '评论', en: 'comments' }, load))
       .finally(() => setLoading(false));
   }, [postId, t]);
 

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useReveal } from '@/hooks/useReveal';
 import { fetchEvents, fetchEventFilterOptions, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
 import { toast } from 'sonner';
+import { notifyLoadFailed, notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, List } from 'lucide-react';
@@ -55,7 +56,7 @@ export default function EventsPage() {
     setLoading(true);
     fetchEvents({ city: city ?? undefined, theme: theme ?? undefined })
       .then(setEvents)
-      .catch(() => toast.error(t('加载活动失败', 'Failed to load events')))
+      .catch(() => notifyLoadFailed(t, { zh: '活动', en: 'events' }, load))
       .finally(() => setLoading(false));
   }, [city, theme, t]);
 
@@ -81,7 +82,7 @@ export default function EventsPage() {
   };
 
   const handleInteraction = async (item: EventItem, type: 'like' | 'favorite') => {
-    if (!user) { toast.error(t('请先登录后再操作', 'Please sign in to interact')); return; }
+    if (!user) { notifyNeedLogin(t); return; }
     setBusyId(item.id);
     try {
       const res = await toggleInteractionV2(user.id, 'event', item.id, type);
@@ -101,7 +102,7 @@ export default function EventsPage() {
         }
       }
     } catch {
-      toast.error(t('操作失败，请稍后再试', 'Interaction failed'));
+      notifyActionFailed(t);
     } finally {
       setBusyId(null);
     }

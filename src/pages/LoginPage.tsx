@@ -128,11 +128,22 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('用户名', 'Username')}</Label>
-              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="your_name" className="px-3" autoComplete="username" />
+              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="your_name" className="px-3" autoComplete="username" aria-describedby="username-hint" />
+              {/* 规则写在输入框下面，让人一次填对；等提交后再弹错等于先让人失败一次 */}
+              {mode === 'register' && (
+                <p id="username-hint" className="text-xs text-muted-foreground">
+                  {t('3–32 位，字母、数字或下划线', '3–32 characters: letters, digits or underscores')}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('密码', 'Password')}</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="px-3" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="px-3" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} aria-describedby="password-hint" />
+              {mode === 'register' && (
+                <p id="password-hint" className="text-xs text-muted-foreground">
+                  {t('至少 6 位', 'At least 6 characters')}
+                </p>
+              )}
             </div>
             <div className="flex items-start gap-2">
               <Checkbox id="agree" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} className="mt-0.5" />

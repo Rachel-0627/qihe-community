@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { ContentChapter } from '@/lib/api';
 import { fetchProjectById, fetchProjectContent, getUserInteractions, toggleInteractionV2, canAccessContent, ACCESS_LABELS, incrementContentView, getRemainingUnlockCount, unlockProjectWithFreeQuota } from '@/lib/api';
 import { toast } from 'sonner';
+import { notifyLoadFailed, notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -45,7 +46,7 @@ export default function ProjectDetailPage() {
     setLoading(true);
     fetchProjectById(id)
       .then(setItem)
-      .catch(() => toast.error(t('加载项目失败', 'Failed to load project')))
+      .catch(() => notifyLoadFailed(t, { zh: '这个项目', en: 'this project' }, () => window.location.reload()))
       .finally(() => setLoading(false));
   }, [id, t]);
 
@@ -82,7 +83,7 @@ export default function ProjectDetailPage() {
   }, [user, id]);
 
   const handleLike = useCallback(async () => {
-    if (!user || !item) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
+    if (!user || !item) { notifyNeedLogin(t); return; }
     try {
       const res = await toggleInteractionV2(user.id, 'project', item.id, 'like');
       setLiked(res.action === 'added');
@@ -91,11 +92,11 @@ export default function ProjectDetailPage() {
         toast.success(t(`+${res.actor_xp} XP`, `+${res.actor_xp} XP`));
         refreshProfile().catch(() => {});
       }
-    } catch { toast.error(t('操作失败', 'Action failed')); }
+    } catch { notifyActionFailed(t); }
   }, [user, item, t, refreshProfile]);
 
   const handleFavorite = useCallback(async () => {
-    if (!user || !item) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
+    if (!user || !item) { notifyNeedLogin(t); return; }
     try {
       const res = await toggleInteractionV2(user.id, 'project', item.id, 'favorite');
       setFavorited(res.action === 'added');
@@ -104,7 +105,7 @@ export default function ProjectDetailPage() {
         toast.success(t(`+${res.actor_xp} XP`, `+${res.actor_xp} XP`));
         refreshProfile().catch(() => {});
       }
-    } catch { toast.error(t('操作失败', 'Action failed')); }
+    } catch { notifyActionFailed(t); }
   }, [user, item, t, refreshProfile]);
 
   const loadUnlockCount = useCallback(async () => {
@@ -144,7 +145,7 @@ export default function ProjectDetailPage() {
   const locked = item ? !canAccessContent(tier, item.access_level) : false;
 
   const openUnlockDialog = useCallback(async () => {
-    if (!user) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
+    if (!user) { notifyNeedLogin(t); return; }
     await loadUnlockCount();
     setUnlockDialogOpen(true);
   }, [user, loadUnlockCount, t]);
@@ -167,7 +168,7 @@ export default function ProjectDetailPage() {
         toast.error(t('免费解锁次数已用完，升级等级可获取更多额度', 'Free unlocks used up. Upgrade to get more.'));
         await loadUnlockCount();
       } else if (res.reason === 'not_authenticated') {
-        toast.error(t('请先登录后再操作', 'Please sign in first'));
+        notifyNeedLogin(t);
       } else {
         toast.error(t('解锁失败，请稍后再试', 'Unlock failed'));
       }

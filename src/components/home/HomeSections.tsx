@@ -5,6 +5,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchHomeCases, fetchHomeProjects, fetchHomeEvents, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
 import { toast } from 'sonner';
+import { notifyActionFailed, notifyNeedLogin } from '@/lib/feedback';
 import { Skeleton } from '@/components/ui/skeleton';
 import CaseCard from '@/components/cards/CaseCard';
 import ProjectCard from '@/components/cards/ProjectCard';
@@ -45,7 +46,7 @@ export default function HomeSections() {
     item: CaseItem | ProjectItem | EventItem,
     action: 'like' | 'favorite'
   ) => {
-    if (!user) { toast.error(t('请先登录后再操作', 'Please sign in first')); return; }
+    if (!user) { notifyNeedLogin(t); return; }
     try {
       const res = await toggleInteractionV2(user.id, type, item.id, action);
       const update = (prev: CaseItem[] | ProjectItem[] | EventItem[] | null) => {
@@ -66,7 +67,7 @@ export default function HomeSections() {
         toast.success(t(`+${res.actor_xp} XP`, `+${res.actor_xp} XP`));
         refreshProfile().catch(() => {});
       }
-    } catch { toast.error(t('操作失败', 'Action failed')); }
+    } catch { notifyActionFailed(t); }
   };
 
   return (

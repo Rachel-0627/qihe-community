@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
+import { notifyLoadFailed } from '@/lib/feedback';
 import { useI18n } from '@/contexts/I18nContext';
 import { fetchDiscussionPostById } from '@/lib/discussionApi';
 import PostComments from '@/components/discuss/PostComments';
@@ -18,7 +18,7 @@ export default function DiscussPostDetailPage() {
     if (!id) return;
     fetchDiscussionPostById(id)
       .then(setItem)
-      .catch(() => toast.error(t('加载失败', 'Failed to load')))
+      .catch(() => notifyLoadFailed(t, { zh: '这个帖子', en: 'this post' }, () => window.location.reload()))
       .finally(() => setLoading(false));
   }, [id, t]);
 
