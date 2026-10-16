@@ -4,5 +4,9 @@
   "buildCommand": "npx vite build",
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/cases/:id", "destination": "/api/share?type=case&id=:id" },
+    { "source": "/projects/:id", "destination": "/api/share?type=project&id=:id" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

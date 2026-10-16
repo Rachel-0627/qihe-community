@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, Bookmark, Eye } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import PageMeta from '@/components/common/PageMeta';
 import { fetchCaseById, getUserInteractions, toggleInteractionV2, incrementContentView } from '@/lib/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -19,6 +21,7 @@ export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, lang } = useI18n();
   const { user, refreshProfile } = useAuth();
+  const { brandName, brandNameEn } = useSiteSettings();
   const navigate = useNavigate();
 
   const [item, setItem] = useState<CaseItem | null>(null);
@@ -102,6 +105,9 @@ export default function CaseDetailPage() {
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16">
+      {/* 浏览器标签页与收藏夹显示案例名，而不是千篇一律的站点名。
+          注意：这是在浏览器里改的，抓取分享卡片的爬虫看不到。 */}
+      <PageMeta title={`${title} · ${lang === 'en' ? brandNameEn : brandName}`} description={summary} />
       <Link to="/cases" className="inline-flex items-center gap-1 font-mono-label text-xs uppercase tracking-wider text-muted-foreground hover:text-accent">
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('返回案例', 'Back to cases')}
