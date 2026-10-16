@@ -52,8 +52,8 @@ const defaultLockedDialog = {
 const defaultFooter = {
   tagline: '高端 AI 项目社区 · 创新实验室 × 数字艺术展览',
   taglineEn: 'Premium AI project community · Innovation lab × Digital art gallery',
-  copyright: '© 2026 AI 创业社区. 保留所有权利。',
-  copyrightEn: '© 2026 AI Startup Community. All rights reserved.',
+  copyright: '© 2026 启禾社区. 保留所有权利。',
+  copyrightEn: '© 2026 Qihe Community. All rights reserved.',
 };
 
 const defaultDiscuss = {

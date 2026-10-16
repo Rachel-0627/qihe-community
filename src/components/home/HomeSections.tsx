@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Rocket, FileText, CalendarDays } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchHomeCases, fetchHomeProjects, fetchHomeEvents, getUserInteractions, toggleInteractionV2 } from '@/lib/api';
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import CaseCard from '@/components/cards/CaseCard';
 import ProjectCard from '@/components/cards/ProjectCard';
 import EventCard from '@/components/cards/EventCard';
+import ShimmerEmptyState from '@/components/common/ShimmerEmptyState';
 import type { CaseItem, ProjectItem, EventItem } from '@/types/types';
 
 /**
@@ -71,7 +72,13 @@ export default function HomeSections() {
   return (
     <>
       <Section title={t('热门项目', 'Trending Projects')} desc={t('正在发生的 AI 创业项目、工具与资源', 'AI startup projects, tools and resources in motion')} to="/projects">
-        <Grid loading={projects === null} empty={projects?.length === 0}>
+        <Grid
+          loading={projects === null}
+          empty={projects?.length === 0}
+          emptyIcon={<Rocket className="h-7 w-7" />}
+          emptyTitle={t('项目还在整理中', 'Projects are on the way')}
+          emptyDesc={t('新的 AI 项目会陆续放出来。先去案例看看别人怎么做的', 'New AI projects are coming. Meanwhile, see how others did it in Cases')}
+        >
           {projects?.map((item) => (
             <ProjectCard
               key={item.id}
@@ -86,7 +93,13 @@ export default function HomeSections() {
       </Section>
 
       <Section title={t('精选案例', 'Featured Cases')} desc={t('社区成员的 AI 实践与深度拆解', 'Real AI practice and in-depth breakdowns from the community')} to="/cases" muted>
-        <Grid loading={cases === null} empty={cases?.length === 0}>
+        <Grid
+          loading={cases === null}
+          empty={cases?.length === 0}
+          emptyIcon={<FileText className="h-7 w-7" />}
+          emptyTitle={t('案例还在整理中', 'Cases are on the way')}
+          emptyDesc={t('第一批 AI 实践拆解正在准备,很快就放上来', 'The first batch of AI practice breakdowns is coming soon')}
+        >
           {cases?.map((item) => (
             <CaseCard
               key={item.id}
@@ -101,7 +114,13 @@ export default function HomeSections() {
       </Section>
 
       <Section title={t('近期活动', 'Upcoming Events')} desc={t('线下沙龙、工作坊与创业者聚会', 'Offline salons, workshops and founder meetups')} to="/events">
-        <Grid loading={events === null} empty={events?.length === 0}>
+        <Grid
+          loading={events === null}
+          empty={events?.length === 0}
+          emptyIcon={<CalendarDays className="h-7 w-7" />}
+          emptyTitle={t('近期还没有活动安排', 'No events scheduled yet')}
+          emptyDesc={t('有新的线下沙龙或聚会,会第一时间放在这里', 'New offline salons and meetups will show up here first')}
+        >
           {events?.map((item) => (
             <EventCard
               key={item.id}
@@ -139,8 +158,26 @@ function Section({ title, desc, to, muted, children }: { title: string; desc: st
   );
 }
 
-function Grid({ loading, empty, children }: { loading: boolean; empty?: boolean; children: ReactNode }) {
+function Grid({
+  loading,
+  empty,
+  emptyIcon,
+  emptyTitle,
+  emptyDesc,
+  emptyAction,
+  children,
+}: {
+  loading: boolean;
+  empty?: boolean;
+  emptyIcon: ReactNode;
+  emptyTitle: string;
+  emptyDesc: string;
+  emptyAction?: { label: string; onClick: () => void };
+  children: ReactNode;
+}) {
   const { t } = useI18n();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -160,10 +197,22 @@ function Grid({ loading, empty, children }: { loading: boolean; empty?: boolean;
     );
   }
   if (empty) {
+    // 访客看到的是中性的占位，不暴露后台操作说明；
+    // 「怎么让内容显示出来」只对管理员提示，避免自己人忘了开开关。
     return (
-      <p className="py-8 text-sm text-muted-foreground">
-        {t('暂无内容 —— 请在后台编辑内容时打开「在首页展示」', 'Nothing here yet — enable "Show on homepage" when editing content in the admin')}
-      </p>
+      <div className="py-2">
+        <ShimmerEmptyState
+          icon={emptyIcon}
+          title={emptyTitle}
+          description={emptyDesc}
+          action={emptyAction}
+        />
+        {isAdmin && (
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            {t('管理员提示：在后台编辑内容时打开「在首页展示」即可显示', 'Admin: enable "Show on homepage" when editing content')}
+          </p>
+        )}
+      </div>
     );
   }
   return <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">{children}</div>;

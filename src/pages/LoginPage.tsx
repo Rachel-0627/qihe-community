@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,8 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { signInWithUsername, signUpWithUsername } = useAuth();
+  // 品牌名统一走后台配置，不在页面里写死，避免各处叫法不一致
+  const { brandName, brandNameEn } = useSiteSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string })?.from || '/';
@@ -66,7 +69,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-black/45" aria-hidden="true" />
         <div className="relative z-10 flex h-full flex-col justify-between">
           <div>
-            <p className="font-mono-label text-xs uppercase tracking-[0.2em] text-white/75">№ 00 / AI 创业社区</p>
+            <p className="font-mono-label text-xs uppercase tracking-[0.2em] text-white/75">№ 00 / {lang === 'zh' ? brandName : brandNameEn}</p>
             <h1 className="mt-8 font-display text-4xl font-medium leading-tight tracking-tight text-balance">
               {t('每一个 AI 项目，', 'Every AI project')}
               <br />
@@ -117,7 +120,9 @@ export default function LoginPage() {
             {mode === 'login' ? t('欢迎回来', 'Welcome back') : t('创建账号', 'Create account')}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground text-pretty">
-            {mode === 'login' ? t('登录以解锁完整社区体验', 'Sign in to unlock the full community') : t('注册后即可浏览、点赞、收藏与报名活动', 'Register to browse, like, save, and register for events')}
+            {mode === 'login'
+              ? t('登录后能点赞、收藏、报名活动。只是想看看?不登录也能浏览全部内容', 'Sign in to like, save and join events. Just browsing? Everything is readable without an account')
+              : t('注册后能点赞、收藏、报名活动。只是想看看?不注册也能浏览全部内容', 'Sign up to like, save and join events. Just browsing? Everything is readable without an account')}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
