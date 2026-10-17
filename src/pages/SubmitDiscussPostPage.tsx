@@ -9,7 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import SubmitTabs from '@/components/common/SubmitTabs';
 import FileUploadField from '@/components/common/FileUploadField';
 import ImageListField from '@/components/discuss/ImageListField';
-import { createSubmission, updateSubmission, fetchSubmission } from '@/lib/submissionsApi';
+import {
+  createSubmission, updateSubmission, fetchSubmission,
+  findPendingEditFor, fetchPublishedForEdit,
+} from '@/lib/submissionsApi';
 import { useLocalDraft } from '@/lib/useLocalDraft';
 
 /**
@@ -34,9 +37,18 @@ export default function SubmitDiscussPostPage() {
   const [coverUrl, setCoverUrl] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(!!resubmitId);
+  const [loading, setLoading] = useState(!!resubmitId || !!targetId);
+  /** ?target= 进来时，若已有一条待审的修改申请，就改那条而不是再开一条 */
+  const [editingId, setEditingId] = useState<string | null>(resubmitId);
+  /** 预填失败：空表单提交会把线上帖子清空，必须拦住 */
+  const [prefillFailed, setPrefillFailed] = useState(false);
 
-  const draftKey = useMemo(() => ({ type: 'submit-business', id: resubmitId ?? 'new' }), [resubmitId]);
+  // 草稿按场景分开存：新建、改某条投稿、改某条已发布内容，
+  // 共用一个 key 会互相覆盖——申请修改时冒出一份「新建帖子」的旧草稿很莫名其妙
+  const draftKey = useMemo(
+    () => ({ type: 'submit-business', id: resubmitId ?? (targetId ? `target-${targetId}` : 'new') }),
+    [resubmitId, targetId],
+  );
   useLocalDraft(
     draftKey,
     { title, body, coverUrl, images },
@@ -46,23 +58,66 @@ export default function SubmitDiscussPostPage() {
       if (d.coverUrl) setCoverUrl(d.coverUrl);
       if (Array.isArray(d.images)) setImages(d.images);
     },
-    !resubmitId,
+    // 申请修改时不要恢复草稿：内容应该来自线上那条，
+    // 否则会被「新建帖子」时留下的半成品盖掉
+    !resubmitId && !targetId,
   );
 
-  // 改一条被驳回的投稿：把原内容取回来填进表单
+  // 把一份内容填进表单。payload 和正式表的字段名是对齐的
+  const fill = useCallback((p: Record<string, unknown>) => {
+    if (typeof p.title === 'string') setTitle(p.title);
+    if (typeof p.body === 'string') setBody(p.body);
+    if (typeof p.cover_url === 'string') setCoverUrl(p.cover_url);
+    if (Array.isArray(p.images)) setImages(p.images as string[]);
+    else if (typeof p.images === 'string') {
+      // fetchPublishedForEdit 把数组序列化成字符串传回来
+      try { const a = JSON.parse(p.images); if (Array.isArray(a)) setImages(a); } catch { /* 忽略 */ }
+    }
+  }, []);
+
   useEffect(() => {
-    if (!resubmitId) return;
-    fetchSubmission(resubmitId)
-      .then((s) => {
-        if (!s) return;
-        setTitle(s.payload.title || '');
-        setBody(s.payload.body || '');
-        setCoverUrl(s.payload.cover_url || '');
-        setImages(Array.isArray(s.payload.images) ? s.payload.images : []);
-      })
-      .catch(() => toast.error(t('载入失败', 'Failed to load')))
-      .finally(() => setLoading(false));
-  }, [resubmitId, t]);
+    // 改一条已有的投稿（被驳回、待审、或草稿箱里的）
+    if (resubmitId) {
+      fetchSubmission(resubmitId)
+        .then((s) => { if (s) fill(s.payload as Record<string, unknown>); })
+        .catch(() => toast.error(t('载入失败', 'Failed to load')))
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    // 申请修改已发布的帖子
+    if (targetId) {
+      (async () => {
+        try {
+          // 线上现在长什么样，先读出来当底子。
+          // 不能拿当初那条投稿当底子：发布后管理员可能改过
+          const live = await fetchPublishedForEdit('discussion_post', targetId);
+          if (!live) { setPrefillFailed(true); return; }
+
+          const pending = await findPendingEditFor(targetId);
+          if (!pending) { fill(live); return; }
+
+          setEditingId(pending.id);
+          // 待审那条里真的填了东西的字段，盖在线上内容之上
+          const draft = (pending.payload || {}) as Record<string, unknown>;
+          const merged: Record<string, unknown> = { ...live };
+          for (const [k, v] of Object.entries(draft)) {
+            if (Array.isArray(v) ? v.length > 0 : typeof v === 'string' && v.trim() !== '') merged[k] = v;
+          }
+          fill(merged);
+          toast.info(t('你之前提交的修改还在审核中，这次会直接改那一条',
+                       'Your earlier edit is still under review — this will update it'));
+        } catch {
+          setPrefillFailed(true);
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return;
+    }
+
+    setLoading(false);
+  }, [resubmitId, targetId, fill, t]);
 
   const submit = useCallback(async () => {
     if (!title.trim()) { toast.error(t('请填写标题', 'Title is required')); return; }
@@ -70,7 +125,7 @@ export default function SubmitDiscussPostPage() {
     setSubmitting(true);
     try {
       const payload = { title: title.trim(), body: body.trim(), cover_url: coverUrl, images };
-      if (resubmitId) await updateSubmission(resubmitId, payload);
+      if (editingId) await updateSubmission(editingId, payload);
       else await createSubmission('discussion_post', payload, targetId);
       toast.success(t('已提交，等待管理员审核', 'Submitted, pending review'));
       navigate('/profile');
@@ -81,10 +136,28 @@ export default function SubmitDiscussPostPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [title, body, coverUrl, images, resubmitId, targetId, navigate, t]);
+  }, [title, body, coverUrl, images, editingId, targetId, navigate, t]);
 
   if (!user) return <Navigate to="/login" replace state={{ from: '/submit/discuss' }} />;
   if (loading) return <div className="py-24 text-center text-muted-foreground">{t('载入中…', 'Loading…')}</div>;
+
+  // 读不到原帖就不让往下走：空表单一提交会把线上内容清空
+  if (prefillFailed) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-24 text-center">
+        <h1 className="font-display text-xl font-medium text-foreground">
+          {t('读不到这条内容', 'Could not load this content')}
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground text-pretty">
+          {t('可能帖子已被删除。为避免提交空白内容把线上的覆盖掉，这里先不让继续。',
+             'It may have been removed. To avoid overwriting the live post with a blank form, editing is blocked here.')}
+        </p>
+        <Button variant="secondary" className="mt-6" onClick={() => navigate('/profile')}>
+          {t('返回个人中心', 'Back to profile')}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">

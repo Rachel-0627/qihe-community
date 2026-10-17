@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, Heart, Bookmark, Calendar, Award, Sparkles, Settings, CheckCircle2, Camera, Pencil, KeyRound, TrendingUp, Cpu } from 'lucide-react';
+import { LogOut, Heart, FileText, Calendar, Award, Sparkles, Settings, CheckCircle2, Camera, Pencil, KeyRound, TrendingUp, Cpu } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAIAssistant } from '@/contexts/AIAssistantContext';
@@ -133,8 +133,11 @@ export default function ProfilePage() {
   };
   const identity = identityLabels[profile.community_identity];
 
+  // 容器和项目库、工具、案例、活动用同一套：mx-auto max-w-7xl px-4 md:px-8。
+  // 页面之间左边界不一致，来回切换时整页会横向跳一下，很廉价。
+  // （这里原本是 max-w-5xl，比其他页窄一截）
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-16">
+    <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
       <div className="flex items-center justify-between">
         <p className="editorial-label text-accent">{t('个人中心', 'Profile')}</p>
         <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }} className="font-mono-label text-xs text-muted-foreground hover:text-foreground">
@@ -145,7 +148,8 @@ export default function ProfilePage() {
 
       <div ref={revealRef} className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
         {/* Profile card */}
-        <div className="magazine-card flex h-full flex-col p-6">
+        <div className="space-y-6 lg:self-start">
+          <div className="magazine-card flex flex-col p-6">
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
               <Avatar className="h-16 w-16">
@@ -204,45 +208,25 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <span className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('用户等级', 'User Level')}</span>
-              <span className="font-display text-lg font-medium text-accent">Lv.{profile.level}</span>
-            </div>
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <span className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('会员等级', 'Member Tier')}</span>
-              <span className="font-mono-label text-xs uppercase tracking-wider text-foreground">{lang === 'en' ? tierLabel.en : tierLabel.zh}</span>
-            </div>
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <span className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('社区身份', 'Community Identity')}</span>
-              <span className="font-mono-label text-xs uppercase tracking-wider text-foreground">{identity ? (lang === 'en' ? identity.en : identity.zh) : ''}</span>
-            </div>
-          </div>
-
-          {/* XP progress */}
-          <div className="mt-auto pt-6">
-            <div className="flex items-center justify-between font-mono-label text-xs text-muted-foreground">
-              <span>{profile.xp} XP</span>
-              <span>{nextLevel ? `${nextThreshold} XP` : t('满级', 'Max') }</span>
-            </div>
-            <Progress value={xpProgress} className="mt-2 h-1.5" />
-            <p className="mt-2 text-xs text-muted-foreground text-pretty">
-              {nextLevel ? t(`距离 Lv.${nextLevel.level} 还需 ${nextThreshold - profile.xp} XP`, `${nextThreshold - profile.xp} XP to Lv.${nextLevel.level}`) : t('已达最高等级', 'Maximum level reached')}
-            </p>
+          {/* 身份名片只留头像、昵称、签到。
+              等级、会员、XP 都在下面那张「我的等级」里，
+              同一个页面说两遍就是乱 */}
+          <div className="mt-6">
             <Button
               onClick={handleCheckIn}
               disabled={checkedIn || checkInLoading}
-              className="mt-4 w-full gap-1.5 font-mono-label text-xs uppercase tracking-wider"
+              className="w-full gap-1.5 font-mono-label text-xs uppercase tracking-wider"
             >
               {checkedIn ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
               {checkedIn ? t('今日已签到', 'Checked in today') : t('每日签到', 'Daily check-in')}
             </Button>
           </div>
-        </div>
+          </div>
 
-        {/* Right column */}
-        <div className="space-y-6 min-w-0">
-          {/* Current level card */}
+          {/* 等级区放左栏、排在身份名片下面。
+              放右栏底部会被 320px 侧栏推着，像缩在角落；
+              通栏又太宽——这块内容就几行字，铺满一整行全是空白。
+              窄栏才是它该待的地方，顺序上也在「我的投稿」之后 */}
           <div className="magazine-card p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -281,27 +265,48 @@ export default function ProfilePage() {
               </p>
             </div>
           </div>
+          {/* XP rules */}
+          <div className="border border-border bg-muted/40 p-4">
+            <div className="flex items-center gap-2">
+              <Heart className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('经验值规则', 'XP Rules')}</p>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground text-pretty">
+              {t('每日首次签到 +10、点赞作品 +1、收藏作品 +1；作品被他人点赞 +3、被收藏 +6。同一天内重复签到/点赞/收藏不再重复增加经验值。', 'Daily first check-in +10, like +1, favorite +1; got liked +3, got favorited +6. Repeated check-ins/likes/favorites on the same day will not add extra XP.')}
+            </p>
+          </div>
 
-          {/* Quick links */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {/* 快捷入口放左栏最下面：这几个是「去别处」的跳转，
+              不是本页内容，摆在右栏会把真正要看的投稿列表挤下去 */}
+          <div className="grid grid-cols-2 gap-3">
             <QuickLink icon={<Award className="h-4 w-4" />} label={t('我的权益', 'My Benefits')} to="/benefits" />
             <QuickLink icon={<Sparkles className="h-4 w-4" />} label={t('AI 助手', 'AI Assistant')} onClick={() => setAssistantOpen(true)} />
             <QuickLink icon={<Cpu className="h-4 w-4" />} label={t('生图配置', 'Image Gen Config')} to="/profile/image-provider" />
             {profile.role === 'admin' && <QuickLink icon={<Settings className="h-4 w-4" />} label={t('后台管理', 'Admin')} to="/admin" />}
           </div>
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-6 min-w-0">
+          {/* 投稿和活动拆成两张并列的卡。
+              原来是一张外层卡里再套一个边框盒子装投稿，
+              三层边框三层内边距，内容被一路挤到中间，列表也没地方展开 */}
+          <div className="magazine-card p-6">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-accent" />
+              <h2 className="font-display text-lg font-medium">{t('我的投稿', 'My Submissions')}</h2>
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {t('投稿需管理员审核通过后才会公开展示；撤回的投稿会收进草稿箱，之后还能接着改',
+                 'Submissions go public after admin review. Withdrawn ones move to Drafts and can be edited later')}
+            </p>
+            <div className="mt-5">
+              <MySubmissions />
+            </div>
+          </div>
 
           {/* My events */}
           <div className="magazine-card p-6">
-            <div className="rounded-lg border border-border bg-card/40 p-5">
-              <h2 className="font-display text-lg font-medium">{t('我的投稿', 'My Submissions')}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t('投稿需管理员审核通过后才会公开展示', 'Submissions go public after admin review')}
-              </p>
-              <div className="mt-4">
-                <MySubmissions />
-              </div>
-            </div>
-
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-accent" />
               <h2 className="font-display text-lg font-medium">{t('我报名的活动', 'My Events')}</h2>
@@ -327,18 +332,9 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* XP rules */}
-          <div className="border border-border bg-muted/40 p-4">
-            <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <p className="font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('经验值规则', 'XP Rules')}</p>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground text-pretty">
-              {t('每日首次签到 +10、点赞作品 +1、收藏作品 +1；作品被他人点赞 +3、被收藏 +6。同一天内重复签到/点赞/收藏不再重复增加经验值。', 'Daily first check-in +10, like +1, favorite +1; got liked +3, got favorited +6. Repeated check-ins/likes/favorites on the same day will not add extra XP.')}
-            </p>
-          </div>
         </div>
       </div>
+
     </div>
   );
 }

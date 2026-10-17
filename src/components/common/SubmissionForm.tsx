@@ -9,7 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import ImmersiveEditor from '@/components/editor/ImmersiveEditor';
 import SubmitTabs from '@/components/common/SubmitTabs';
 import FileUploadField from '@/components/common/FileUploadField';
-import { createSubmission, fetchSubmission, updateSubmission } from '@/lib/submissionsApi';
+import {
+  createSubmission, fetchSubmission, updateSubmission,
+  findPendingEditFor, fetchPublishedForEdit,
+} from '@/lib/submissionsApi';
 import { loadDraft, removeDraft, saveDraft } from '@/lib/useLocalDraft';
 import { findSecrets, type SecretHit } from '@/lib/secretScan';
 import {
@@ -67,30 +70,80 @@ export default function SubmissionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+  // 草稿按场景分开存：新建、改某条投稿、改某条已发布内容。
+  // 共用一个 key 会互相覆盖——申请修改时冒出一份「新建」的旧草稿很莫名其妙
   const draftKey = useMemo(
-    () => ({ type: `submit-${kind}`, id: resubmitId ?? 'new' }),
-    [kind, resubmitId],
+    () => ({ type: `submit-${kind}`, id: resubmitId ?? (targetId ? `target-${targetId}` : 'new') }),
+    [kind, resubmitId, targetId],
   );
 
   const [values, setValues] = useState<SubmissionFormValues>(empty);
   const [submitting, setSubmitting] = useState(false);
   /** 扫出的疑似密钥；非空时弹确认框 */
   const [secretHits, setSecretHits] = useState<SecretHit[]>([]);
-  const [loading, setLoading] = useState(!!resubmitId);
+  const [loading, setLoading] = useState(!!resubmitId || !!targetId);
+  /** ?target= 进来时，如果已有一条待审的修改申请，就改那条而不是再开一条 */
+  const [editingId, setEditingId] = useState<string | null>(resubmitId);
+  /** 预填失败。空表单提交等于把已发布内容清空，所以必须拦住 */
+  const [prefillFailed, setPrefillFailed] = useState(false);
 
   useEffect(() => {
-    const local = loadDraft<SubmissionFormValues>(draftKey);
+    // 申请修改时不恢复草稿：内容应该来自线上那条
+    const local = targetId ? null : loadDraft<SubmissionFormValues>(draftKey);
     if (local) setValues({ ...empty, ...local });
-    if (!resubmitId) return;
-    fetchSubmission(resubmitId)
-      .then((s) => {
-        if (!s) return;
-        const p = (s.payload || {}) as Record<string, string>;
-        setValues((prev) => ({ ...prev, ...p, cover_url: p.cover_url ?? '' }));
-      })
-      .catch(() => toast.error(t('读取投稿失败', 'Failed to load submission')))
-      .finally(() => setLoading(false));
-  }, [resubmitId, draftKey, empty, t]);
+
+    const fill = (p: Record<string, string>) =>
+      setValues((prev) => ({ ...prev, ...p, cover_url: p.cover_url ?? '' }));
+
+    // 改一条已有的投稿：直接读那条记录
+    if (resubmitId) {
+      fetchSubmission(resubmitId)
+        .then((s) => { if (s) fill((s.payload || {}) as Record<string, string>); })
+        .catch(() => toast.error(t('读取投稿失败', 'Failed to load submission')))
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    // 申请修改已发布内容
+    if (targetId) {
+      (async () => {
+        try {
+          // 线上现在长什么样，永远先读出来当底子。
+          // 不能拿当初那条投稿当底子：发布后管理员可能在后台改过，
+          // 用旧数据去填，用户一提交就把管理员的修改覆盖掉了。
+          const live = await fetchPublishedForEdit(kind, targetId);
+          if (!live) { setPrefillFailed(true); return; }
+
+          // 已经提过一次还没审？改那一条，别再开一条——
+          // 否则后台会看到两条互相覆盖的申请，先批哪条结果不一样
+          const pending = await findPendingEditFor(targetId);
+          if (!pending) { fill(live); return; }
+
+          setEditingId(pending.id);
+          // 用待审那条里「真的填了东西」的字段盖在线上内容之上。
+          // 直接整份覆盖是不行的：早期版本的表单可能存下过空 payload，
+          // 那样会把人带回一张空表，看起来就像没回显
+          const draft = (pending.payload || {}) as Record<string, unknown>;
+          const merged: Record<string, string> = { ...live };
+          for (const [k, v] of Object.entries(draft)) {
+            if (typeof v === 'string' && v.trim() !== '') merged[k] = v;
+          }
+          fill(merged);
+          toast.info(t(
+            '你之前提交的修改还在审核中，这次会直接改那一条',
+            'Your earlier edit is still under review — this will update it',
+          ));
+        } catch {
+          setPrefillFailed(true);
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return;
+    }
+
+    setLoading(false);
+  }, [resubmitId, targetId, kind, draftKey, empty, t]);
 
   // 用 Record<string,string> 而不是 Partial<>：后者允许 undefined，
   // 与 SubmissionFormValues 的字符串索引签名冲突
@@ -114,7 +167,9 @@ export default function SubmissionForm({
     setSubmitting(true);
     try {
       const payload = buildPayload(values);
-      if (resubmitId) await updateSubmission(resubmitId, payload);
+      // editingId 覆盖了两种情况：改自己被驳回/待审的投稿，
+      // 以及对同一条已发布内容再次提交修改（覆盖上一条待审申请）
+      if (editingId) await updateSubmission(editingId, payload);
       else await createSubmission(kind, payload, targetId);
       removeDraft(draftKey);
       toast.success(t('已提交，等待管理员审核', 'Submitted, pending review'));
@@ -126,7 +181,7 @@ export default function SubmissionForm({
     } finally {
       setSubmitting(false);
     }
-  }, [values, buildPayload, resubmitId, targetId, kind, draftKey, navigate, t]);
+  }, [values, buildPayload, editingId, targetId, kind, draftKey, navigate, t]);
 
   const handleSubmit = useCallback(() => {
     if (!values.title.trim()) return toast.error(t('请填写标题', 'Title is required'));
@@ -146,6 +201,24 @@ export default function SubmissionForm({
 
   if (!user) return <Navigate to="/login" replace state={{ from: `/submit/${kind}` }} />;
   if (loading) return <div className="py-24 text-center text-muted-foreground">{t('载入中…', 'Loading…')}</div>;
+
+  // 读不到原内容就不能往下走：空表单提交会把已发布的内容清空
+  if (prefillFailed) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-24 text-center">
+        <h1 className="font-display text-xl font-medium text-foreground">
+          {t('读不到这条内容', 'Could not load this content')}
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground text-pretty">
+          {t('可能是内容已被删除，或你的账号没有查看它正文的权限。为避免提交空白内容把线上的覆盖掉，这里先不让继续。',
+             'It may have been removed, or your account cannot read its body. To avoid overwriting the live content with a blank form, editing is blocked here.')}
+        </p>
+        <Button variant="secondary" className="mt-6" onClick={() => navigate('/profile')}>
+          {t('返回个人中心', 'Back to profile')}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">

@@ -65,7 +65,30 @@ export async function updateSubmission(
   return data as ContentSubmission;
 }
 
-/** 删除投稿。普通用户只能删除自己未通过的投稿；管理员可以删除任意投稿记录。 */
+/**
+ * 撤回：收进草稿箱，不删。
+ *
+ * 之前撤回是直接 DELETE，用户写了半天的东西点一下就没了，也没有后悔余地。
+ * 收进草稿箱后管理员的审核队列（只看 pending）照样看不到它。
+ */
+export async function withdrawToDraft(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('content_submissions')
+    .update({ status: 'draft' })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/** 草稿箱里的重新投出去。状态回到待审，顺带清掉上一次的退回理由。 */
+export async function submitDraft(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('content_submissions')
+    .update({ status: 'pending', review_note: '' })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/** 彻底删除投稿。普通用户只能删自己未通过的（含草稿）；管理员可删任意记录。 */
 export async function deleteSubmission(id: string): Promise<void> {
   const { error } = await supabase.from('content_submissions').delete().eq('id', id);
   if (error) throw error;
@@ -131,4 +154,114 @@ export async function reviewSubmission(
   });
   if (error) throw error;
   return data as { ok: boolean; status: string; content_id?: string };
+}
+
+/**
+ * 同一条已发布内容只保留一条待审的修改申请。
+ *
+ * 用户改了一次还没审，又想再改：这时应该覆盖那条待审记录，
+ * 而不是再开一条。否则后台会看到两条互相覆盖的申请，
+ * 先批哪条结果不一样。
+ *
+ * @returns 已存在的待审申请；没有则 null
+ */
+export async function findPendingEditFor(targetId: string): Promise<ContentSubmission | null> {
+  const uid = await currentUserId();
+  const { data, error } = await supabase
+    .from('content_submissions')
+    .select('*')
+    .eq('target_id', targetId)
+    .eq('submitted_by', uid)
+    .eq('status', 'pending')
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ContentSubmission) ?? null;
+}
+
+/**
+ * 读取一条已发布内容，用来预填「申请修改」的表单。
+ *
+ * 必须读正式表而不是当初那条投稿记录：内容发布后管理员可能在后台改过，
+ * 拿旧的投稿去填，用户一提交就会把管理员的修改覆盖掉。
+ *
+ * 项目的正文有付费墙，只能走 get_project_content()，
+ * 而且它按会员等级判断——作者自己等级不够时也读不到。
+ * 这种情况返回 null，调用方要拦住提交，不能让用户在空表单上提交，
+ * 那等于把已发布的内容清空。
+ */
+export async function fetchPublishedForEdit(
+  kind: SubmissionKind,
+  id: string,
+): Promise<Record<string, string> | null> {
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+
+  if (kind === 'case') {
+    const { data, error } = await supabase
+      .from('cases')
+      .select('title,title_en,summary,summary_en,cover_url,video_url,category_id,content,content_en,author,author_en')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    const r = data as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(r).map((k) => [k, str(r[k])]));
+  }
+
+  if (kind === 'project') {
+    const { data: base, error } = await supabase
+      .from('projects')
+      .select('title,title_en,summary,summary_en,cover_url,video_url,scene,scene_en,maturity,maturity_en,external_url,access_level')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!base) return null;
+    // 正文单独取：列级权限把 content 挡在付费墙后面
+    const { data: body } = await supabase.rpc('get_project_content', { p_project_id: id });
+    const b = (body ?? {}) as { allowed?: boolean; content?: string; content_en?: string };
+    if (!b.allowed) return null;
+    const r = base as Record<string, unknown>;
+    return {
+      ...Object.fromEntries(Object.keys(r).map((k) => [k, str(r[k])])),
+      content: str(b.content),
+      content_en: str(b.content_en),
+    };
+  }
+
+  // 帖子表的正文字段叫 body 不叫 content，images 是数组不是字符串，
+  // 都要按投稿 payload 的键名对齐，否则预填出来是空的
+  const { data, error } = await supabase
+    .from('discussion_posts')
+    .select('title,body,cover_url,images')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const r = data as Record<string, unknown>;
+  return {
+    title: str(r.title),
+    body: str(r.body),
+    cover_url: str(r.cover_url),
+    images: Array.isArray(r.images) ? JSON.stringify(r.images) : '[]',
+  };
+}
+
+/**
+ * 作者删除自己发布的内容（案例 / 项目 / 帖子）。
+ *
+ * 走数据库函数而不是直接 delete：删正文之外还要清掉投稿记录和点赞收藏。
+ * 投稿记录不清，「我的投稿」里会留下指向空目标的条目；
+ * 点赞收藏表是 target_type + target_id 的弱关联、没有外键，不清就是孤儿行。
+ * 这几步放在同一个事务里，不会出现删一半的状态。
+ */
+export async function deleteMyPublishedContent(
+  kind: SubmissionKind,
+  targetId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_published_content', {
+    p_kind: kind,
+    p_id: targetId,
+  });
+  if (error) throw error;
 }

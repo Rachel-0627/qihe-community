@@ -316,7 +316,7 @@ export interface PromptCase {
 // 审核通过时由 review_submission() 落地到正式表。
 
 export type SubmissionKind = 'case' | 'project' | 'discussion_post';
-export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'draft';
 
 /** 投稿里可编辑的字段。刻意不含 is_featured、base_likes、access_level
  *  这类运营字段——它们由管理员在后台控制，不接受用户提交。 */

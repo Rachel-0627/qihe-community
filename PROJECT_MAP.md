@@ -35,9 +35,10 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `EventsPage.tsx` (311) ⚠️ | 活动（城市组局）列表 + 日历视图 |
 | `EventDetailPage.tsx` (332) ⚠️ | 活动详情 |
 | `ToolsPage.tsx` (38) | 工具页外壳 |
-| `ProfilePage.tsx` (354) ⚠️ | 个人中心 |
+| `ProfilePage.tsx` (380) ⚠️ | 个人中心。容器用 `mx-auto max-w-7xl px-4 md:px-8`，**和项目库/工具/案例/活动保持一致**——页面间左边界不一致，来回切换整页会横向跳。左栏：身份名片 → 我的等级 → 经验值规则 → 快捷入口；右栏：我的投稿 → 我报名的活动。等级信息只在左栏出现一次（原先左右各一份） |
 | `ProfileImageProviderPage.tsx` (35) | 个人生图 API 配置页外壳 |
 | `SubmitCasePage.tsx` (50) | 用户投稿案例。壳在 `SubmissionForm`，这里只管「分类」字段 |
+| `SubmitDiscussPostPage.tsx` ⚠️ | 发帖。**没有复用 `SubmissionForm`**（那个外壳固定带摘要、封面、富文本正文，帖子都不需要），所以投稿相关的改动必须两边同步——漏掉这里的话案例能用、帖子不能用 |
 | `SubmitProjectPage.tsx` (100) | 用户投稿项目。外链必填并校验 http(s)，场景/成熟度必选，不开放传视频 |
 | `BenefitsPage.tsx` (180) | 会员权益 |
 | `BusinessCoopPage.tsx` | 商务与合作 |
@@ -67,8 +68,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | 文件 | 职责 |
 |---|---|
 | `SubmitTabs.tsx` (50) | 投稿类型切换条 + 各类型的标签/路径映射，三处共用 |
-| `SubmissionForm.tsx` (254) ⚠️ | **投稿表单公共外壳**：登录判断、本地草稿、公共字段、提交与重投。两个投稿页复用它。提交前用 `secretScan` 查一遍密钥，**只提醒不拦截**（误判时不能让人发不出去）|
-| `profile/MySubmissions.tsx` (120) | 个人中心「我的投稿」：状态、驳回理由、重投、撤回 |
+| `SubmissionForm.tsx` (300) ⚠️ | **投稿表单公共外壳**:登录判断、本地草稿、公共字段、提交与重投。**只有案例和项目两个投稿页复用它——帖子投稿页是另写的一套**,改投稿逻辑时两边都要动,只改这里会漏掉帖子。`?resubmit=` 改已有投稿,`?target=` 申请修改已发布内容(预填读正式表;读不到就拦住不让提交,空表单一交会把线上内容清空)。草稿按场景分 key,申请修改时不恢复草稿。提交前用 `secretScan` 查一遍密钥,**只提醒不拦截**(误判时不能让人发不出去)|
+| `profile/MySubmissions.tsx` (210) | 个人中心「我的投稿」。两个页签:**投稿记录**和**草稿箱**——草稿不是「在排队等审核」的东西,混在一起会让人误会。待审和已退回都能改(待审改的是同一条记录,管理员永远审最后一版);已发布的可「申请修改」;**撤回=收进草稿箱不是删除** |
 | `BrandMark.tsx` (75) | **品牌标识 SVG**。与 `public/favicon.svg` 同源，改动需两边同步 |
 | `PageMeta.tsx` (22) | 逐页设置标题等元信息 |
 | `RouteFallback.tsx` (20) | 懒加载页面下载中的骨架占位。刻意做得轻——这一屏通常只有几百毫秒，放转圈反而显得卡 |
@@ -161,8 +162,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `promptBlockExtension.ts` (80) | **提示词块**。存成 `<div data-prompt>`，前台由 `useCodeCopy` 加复制按钮。单独立节点而不用代码块，是为了以后能给提示词加「一键运行」时和真正的代码区分开。取消时要先把选区撑满整个块再 lift，否则只会提出光标所在那一段 |
 | `editorSlashCommand.ts` (31) / `editorSlashItems.ts` (101) | 斜杠命令的机制与菜单项 |
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
-| `submissionsApi.ts` (135) | **投稿与审核的所有读写**。单独成文件，不往 api.ts 里堆 |
-| `discussionApi.ts` (78) | 讨论帖与评论的读写 |
+| `submissionsApi.ts` (215) | **投稿与审核的所有读写**。单独成文件,不往 api.ts 里堆。`withdrawToDraft` 撤回=收进草稿箱;`submitDraft` 草稿重新投出;`fetchPublishedForEdit` 读**正式表**的当前内容用于「申请修改」预填——不能读当初那条投稿,发布后管理员可能改过,用旧数据填一提交就把管理员的修改覆盖了;`findPendingEditFor` 保证同一条内容只有一条待审修改申请 |
+| `discussionApi.ts` | 讨论区帖子与评论的读写。帖子的**新增只能走审核函数**（表上没给任何人 INSERT）；删除走 `delete_my_discussion_post()` —— 直接 delete 会在投稿表里留下指向空目标的记录 |
 | `aiToolsApi.ts` (52) | `ai_tools` 读写：前台只取已上架，后台取全部 |
 | `assistantQa.ts` (100) | 助手固定问答的匹配：标题 > 标签 > 正文加权，再用二字片段重合打破平局 |
 | `secretScan.ts` (84) | **扫描文本里疑似真实的 API 密钥**，用在投稿提交前。难点是压误报——站点内容本来就在讲 AI 工具，`sk-your-key` 这类示例必须放过，所以只认「够长 + 够随机 + 不含占位符字样」的 |
@@ -194,10 +195,13 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 路径 | 职责 |
 |---|---|
-| `migrations/` | 45 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/` | 50 个数据库迁移脚本，按编号顺序执行 |
 | `migrations/00039_…submissions.sql` | 投稿表 + RLS + `review_submission()` 审核落地函数 |
 | `migrations/00040_…preview_chapters.sql` | `projects.preview_chapters` 列 + 重写 `get_project_content()`：目录全给、正文按章节切 |
 | `migrations/00041_…intro_leak.sql` | 收紧「引言免费」：必须真的切出章节、且引言 ≤2000 字符，否则不给 |
+| `migrations/00048_…draft_box.sql` | 投稿状态加 `draft`（草稿箱）+ 放宽作者的 UPDATE/DELETE 策略。撤回不再是删除 |
+| `migrations/00049_…delete_own_post.sql` | 作者删帖函数。**已被 00050 取代**，00050 末尾会 DROP 掉它；留着是执行历史 |
+| `migrations/00050_…delete_own_content.sql` | `delete_my_published_content(kind, id)`：作者删自己发布的案例/项目/帖子。归属以**投稿记录**为准（`cases.author` 只是展示名，不是用户 id），同时清掉投稿记录和点赞收藏（后者是弱关联无外键，不清就是孤儿行） |
 | `migrations/00042_add_event_end_date.sql` | `events.event_end_date`；允许为空，必填在后台表单上强制 |
 | `migrations/00043_add_business_posts.sql` | 帖子 + 评论两张表；改写 `review_submission()` 加显式分支与兜底报错 |
 | `migrations/00044_add_business_post_images.sql` | 帖子加封面与配图列 |
