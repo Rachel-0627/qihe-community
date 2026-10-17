@@ -1,5 +1,7 @@
 /* stylelint-disable */
-@import './fonts.css';
+/* 字体声明搬到了 public/fonts.css，由 index.html 异步加载。
+   放这里会让 90KB 的 @font-face 跟着主 CSS 一起阻塞首屏渲染，
+   而真正的样式才 20KB 出头。字体本来就是 swap，晚一点到没有副作用。 */
 
 @tailwind base;
 @tailwind components;
@@ -11,6 +13,14 @@
 @layer base {
   :root {
     --radius: 0.375rem;
+
+    /* 字体栈统一在这里定义，tailwind.config.js 和下面所有规则都引用它。
+       拉丁字体在前、中文字体在后：拉丁字库里没有汉字，汉字自动落到下一个。
+       中文只有标题用网页字体（思源宋体），正文走系统字 ——
+       正文字体占用户下载量的 88%，收益却远不如标题那一行。 */
+    --font-sans: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+    --font-display: 'Fraunces', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+    --font-mono: 'Space Mono', 'PingFang SC', 'Microsoft YaHei', ui-monospace, monospace;
 
     /* 启禾社区 2.0 — 暖纸白底 + 陶土橘强调 */
     --bg: #f7f5ef;
@@ -133,17 +143,17 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
   h1, h2, h3, h4, .font-display {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: var(--font-display);
     font-optical-sizing: auto;
   }
 
   .font-mono-label {
-    font-family: 'Space Mono', ui-monospace, monospace;
+    font-family: var(--font-mono);
   }
 
   * {
@@ -177,8 +187,13 @@
   }
 
   /* Magazine card with hairline border, no heavy shadow */
+  /* 过渡属性必须写明，不能用 transition-all：
+     进场动画用 GSAP 每帧直接改 transform / opacity，
+     而 transition-all 会把这每一帧再用 300ms 插值一遍，两边互相打架，滚动就顿。
+     hover 实际只动边框、底色和阴影，列清楚就够了。 */
   .magazine-card {
-    @apply bg-card border border-border transition-all duration-300 rounded-[10px] overflow-hidden;
+    @apply bg-card border border-border rounded-[10px] overflow-hidden;
+    transition: border-color .3s ease, background-color .3s ease, box-shadow .3s ease;
   }
 
   .magazine-card:hover {
@@ -212,7 +227,7 @@
 }
 .immersive-prose > * + * { margin-top: 1.25em; }
 .immersive-prose h2 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.625rem;
   font-weight: 600;
   line-height: 1.25;
@@ -220,7 +235,7 @@
   color: hsl(var(--foreground));
 }
 .immersive-prose h3 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.3;
@@ -248,7 +263,7 @@
   border-radius: 4px;
   padding: 0.15em 0.4em;
   font-size: 0.9em;
-  font-family: 'Space Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .immersive-prose pre.immersive-codeblock {
   background: hsl(var(--card));
@@ -305,7 +320,7 @@
   line-height: 1.75;
 }
 .project-content h2 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.25;
@@ -313,7 +328,7 @@
   margin-bottom: 0.5em;
 }
 .project-content h3 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.3;
@@ -342,7 +357,7 @@
   position: absolute;
   left: 0.6rem;
   top: 0.2rem;
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2rem;
   line-height: 1;
   color: hsl(var(--accent) / 0.5);
@@ -366,7 +381,7 @@
   border-radius: 4px;
   padding: 0.15em 0.4em;
   font-size: 0.875em;
-  font-family: 'Space Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .project-content pre {
   background: hsl(var(--card));
@@ -382,7 +397,7 @@
   color: hsl(var(--foreground));
   font-size: 0.875rem;
   line-height: 1.7;
-  font-family: 'Space Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .project-content pre .hljs-keyword,
 .project-content pre .token.keyword,
@@ -468,7 +483,7 @@
   padding: 3px 10px;
   font-size: 12px;
   line-height: 1.6;
-  font-family: 'Space Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   color: hsl(var(--muted-foreground));
   background: hsl(var(--background) / 0.85);
   border: 1px solid hsl(var(--border));
@@ -513,7 +528,7 @@ pre:hover > .code-copy-btn,
   position: absolute;
   top: 0.7rem;
   left: 1.1rem;
-  font-family: 'Space Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
   color: hsl(var(--primary));

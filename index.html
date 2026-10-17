@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" type="image/png" href="/favicon.png" />
+
+    <!-- 字体样式表异步加载：先用 as=style 预载，加载完再变成真正的 stylesheet，
+         这样它不挡首屏。字体都是 font-display:swap，晚到只是晚一点换字。 -->
+    <link rel="preload" as="style" href="/fonts.css" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="/fonts.css" /></noscript>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>启禾社区 QIHE · AI 社区</title>
     <meta name="description" content="启禾社区是聚焦 AI 实践的共创社区，汇聚案例、项目与城市组局活动，欢迎加入一起探索 AI 边界。" />

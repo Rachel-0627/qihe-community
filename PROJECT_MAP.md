@@ -15,12 +15,12 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 文件 | 职责 |
 |---|---|
-| `index.html` | HTML 骨架。标签页标题、favicon、分享用的 og/twitter 元信息 |
+| `index.html` | HTML 骨架。标签页标题、favicon、分享用的 og/twitter 元信息。另外用 `rel=preload`+`onload` **异步挂载 `/fonts.css`** —— 字体声明有 90KB（gzip），跟主 CSS 一起打包会阻塞首屏，而真正的样式才 20KB 出头 |
 | `src/main.tsx` (19) | 应用挂载点 |
 | `src/App.tsx` (38) | 顶层组件，套各种 Context Provider |
 | `src/routes.tsx` (44) | 全部路由表 |
-| `src/index.css` (458) ⚠️ | 全局样式与设计变量（品牌色、字体、动效） |
-| `src/fonts.css` (82) | 字体 @font-face 声明 |
+| `src/index.css` (465) ⚠️ | 全局样式与设计变量（品牌色、字体、动效）。字体栈统一定义成 `--font-sans/-display/-mono` 三个变量，`tailwind.config.js` 和本文件所有规则都引用它们，**不要再写死 font-family** |
+| `public/fonts.css` (1200) | **字体 @font-face 声明**。放 `public/` 不走打包，由 `index.html` 异步加载。中文按 Unicode 区段切成 101 片带 `unicode-range`，浏览器只下载页面里真正出现的那几片。**中文只打包标题用的思源宋体**，正文走系统字——实测正文字体占用户下载量的 88%，收益却远不如标题 |
 
 ## 二、页面 `src/pages/`
 
@@ -61,7 +61,6 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `FlowingHero.tsx` (92) | 首屏大标题区 |
 | `CommunityNetwork.tsx` (254) ⚠️ | 首屏右侧星座网络图（Canvas 绘制 + GSAP 视差） |
 | `HomeSections.tsx` (172) | 首页下方各内容板块 |
-| `HomeStats.tsx` (72) | 数据统计条 |
 
 ## 五、通用组件 `src/components/common/`
 
@@ -176,7 +175,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | 文件 | 职责 |
 |---|---|
 | `use-supabase-upload.ts` (197) | 文件上传到 Supabase Storage |
-| `useReveal.ts` | 滚动进入视口的出现动效（GSAP） |
+| `useReveal.ts` | **滚动进场动效**（GSAP）。容器拿 ref、子元素加 `data-reveal`。两档幅度：默认轻档给列表页，`bold` 档给首页。**触发器挂在每个元素自己身上**，挂容器的话容器一露头整组就播完了，等用户滚到卡片位置动画早结束。元素可用 `data-reveal-delay` / `data-reveal-y` 就地覆盖参数。异步内容要把加载状态传进 `deps`，否则挂载时扫 DOM 扫到空的 |
 | `use-mobile.tsx` (19) | 判断是否移动端 |
 | `use-debounce.ts` (15) | 防抖 |
 | `use-go-back.ts` (17) | 返回上一页 |
@@ -221,6 +220,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `public/favicon.png` | 图标兜底 |
 | `public/share-cover.png` | **分享卡片封面**（1200×588），由首屏截图裁切而来。`index.html` 的 `og:image` 指向它，换图要保持同名同尺寸 |
 | `public/images/` | 站点图片 |
+| `public/fonts/` | 自托管字体，144 个 woff2（4.6MB）。**必须自托管**：Google Fonts 的 CDN 在内地不可用，线上引用等于所有人加载失败 |
 | `api/sitemap.ts` | **站点地图**。实时查库生成，列出固定页与每一篇案例/项目/活动；经 `vercel.json` 把 `/sitemap.xml` 重写过来。某张表读不到就跳过它，不让整个 sitemap 失败。需要与 share 相同的两个环境变量 |
 | `public/robots.txt` | 抓取规则。放行内容页，挡掉后台/个人中心/投稿/登录，并指向 sitemap |
 | `api/share.ts` | **详情页分享卡片 + 给搜索引擎的正文**。`/cases/:id`、`/projects/:id`、`/events/:id` 经 `vercel.json` 重写到这里，按 id 查库把标题/摘要/封面写进 HTML 的 meta，再返回完整单页应用。活动的描述会带上城市与时间，时间**必须按 Asia/Shanghai 格式化**——函数跑在 UTC 服务器上，直接取本地时间会差 8 小时。不按 UA 区分爬虫（微信抓取端与内置浏览器 UA 相同，认错会让真人白屏）。另外把正文写进 `<noscript>` 并附 JSON-LD —— 单页应用的 HTML 里 `#root` 是空的，百度不执行 JS 就读不到内容。**只有案例注入正文**：项目的正文被付费墙的列级权限挡着、活动没有正文字段，都只给标题摘要，不能漏付费内容给爬虫。注入位置在 `#root` 之后，**`#root` 必须保持为空**，React 挂载时会清空它。任何异常都退回默认 `index.html`。需要 Vercel 环境变量 `SUPABASE_URL`、`SUPABASE_ANON_KEY`（服务端读不到 `VITE_` 开头的） |

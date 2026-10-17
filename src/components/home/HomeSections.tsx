@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { useReveal } from '@/hooks/useReveal';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Rocket, FileText, CalendarDays } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
@@ -72,7 +73,7 @@ export default function HomeSections() {
 
   return (
     <>
-      <Section title={t('热门项目', 'Trending Projects')} desc={t('正在发生的 AI 创业项目、工具与资源', 'AI startup projects, tools and resources in motion')} to="/projects">
+      <Section title={t('热门项目', 'Trending Projects')} desc={t('正在发生的 AI 创业项目、工具与资源', 'AI startup projects, tools and resources in motion')} to="/projects" ready={projects !== null}>
         <Grid
           loading={projects === null}
           empty={projects?.length === 0}
@@ -93,7 +94,7 @@ export default function HomeSections() {
         </Grid>
       </Section>
 
-      <Section title={t('精选案例', 'Featured Cases')} desc={t('社区成员的 AI 实践与深度拆解', 'Real AI practice and in-depth breakdowns from the community')} to="/cases" muted>
+      <Section title={t('精选案例', 'Featured Cases')} desc={t('社区成员的 AI 实践与深度拆解', 'Real AI practice and in-depth breakdowns from the community')} to="/cases" muted ready={cases !== null}>
         <Grid
           loading={cases === null}
           empty={cases?.length === 0}
@@ -114,7 +115,7 @@ export default function HomeSections() {
         </Grid>
       </Section>
 
-      <Section title={t('近期活动', 'Upcoming Events')} desc={t('线下沙龙、工作坊与创业者聚会', 'Offline salons, workshops and founder meetups')} to="/events">
+      <Section title={t('近期活动', 'Upcoming Events')} desc={t('线下沙龙、工作坊与创业者聚会', 'Offline salons, workshops and founder meetups')} to="/events" ready={events !== null}>
         <Grid
           loading={events === null}
           empty={events?.length === 0}
@@ -138,17 +139,26 @@ export default function HomeSections() {
   );
 }
 
-function Section({ title, desc, to, muted, children }: { title: string; desc: string; to: string; muted?: boolean; children: ReactNode }) {
+/**
+ * 每个板块自己持有一个 reveal 容器，而不是整个首页共用一个：
+ * 共用的话三块内容会在第一块进视口时一起播完，往下滚就没动静了。
+ *
+ * ready 是该板块的数据到了没有。卡片是异步渲染的，
+ * 不等它们出现在 DOM 里就扫，会扫到空的。
+ */
+function Section({ title, desc, to, muted, ready, children }: { title: string; desc: string; to: string; muted?: boolean; ready?: boolean; children: ReactNode }) {
   const { t } = useI18n();
+  const revealRef = useReveal<HTMLDivElement>({ bold: true, deps: [ready] });
   return (
     <section className={`border-b border-border ${muted ? 'bg-muted/40' : ''}`}>
-      <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
+      <div ref={revealRef} className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
+          {/* 标题领先、位移给足，卡片随后按顺序跟上 —— 板块内部的节奏 */}
+          <div data-reveal data-reveal-delay="0" data-reveal-y="40">
             <h2 className="font-display text-2xl font-medium tracking-[-.035em] text-foreground md:text-[34px]">{title}</h2>
             <p className="mt-2 max-w-xl text-base leading-[1.7] text-muted-foreground text-pretty">{desc}</p>
           </div>
-          <Link to={to} className="group inline-flex items-center gap-1.5 font-mono-label text-[11px] tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground">
+          <Link to={to} data-reveal data-reveal-delay="0.1" className="group inline-flex items-center gap-1.5 font-mono-label text-[11px] tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground">
             {t('查看全部', 'View all')}
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -201,7 +211,7 @@ function Grid({
     // 访客看到的是中性的占位，不暴露后台操作说明；
     // 「怎么让内容显示出来」只对管理员提示，避免自己人忘了开开关。
     return (
-      <div className="py-2">
+      <div className="py-2" data-reveal>
         <ShimmerEmptyState
           icon={emptyIcon}
           title={emptyTitle}

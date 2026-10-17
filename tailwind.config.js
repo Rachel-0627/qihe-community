@@ -100,10 +100,13 @@ export default {
                     'silver-strong': '#dedfdf',
                 }
             },
+            // 拉丁字体在前、中文字体在后：拉丁字库里没有汉字，
+            // 汉字会自动落到下一个，正好各管各的。
+            // 系统字垫底，字体还没下完时不至于没样子。
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
-                display: ['Fraunces', 'Georgia', 'serif'],
-                mono: ['Space Mono', 'ui-monospace', 'monospace']
+                sans: 'var(--font-sans)',
+                display: 'var(--font-display)',
+                mono: 'var(--font-mono)'
             },
             borderRadius: {
                 lg: 'var(--radius)',

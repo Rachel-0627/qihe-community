@@ -33,7 +33,9 @@ export default function FlowingHero() {
         gsap.set(['.hero-label', '.hero-title-line', '.hero-desc', '.hero-index'], { autoAlpha: 1, y: 0 });
         return;
       }
-      const tl = gsap.timeline({ defaults: { ease: 'power2.out', duration: 0.8 } });
+      // 和滚动进场用同一条曲线（expo.out），全站动效语言统一。
+      // power2 收尾偏硬，和下面板块的手感对不上。
+      const tl = gsap.timeline({ defaults: { ease: 'expo.out', duration: 0.9 } });
 
       tl.from('.hero-label', { y: 12, autoAlpha: 0, duration: 0.5 })
         .from('.hero-title-line', { y: 36, autoAlpha: 0, stagger: 0.12 }, '-=0.3')
