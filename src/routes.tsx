@@ -1,25 +1,36 @@
 import { Navigate, useParams } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { lazy, type ReactNode } from 'react';
 import HomePage from './pages/HomePage';
 import CasesPage from './pages/CasesPage';
 import ProjectsPage from './pages/ProjectsPage';
 import EventsPage from './pages/EventsPage';
 import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import BenefitsPage from './pages/BenefitsPage';
 import CaseDetailPage from './pages/CaseDetailPage';
-import AdminPage from './pages/AdminPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import EventDetailPage from './pages/EventDetailPage';
-import TermsPage from './pages/TermsPage';
-import PrivacyPage from './pages/PrivacyPage';
 import DiscussPage from './pages/DiscussPage';
-import ToolsPage from './pages/ToolsPage';
-import ProfileImageProviderPage from './pages/ProfileImageProviderPage';
-import SubmitCasePage from './pages/SubmitCasePage';
-import SubmitProjectPage from './pages/SubmitProjectPage';
-import SubmitDiscussPostPage from './pages/SubmitDiscussPostPage';
 import DiscussPostDetailPage from './pages/DiscussPostDetailPage';
+
+
+/* 首屏用不到的页面按需加载。
+ *
+ * 留在主包里的是「访客进来就可能看的」：首页、三个列表页、三个详情页、
+ * 讨论区和登录 —— 分享链接直接落在详情页上，懒加载会多一次往返。
+ *
+ * 切出去的是后台（带走 xlsx）、投稿与编辑器（带走 TipTap 和 pdfjs）、
+ * 个人中心和几个低频页。一个只是来看案例的访客，
+ * 不该顺带下载 Excel 导出库和富文本编辑器。
+ */
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const BenefitsPage = lazy(() => import('./pages/BenefitsPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const ToolsPage = lazy(() => import('./pages/ToolsPage'));
+const ProfileImageProviderPage = lazy(() => import('./pages/ProfileImageProviderPage'));
+const SubmitCasePage = lazy(() => import('./pages/SubmitCasePage'));
+const SubmitProjectPage = lazy(() => import('./pages/SubmitProjectPage'));
+const SubmitDiscussPostPage = lazy(() => import('./pages/SubmitDiscussPostPage'));
 
 export interface RouteConfig {
   name: string;

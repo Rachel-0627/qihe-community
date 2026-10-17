@@ -17,8 +17,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 |---|---|
 | `index.html` | HTML 骨架。标签页标题、favicon、分享用的 og/twitter 元信息。另外用 `rel=preload`+`onload` **异步挂载 `/fonts.css`** —— 字体声明有 90KB（gzip），跟主 CSS 一起打包会阻塞首屏，而真正的样式才 20KB 出头 |
 | `src/main.tsx` (19) | 应用挂载点 |
-| `src/App.tsx` (38) | 顶层组件，套各种 Context Provider |
-| `src/routes.tsx` (44) | 全部路由表 |
+| `src/App.tsx` (44) | 顶层组件，套各种 Context Provider。路由区包了 `Suspense` —— 懒加载的页面加载中没有内容可渲染，没有兜底会直接抛错 |
+| `src/routes.tsx` (76) | 全部路由表。**后台、投稿编辑、个人中心等 10 个页面用 `lazy()` 按需加载**，访客看案例时不必下载 Excel 导出库和富文本编辑器；首屏下载从 897KB 降到 304KB（gzip）。留在主包里的是访客进来就可能看的那些——分享链接直接落在详情页上，懒加载会多一次往返 |
 | `src/index.css` (465) ⚠️ | 全局样式与设计变量（品牌色、字体、动效）。字体栈统一定义成 `--font-sans/-display/-mono` 三个变量，`tailwind.config.js` 和本文件所有规则都引用它们，**不要再写死 font-family** |
 | `public/fonts.css` (1200) | **字体 @font-face 声明**。放 `public/` 不走打包，由 `index.html` 异步加载。中文按 Unicode 区段切成 101 片带 `unicode-range`，浏览器只下载页面里真正出现的那几片。**中文只打包标题用的思源宋体**，正文走系统字——实测正文字体占用户下载量的 88%，收益却远不如标题 |
 
@@ -71,9 +71,9 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `profile/MySubmissions.tsx` (120) | 个人中心「我的投稿」：状态、驳回理由、重投、撤回 |
 | `BrandMark.tsx` (75) | **品牌标识 SVG**。与 `public/favicon.svg` 同源，改动需两边同步 |
 | `PageMeta.tsx` (22) | 逐页设置标题等元信息 |
+| `RouteFallback.tsx` (20) | 懒加载页面下载中的骨架占位。刻意做得轻——这一屏通常只有几百毫秒，放转圈反而显得卡 |
 | `AppErrorFallback.tsx` (45) | **整站崩溃时的兜底页**。挂在 Router 与 I18nProvider 之外，所以不能用 Link、也拿不到 `t()`，文案中英并列硬写 |
 | `RouteGuard.tsx` (67) | 路由守卫，拦截未登录/无权限访问 |
-| `RichTextEditor.tsx` (460) ⚠️ | 富文本编辑器（基于 TipTap） |
 | `AIAssistant.tsx` (226) ⚠️ | 前台 AI 助手浮窗 |
 | `CommentsSection.tsx` (46) | 评论区 |
 | `ShareDialog.tsx` (81) | 分享弹窗 |
@@ -81,7 +81,6 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `AnimatedDialog.tsx` (86) | 带动效的弹窗容器 |
 | `ShimmerEmptyState.tsx` (56) | 空状态占位 |
 | `FileUploadField.tsx` (111) | 文件上传表单项 |
-| `HeroBackground.tsx` (145) | 首屏背景效果 |
 | `IntersectObserver.tsx` (22) | 滚动进入视口的监听封装 |
 | `PetWidget.tsx` (95) | 可拖拽的页面宠物挂件 |
 
@@ -95,7 +94,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 ## 七、编辑器 `src/components/editor/`
 
-沉浸式写作模式，独立于 `common/RichTextEditor`。
+沉浸式写作模式。
 
 | 文件 | 职责 |
 |---|---|
@@ -245,7 +244,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 ## 已知待办
 
 1. **`src/lib/api.ts` 1099 行**，所有接口挤在一个文件里，最该按业务域拆成 `api/cases.ts`、`api/projects.ts` 等。
-2. 十余个文件超过 200 行（上表 ⚠️），其中 `UserImageProviderConfig.tsx`(568)、`RichTextEditor.tsx`(460)、`PromptCaseDetail.tsx`(445) 最值得优先拆。
+2. 十余个文件超过 200 行（上表 ⚠️），其中 `UserImageProviderConfig.tsx`(568)、`PromptCaseDetail.tsx`(445)、`AdminProjects.tsx`(391) 最值得优先拆。
 3. `src/components/dropzone.tsx` 放在 `components/` 根目录，与其他组件的分类方式不一致。
 4. `src/services/` 是空目录。
 5. ~~Vercel GitHub 自动部署失效~~ —— 2026-09-23 已在 Vercel 重新授权 GitHub App 修复，推 main 会自动部署，无需手动发布。
