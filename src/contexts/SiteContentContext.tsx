@@ -1,28 +1,31 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { fetchSiteContent } from '@/lib/api';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
+import { fetchSiteContent } from '@/lib/api';
 
 /**
- * 页面文案上下文：从数据库 site_content 表动态加载后台「页面文案设置」保存的内容。
- * 数据库值优先；无数据/为空时回退到组件内置默认文案，保证任何情况下页面都有文字。
+ * 页面文案上下文：前台仅展示数据库 site_content 表中后台保存的内容，不保留组件默认副本。
  */
 interface SiteContentContextValue {
-  /** 取文案：数据库有值用数据库值，否则回退默认；按当前语言返回中/英文 */
-  c: (section: string, key: string, fallbackZh: string, fallbackEn: string) => string;
-  reload: () => void;
+  /** 只读取后台保存的文案；数据未就绪或缺失时不显示另一份默认文案 */
+  c: (section: string, key: string) => string;
+  status: 'loading' | 'ready' | 'error';
+  reload: () => Promise<void>;
 }
 
 const SiteContentContext = createContext<SiteContentContextValue>({
-  c: (_section, _key, fallbackZh) => fallbackZh,
-  reload: () => {},
+  c: () => '',
+  status: 'loading',
+  reload: async () => {},
 });
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const { lang } = useI18n();
   const [items, setItems] = useState<Map<string, { zh: string; en: string }>>(new Map());
+  const [status, setStatus] = useState<SiteContentContextValue['status']>('loading');
 
   const load = useCallback(async () => {
+    setStatus('loading');
     try {
       const rows = await fetchSiteContent();
       const map = new Map<string, { zh: string; en: string }>();
@@ -30,8 +33,9 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
         map.set(`${row.section}.${row.key}`, { zh: row.value ?? '', en: row.value_en ?? '' });
       }
       setItems(map);
+      setStatus('ready');
     } catch {
-      // 静默失败：使用组件默认文案
+      setStatus('error');
     }
   }, []);
 
@@ -40,17 +44,18 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   const c = useCallback(
-    (section: string, key: string, fallbackZh: string, fallbackEn: string) => {
+    (section: string, key: string) => {
+      if (status !== 'ready') return '';
       const item = items.get(`${section}.${key}`);
-      const zh = item?.zh?.trim() || fallbackZh;
-      // 英文缺失时回落中文，避免出现空白
-      const en = item?.en?.trim() || fallbackEn?.trim() || zh;
+      const zh = item?.zh?.trim() || '';
+      // 后台未填写英文时沿用同一条后台记录的中文，不使用代码中的另一份文案。
+      const en = item?.en?.trim() || zh;
       return lang === 'en' ? en : zh;
     },
-    [items, lang]
+    [items, lang, status]
   );
 
-  return <SiteContentContext.Provider value={{ c, reload: load }}>{children}</SiteContentContext.Provider>;
+  return <SiteContentContext.Provider value={{ c, status, reload: load }}>{children}</SiteContentContext.Provider>;
 }
 
 export function useSiteContent() {

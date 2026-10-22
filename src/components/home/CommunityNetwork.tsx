@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { useEffect, useRef } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
+import { pointAlongFlow, sampleBezierFlow } from './communityNetworkMotion';
 
 const PTS: [number, number, number][] = [
   [0.51, 0.49, 3.4], // 0 启禾中心
@@ -24,19 +25,19 @@ const LINKS: [number, number][] = [
   [5, 9], [6, 9], [7, 10], [8, 10],
 ];
 
-// 四条从启禾中心同时发出的流动光线，覆盖全部 12 个白色节点
-const FLOW_PATHS: number[][] = [
-  [0, 1, 11, 3, 7, 10],
-  [0, 2, 12, 4, 8, 10],
-  [0, 3, 11, 1, 5, 9],
-  [0, 4, 12, 2, 6, 9],
+// 光点沿启禾中心到四个主要内容节点的连接流动。
+const FLOW_PATHS = [
+  { from: 0, to: 1, bend: -0.055 },
+  { from: 0, to: 2, bend: 0.055 },
+  { from: 0, to: 3, bend: 0.045 },
+  { from: 0, to: 4, bend: -0.045 },
 ];
 
 const FLOW_DOTS = [
-  { path: 0, speed: 0.00012, offset: 0 },
-  { path: 1, speed: 0.00014, offset: 0 },
-  { path: 2, speed: 0.00011, offset: 0.05 },
-  { path: 3, speed: 0.00013, offset: 0.05 },
+  { path: 0, speed: 0.055, offset: 0.04 },
+  { path: 1, speed: 0.055, offset: 0.28 },
+  { path: 2, speed: 0.055, offset: 0.52 },
+  { path: 3, speed: 0.055, offset: 0.76 },
 ];
 
 const LABELS = [
@@ -72,6 +73,7 @@ export default function CommunityNetwork() {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let frame = 0;
+    let flowPaths: Array<ReturnType<typeof sampleBezierFlow>> = [];
 
     // 鼠标视差：用 quickTo 避免高频创建 tween
     const ringX = ringRef.current ? gsap.quickTo(ringRef.current, 'x', { duration: 0.6, ease: 'power2.out' }) : null;
@@ -88,21 +90,11 @@ export default function CommunityNetwork() {
       canvas.width = Math.round(rect.width * dpr);
       canvas.height = Math.round(rect.height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const getPathPoint = (path: number[], t: number, w: number, h: number) => {
-      const segCount = path.length - 1;
-      const segT = (t % 1) * segCount;
-      const segIndex = Math.floor(segT);
-      const localT = segT - segIndex;
-      const a = path[segIndex];
-      const b = path[segIndex + 1];
-      const p = PTS[a];
-      const q = PTS[b];
-      return {
-        x: p[0] * w + (q[0] - p[0]) * w * localT,
-        y: p[1] * h + (q[1] - p[1]) * h * localT,
-      };
+      flowPaths = FLOW_PATHS.map(({ from, to, bend }) => {
+        const start = { x: PTS[from][0] * rect.width, y: PTS[from][1] * rect.height };
+        const end = { x: PTS[to][0] * rect.width, y: PTS[to][1] * rect.height };
+        return sampleBezierFlow(start, end, Math.min(rect.width, rect.height) * bend);
+      });
     };
 
     const draw = (time = 0) => {
@@ -125,17 +117,23 @@ export default function CommunityNetwork() {
 
       // 流动光点 — 陶土橘同色系渐变
       FLOW_DOTS.forEach((dot) => {
-        const path = FLOW_PATHS[dot.path];
-        const t = reduced ? dot.offset : (time * dot.speed + dot.offset) % 1;
-        const { x, y } = getPathPoint(path, t, w, h);
-        const g = ctx.createRadialGradient(x, y, 0, x, y, 14);
+        const path = flowPaths[dot.path];
+        if (!path || path.length === 0) return;
+        const progress = reduced ? dot.offset : (time * dot.speed / path.length + dot.offset) % 1;
+        const { x, y } = pointAlongFlow(path, progress);
+        const fade = Math.max(0, Math.min(1, progress / 0.12, (1 - progress) / 0.12));
+        const opacity = fade * fade * (3 - 2 * fade);
+        const radius = 12 * (0.7 + opacity * 0.3);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
         g.addColorStop(0, 'hsla(19, 61%, 62%, 0.95)');
         g.addColorStop(0.5, 'hsla(14, 54%, 52%, 0.35)');
         g.addColorStop(1, 'hsla(14, 54%, 52%, 0)');
+        ctx.globalAlpha = opacity;
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.arc(x, y, 14, 0, Math.PI * 2);
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
       });
 
       // 节点 — 中心高亮 + 外围陶土橘脉冲

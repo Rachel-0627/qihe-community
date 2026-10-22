@@ -1,12 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
-import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useSiteContent } from '@/contexts/SiteContentContext';
 
 export default function Footer() {
   const { t } = useI18n();
-  const { brandName, brandNameEn, footer } = useSiteSettings();
-  // 页脚文案优先读后台「页面文案设置」（site_content 表），无值回退「品牌与导航」配置
+  // 页脚文案只读取后台「页面文案设置」保存的内容。
   const { c } = useSiteContent();
   return (
     <footer className="border-t border-border bg-card">
@@ -16,10 +14,10 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-12">
           <div className="col-span-2 md:col-span-5">
             <Link to="/" className="inline-block font-display text-lg font-semibold tracking-tight text-foreground hover:text-accent transition-colors">
-              {c('footer', 'brand', brandName, brandNameEn)}
+              {c('footer', 'brand')}
             </Link>
             <p className="mt-4 max-w-sm text-base leading-relaxed text-muted-foreground text-pretty">
-              {c('footer', 'tagline', footer.tagline, footer.taglineEn)}
+              {c('footer', 'tagline')}
             </p>
           </div>
 
@@ -58,7 +56,7 @@ export default function Footer() {
 
         <div className="mt-10 border-t border-border pt-6">
           <p className="font-mono-label text-xs text-muted-foreground">
-            {c('footer', 'copyright', footer.copyright, footer.copyrightEn)}
+            {c('footer', 'copyright')}
           </p>
         </div>
       </div>
