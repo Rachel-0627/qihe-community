@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 
 interface MediaFrameProps {
   src?: string | null;
+  videoSrc?: string | null;
   alt: string;
   className?: string;
   aspectClass?: string;
@@ -15,6 +16,7 @@ interface MediaFrameProps {
  */
 export default function MediaFrame({
   src,
+  videoSrc,
   alt,
   className,
   aspectClass = 'aspect-[4/3]',
@@ -29,7 +31,19 @@ export default function MediaFrame({
         className
       )}
     >
-      {src ? (
+      {videoSrc ? (
+        <video
+          data-testid="media-frame-video"
+          src={videoSrc}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label={alt}
+          className="h-full w-full rounded-md border border-border bg-[var(--media-frame)] object-contain"
+        />
+      ) : src ? (
         <img
           src={src}
           alt={alt}

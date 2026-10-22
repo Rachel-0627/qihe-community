@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchProjects, saveProject, deleteProject, ACCESS_LABELS, fetchProjectFilterOptions, isShowOnHomeReady } from '@/lib/api';
+import { fetchProjects, saveProject, deleteProject, deleteProjects, bulkUpdateProjects, ACCESS_LABELS, fetchProjectFilterOptions, isShowOnHomeReady, isProjectGalleryReady } from '@/lib/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,10 @@ import { Dialog, DialogHeader, DialogTitle, DialogTrigger } from '@/components/u
 import { AnimatedDialogContent } from '@/components/common/AnimatedDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Pencil, Trash2, Plus, Pin } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import ImmersiveEditor, { type ImmersiveEditorApi } from '@/components/editor/ImmersiveEditor';
 import FileUploadField from '@/components/common/FileUploadField';
+import MultiImageUploadField from '@/components/common/MultiImageUploadField';
 import NumberField from '@/components/admin/NumberField';
 import { fetchProjectContent, toggleProjectPinned } from '@/lib/api';
 import { importMarkdown, importDocx, importPdf, type ImportResult } from '@/lib/documentImport';
@@ -26,9 +28,12 @@ import { stampChapters } from '@/lib/chapters';
 import type { ProjectItem, ContentAccess, ProjectFilterOption } from '@/types/types';
 
 const ACCESS: ContentAccess[] = ['free', 'member', 'pro', 'private'];
+const UNCHANGED = '__unchanged__';
 
 const emptyProject = (scene: string, maturity: string): Partial<ProjectItem> => ({
+  id: crypto.randomUUID(),
   title: '', title_en: '', summary: '', summary_en: '', cover_url: '',
+  gallery_urls: [],
   scene, maturity, access_level: 'free',
   video_url: '', external_url: '', is_hot: false, is_pinned: false, sort_order: 0, content: '', content_en: '', show_on_home: true,
   likes: 0, favorites: 0, views: 0,
@@ -44,8 +49,16 @@ export default function AdminProjects() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<ProjectItem> | null>(null);
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkEdit, setBulkEdit] = useState({ sceneId: UNCHANGED, maturityId: UNCHANGED, access: UNCHANGED });
   // 数据库迁移未执行时，这个开关存不进去，置灰并说明原因，避免静默失效
   const [homeToggleReady, setHomeToggleReady] = useState(true);
+  const [galleryReady, setGalleryReady] = useState(false);
   const [filterOptions, setFilterOptions] = useState<ProjectFilterOption[]>([]);
   const editorRef = useRef<ImmersiveEditorApi>(null);
 
@@ -56,6 +69,7 @@ export default function AdminProjects() {
 
   useEffect(() => {
     isShowOnHomeReady().then(setHomeToggleReady).catch(() => setHomeToggleReady(false));
+    isProjectGalleryReady().then(setGalleryReady).catch(() => setGalleryReady(false));
   }, []);
 
   useEffect(() => {
@@ -95,8 +109,10 @@ export default function AdminProjects() {
   );
 
   const handleSave = useCallback(async () => {
-    if (!editing) return;
+    if (!editing || savingRef.current) return;
     if (!editing.title?.trim()) { toast.error(t('请填写标题', 'Title is required')); return; }
+    savingRef.current = true;
+    setSaving(true);
     const toInt = (n: unknown) => Math.max(0, Math.floor(Number(n) || 0));
     const payload = {
       ...editing,
@@ -104,8 +120,9 @@ export default function AdminProjects() {
       base_favorites: toInt(editing.base_favorites),
       base_views: toInt(editing.base_views),
     };
+    const isNewProject = !items.some((item) => item.id === payload.id);
     try {
-      await saveProject(payload);
+      await saveProject(payload, { idempotentCreate: isNewProject });
       clearProjectDraft();
       toast.success(t('保存成功', 'Saved successfully'));
       setOpen(false);
@@ -121,7 +138,11 @@ export default function AdminProjects() {
       }
       fetchProjects().then(setItems);
     } catch { toast.error(t('保存失败', 'Save failed')); }
-  }, [editing, t, clearProjectDraft]);
+    finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }, [editing, items, t, clearProjectDraft]);
 
   const handleTogglePinned = async (item: ProjectItem) => {
     const nextPinned = !item.is_pinned;
@@ -181,9 +202,62 @@ export default function AdminProjects() {
   }, [editing?.id]);
 
   const handleDelete = async (id: string) => {
-    try { await deleteProject(id); toast.success(t('已删除', 'Deleted')); setItems((p) => p.filter((x) => x.id !== id)); }
+    try {
+      await deleteProject(id);
+      toast.success(t('已删除', 'Deleted'));
+      setItems((p) => p.filter((x) => x.id !== id));
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    }
     catch { toast.error(t('删除失败', 'Delete failed')); }
   };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (!ids.length || bulkSaving) return;
+    setBulkSaving(true);
+    try {
+      await deleteProjects(ids);
+      setItems((prev) => prev.filter((item) => !selectedIds.has(item.id)));
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      toast.success(t(`已删除 ${ids.length} 个项目`, `Deleted ${ids.length} projects`));
+    } catch {
+      toast.error(t('批量删除失败', 'Bulk delete failed'));
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (!selectedIds.size || bulkSaving) return;
+    const patch: Partial<ProjectItem> = {};
+    const scene = filterOptions.find((option) => option.id === bulkEdit.sceneId);
+    const maturity = filterOptions.find((option) => option.id === bulkEdit.maturityId);
+    if (scene) { patch.scene = scene.name; patch.scene_en = scene.name_en; }
+    if (maturity) { patch.maturity = maturity.name; patch.maturity_en = maturity.name_en; }
+    if (bulkEdit.access !== UNCHANGED) patch.access_level = bulkEdit.access as ContentAccess;
+    if (!Object.keys(patch).length) {
+      toast.error(t('请至少选择一个要修改的字段', 'Choose at least one field to update'));
+      return;
+    }
+
+    const ids = [...selectedIds];
+    setBulkSaving(true);
+    try {
+      await bulkUpdateProjects(ids, patch);
+      setItems((prev) => prev.map((item) => selectedIds.has(item.id) ? { ...item, ...patch } : item));
+      setSelectedIds(new Set());
+      setBulkEditOpen(false);
+      setBulkEdit({ sceneId: UNCHANGED, maturityId: UNCHANGED, access: UNCHANGED });
+      toast.success(t(`已更新 ${ids.length} 个项目`, `Updated ${ids.length} projects`));
+    } catch {
+      toast.error(t('批量编辑失败', 'Bulk edit failed'));
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.has(item.id));
 
   return (
     <div>
@@ -192,7 +266,7 @@ export default function AdminProjects() {
           <p className="editorial-label">{t('项目管理', 'Projects')}</p>
           <h2 className="mt-1 font-display text-xl font-medium">{t('管理 AI 项目', 'Manage AI Projects')}</h2>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+        <Dialog open={open} onOpenChange={(v) => { if (saving) return; setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
             <Button onClick={openNew} className="gap-1.5 font-mono-label text-xs"><Plus className="h-3.5 w-3.5" />{t('新建项目', 'New Project')}</Button>
           </DialogTrigger>
@@ -212,9 +286,21 @@ export default function AdminProjects() {
                     </div>
                   </Field>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FileUploadField label={t('封面图', 'Cover Image')} value={editing.cover_url || ''} onChange={(url) => setEditing({ ...editing, cover_url: url })} folder="projects/covers" accept="image/jpeg,image/png,image/webp,image/gif" id={editing.id} />
+                    <MultiImageUploadField
+                      label={t('卡片图片集', 'Card image gallery')}
+                      value={editing.gallery_urls?.length ? editing.gallery_urls : (editing.cover_url ? [editing.cover_url] : [])}
+                      onChange={(urls) => setEditing({ ...editing, gallery_urls: urls, cover_url: urls[0] || '' })}
+                      folder="projects/covers"
+                      id={editing.id}
+                      disabled={!galleryReady}
+                    />
                     <FileUploadField label={t('视频', 'Video')} value={editing.video_url || ''} onChange={(url) => setEditing({ ...editing, video_url: url })} folder="projects/videos" accept="video/mp4" preview="video" id={editing.id} />
                   </div>
+                  {!galleryReady && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('多图轮播需要先应用项目图片集数据库迁移；迁移完成后即可上传。', 'Apply the project gallery database migration before uploading multiple card images.')}
+                    </p>
+                  )}
                   <Field label={t('外部链接', 'External URL')}><Input value={editing.external_url || ''} onChange={(e) => setEditing({ ...editing, external_url: e.target.value })} className="px-3" /></Field>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label={t('应用场景', 'Scene')}>
@@ -311,17 +397,76 @@ export default function AdminProjects() {
                     )}
                   </Label>
                 </div>
-                <Button onClick={handleSave} className="w-full font-mono-label text-xs uppercase tracking-wider">{t('保存', 'Save')}</Button>
+                <Button onClick={handleSave} disabled={saving} className="w-full font-mono-label text-xs uppercase tracking-wider">{saving ? t('保存中…', 'Saving…') : t('保存', 'Save')}</Button>
               </div>
             )}
           </AnimatedDialogContent>
         </Dialog>
+
+        <Dialog open={bulkEditOpen} onOpenChange={(value) => { if (!bulkSaving) setBulkEditOpen(value); }}>
+          <AnimatedDialogContent open={bulkEditOpen} className="max-h-[90dvh] max-w-[calc(100%-2rem)] overflow-y-auto md:max-w-xl">
+            <DialogHeader><DialogTitle className="font-display">{t(`批量编辑 ${selectedIds.size} 个项目`, `Edit ${selectedIds.size} projects`)}</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <Field label={t('应用场景（不修改请保持默认）', 'Scene (leave unchanged to skip)')}>
+                <Select value={bulkEdit.sceneId} onValueChange={(sceneId) => setBulkEdit((prev) => ({ ...prev, sceneId }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNCHANGED}>{t('保持不变', 'Leave unchanged')}</SelectItem>
+                    {sceneOptions.map((option) => <SelectItem key={option.id} value={option.id}>{lang === 'en' && option.name_en ? option.name_en : option.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t('成熟度（不修改请保持默认）', 'Maturity (leave unchanged to skip)')}>
+                <Select value={bulkEdit.maturityId} onValueChange={(maturityId) => setBulkEdit((prev) => ({ ...prev, maturityId }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNCHANGED}>{t('保持不变', 'Leave unchanged')}</SelectItem>
+                    {maturityOptions.map((option) => <SelectItem key={option.id} value={option.id}>{lang === 'en' && option.name_en ? option.name_en : option.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t('访问级别（不修改请保持默认）', 'Access level (leave unchanged to skip)')}>
+                <Select value={bulkEdit.access} onValueChange={(access) => setBulkEdit((prev) => ({ ...prev, access }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNCHANGED}>{t('保持不变', 'Leave unchanged')}</SelectItem>
+                    {ACCESS.map((access) => <SelectItem key={access} value={access}>{lang === 'en' ? ACCESS_LABELS[access].en : ACCESS_LABELS[access].zh}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" disabled={bulkSaving} onClick={() => setBulkEditOpen(false)}>{t('取消', 'Cancel')}</Button>
+                <Button disabled={bulkSaving} onClick={handleBulkEdit}>{bulkSaving ? t('保存中…', 'Saving…') : t('应用修改', 'Apply changes')}</Button>
+              </div>
+            </div>
+          </AnimatedDialogContent>
+        </Dialog>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center gap-3 border border-border bg-card px-4 py-3">
+        <span className="mr-auto text-sm text-muted-foreground">
+          {t(`已选 ${selectedIds.size} 个项目（当前最多显示 ${items.length} 个）`, `${selectedIds.size} selected (up to ${items.length} listed)`)}
+        </span>
+        <Button variant="outline" disabled={selectedIds.size === 0 || bulkSaving} onClick={() => setBulkEditOpen(true)}>
+          <Pencil className="mr-1.5 h-3.5 w-3.5" />{t('批量编辑', 'Bulk edit')}
+        </Button>
+        <Button variant="destructive" disabled={selectedIds.size === 0 || bulkSaving} onClick={() => setBulkDeleteOpen(true)}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />{t('批量删除', 'Bulk delete')}
+        </Button>
       </div>
 
       <div className="mt-6 w-full max-w-full overflow-x-auto border border-border bg-card">
-        <table className="w-full min-w-[720px] border-collapse">
+        <table className="w-full min-w-[760px] border-collapse">
           <thead>
             <tr className="border-b border-border bg-muted/40">
+              <th className="px-4 py-3 text-left">
+                <Checkbox
+                  aria-label={t('全选当前列表项目', 'Select all listed projects')}
+                  checked={allSelected}
+                  onCheckedChange={(checked) => setSelectedIds(checked ? new Set(items.map((item) => item.id)) : new Set())}
+                  disabled={items.length === 0 || loading}
+                />
+              </th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('置顶', 'Pinned')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('标题', 'Title')}</th>
               <th className="whitespace-nowrap px-4 py-3 text-left font-mono-label text-xs uppercase tracking-wider text-muted-foreground">{t('场景', 'Scene')}</th>
@@ -334,11 +479,23 @@ export default function AdminProjects() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('加载中…', 'Loading…')}</td></tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('暂无项目', 'No projects')}</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">{t('暂无项目', 'No projects')}</td></tr>
             ) : items.map((item) => (
               <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/10 transition-colors">
+                <td className="px-4 py-3">
+                  <Checkbox
+                    aria-label={t(`选择项目 ${item.title}`, `Select project ${item.title}`)}
+                    checked={selectedIds.has(item.id)}
+                    onCheckedChange={(checked) => setSelectedIds((prev) => {
+                      const next = new Set(prev);
+                      if (checked) next.add(item.id);
+                      else next.delete(item.id);
+                      return next;
+                    })}
+                  />
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm">
                   <button
                     type="button"
@@ -377,6 +534,21 @@ export default function AdminProjects() {
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(value) => { if (!bulkSaving) setBulkDeleteOpen(value); }}>
+        <AlertDialogContent className="max-w-[calc(100%-2rem)] md:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">{t(`确认删除 ${selectedIds.size} 个项目`, `Delete ${selectedIds.size} projects?`)}</AlertDialogTitle>
+            <AlertDialogDescription>{t('删除后无法恢复，请确认选中的项目无误。', 'This cannot be undone. Check the selected projects before continuing.')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkSaving}>{t('取消', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogAction disabled={bulkSaving} onClick={(event) => { event.preventDefault(); void handleBulkDelete(); }}>
+              {bulkSaving ? t('删除中…', 'Deleting…') : t('确认删除', 'Delete selected')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

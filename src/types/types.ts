@@ -64,6 +64,8 @@ export interface ProjectItem {
   summary: string;
   summary_en: string;
   cover_url: string;
+  /** 项目卡片轮播图片；旧项目回退到 cover_url */
+  gallery_urls?: string[];
   // 以下三个字段受数据库列级权限保护，列表/详情查询里不会返回，
   // 需通过 fetchProjectContent() 单独获取，因此标记为可选
   content?: string;

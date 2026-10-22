@@ -577,6 +577,7 @@ const PROJECT_PUBLIC_COLUMNS =
  * 迁移执行后无需改任何代码，刷新即生效。
  */
 let showOnHomeSupported: boolean | null = null;
+let projectGallerySupported: boolean | null = null;
 
 async function supportsShowOnHome(): Promise<boolean> {
   if (showOnHomeSupported === null) {
@@ -584,6 +585,14 @@ async function supportsShowOnHome(): Promise<boolean> {
     showOnHomeSupported = !error;
   }
   return showOnHomeSupported;
+}
+
+async function supportsProjectGallery(): Promise<boolean> {
+  if (projectGallerySupported === null) {
+    const { error } = await supabase.from('projects').select('gallery_urls').limit(1);
+    projectGallerySupported = !error;
+  }
+  return projectGallerySupported;
 }
 
 /**
@@ -594,9 +603,16 @@ async function supportsShowOnHome(): Promise<boolean> {
  * 迁移执行后此函数自动透传，无需改代码。
  */
 async function stripUnsupportedFields<T extends Record<string, unknown>>(payload: T): Promise<T> {
-  if (await supportsShowOnHome()) return payload;
-  const { show_on_home: _omit, ...rest } = payload as T & { show_on_home?: unknown };
-  return rest as unknown as T;
+  let compatible = payload;
+  if (!(await supportsShowOnHome()) && 'show_on_home' in compatible) {
+    const { show_on_home: _omit, ...rest } = compatible as T & { show_on_home?: unknown };
+    compatible = rest as unknown as T;
+  }
+  if ('gallery_urls' in compatible && !(await supportsProjectGallery())) {
+    const { gallery_urls: _omit, ...rest } = compatible as T & { gallery_urls?: unknown };
+    compatible = rest as unknown as T;
+  }
+  return compatible;
 }
 
 /** 给后台用：首页展示开关是否已可用（数据库迁移是否执行过） */
@@ -606,9 +622,14 @@ export async function isShowOnHomeReady(): Promise<boolean> {
 
 /** 项目查询用的列清单：字段可用时才带上 show_on_home */
 async function projectColumns(): Promise<string> {
-  return (await supportsShowOnHome())
-    ? `${PROJECT_PUBLIC_COLUMNS}, show_on_home`
-    : PROJECT_PUBLIC_COLUMNS;
+  const [showOnHome, gallery] = await Promise.all([supportsShowOnHome(), supportsProjectGallery()]);
+  const optionalColumns = [showOnHome ? 'show_on_home' : '', gallery ? 'gallery_urls' : ''].filter(Boolean);
+  return optionalColumns.length ? `${PROJECT_PUBLIC_COLUMNS}, ${optionalColumns.join(', ')}` : PROJECT_PUBLIC_COLUMNS;
+}
+
+/** Whether project gallery images can be persisted in the connected database. */
+export async function isProjectGalleryReady(): Promise<boolean> {
+  return supportsProjectGallery();
 }
 
 /** 目录项：无论有没有权限，数据库都会返回完整目录 */
@@ -696,7 +717,10 @@ export async function fetchProjectById(id: string): Promise<ProjectItem | null> 
   return (data as ProjectItem | null) ?? null;
 }
 
-export async function saveProject(item: Partial<ProjectItem>): Promise<void> {
+export async function saveProject(
+  item: Partial<ProjectItem>,
+  options: { idempotentCreate?: boolean } = {},
+): Promise<void> {
   // 保存时给章节标题盖永久编号：免费试看名单记的是编号，
   // 这样以后插入/删除章节，已勾选的免费章节不会错位到别的内容上
   const translated = await withAutoTranslations({ ...item }, [
@@ -710,7 +734,10 @@ export async function saveProject(item: Partial<ProjectItem>): Promise<void> {
   if (typeof stamped.content === 'string') stamped.content = stampChapters(stamped.content);
   if (typeof stamped.content_en === 'string') stamped.content_en = stampChapters(stamped.content_en);
   const payload = ensureViewCeiling(await stripUnsupportedFields(stamped));
-  if (payload.id) {
+  if (payload.id && options.idempotentCreate) {
+    const { error } = await supabase.from('projects').upsert(payload);
+    if (error) throw error;
+  } else if (payload.id) {
     const { error } = await supabase.from('projects').update(payload).eq('id', payload.id);
     if (error) throw error;
   } else {
@@ -722,6 +749,21 @@ export async function saveProject(item: Partial<ProjectItem>): Promise<void> {
 
 export async function deleteProject(id: string): Promise<void> {
   const { error } = await supabase.from('projects').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteProjects(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('projects').delete().in('id', ids);
+  if (error) throw error;
+}
+
+export async function bulkUpdateProjects(
+  ids: string[],
+  patch: Partial<Pick<ProjectItem, 'scene' | 'scene_en' | 'maturity' | 'maturity_en' | 'access_level'>>,
+): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('projects').update(patch).in('id', ids);
   if (error) throw error;
 }
 

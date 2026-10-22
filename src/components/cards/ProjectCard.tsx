@@ -4,7 +4,7 @@ import { Eye, Share2, Pin } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { totalCount, displayViews } from '@/lib/utils';
 import InteractionButton from './InteractionButton';
-import MediaFrame from './MediaFrame';
+import ProjectCardMedia from './ProjectCardMedia';
 import ShareDialog from '@/components/common/ShareDialog';
 import type { ProjectItem } from '@/types/types';
 
@@ -44,11 +44,15 @@ export default function ProjectCard({ item, liked, favorited, onLike, onFavorite
   return (
     <>
       <article data-reveal className="magazine-card group flex h-full flex-col overflow-hidden cursor-pointer">
-        <Link to={`/projects/${item.id}`} className="flex flex-1 flex-col focus:outline-none">
-          <div className="shrink-0">
-            <MediaFrame src={item.cover_url} alt={title} />
-          </div>
+        <ProjectCardMedia
+          id={item.id}
+          title={title}
+          coverUrl={item.cover_url}
+          galleryUrls={item.gallery_urls}
+          videoUrl={item.video_url}
+        />
 
+        <Link to={`/projects/${item.id}`} className="flex flex-1 flex-col focus:outline-none">
           <div className="flex h-32 shrink-0 flex-col p-5">
             <div className="pointer-events-none flex flex-wrap gap-1.5">
               {item.is_pinned && (

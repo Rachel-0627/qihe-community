@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,6 +79,7 @@ export default function SubmissionForm({
 
   const [values, setValues] = useState<SubmissionFormValues>(empty);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   /** 扫出的疑似密钥；非空时弹确认框 */
   const [secretHits, setSecretHits] = useState<SecretHit[]>([]);
   const [loading, setLoading] = useState(!!resubmitId || !!targetId);
@@ -164,6 +165,8 @@ export default function SubmissionForm({
 
   /** 真正提交。密钥确认通过后也走这里 */
   const doSubmit = useCallback(async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const payload = buildPayload(values);
@@ -179,6 +182,7 @@ export default function SubmissionForm({
         ? e.message
         : t('提交失败，请稍后重试', 'Submission failed, please retry'));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }, [values, buildPayload, editingId, targetId, kind, draftKey, navigate, t]);

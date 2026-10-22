@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
 import { Input } from '@/components/ui/input';
 import SubmissionForm from '@/components/common/SubmissionForm';
+import FileUploadField from '@/components/common/FileUploadField';
 import { fetchProjectFilterOptions } from '@/lib/api';
 import type { ProjectFilterOption } from '@/types/types';
 
@@ -19,7 +20,6 @@ function isSafeUrl(raw: string): boolean {
  * 用户投稿项目。
  * 场景与成熟度的选项直接读 project_filter_options，
  * 和后台新增项目时的下拉是同一份数据，不会出现两套标签。
- * 视频不开放上传（几十 MB 占存储），要展示视频请填外部链接。
  */
 export default function SubmitProjectPage() {
   const { t, lang } = useI18n();
@@ -39,7 +39,7 @@ export default function SubmitProjectPage() {
       folder="projects"
       heading={t('发布项目', 'Publish a project')}
       headingEdit={t('申请修改项目', 'Request an edit')}
-      extraDefaults={{ external_url: '', scene: '', maturity: '' }}
+      extraDefaults={{ external_url: '', video_url: '', scene: '', maturity: '' }}
       validateExtra={(v) => {
         if (!v.external_url.trim()) return t('请填写项目地址', 'Project URL is required');
         if (!isSafeUrl(v.external_url)) return t('项目地址需以 http:// 或 https:// 开头', 'URL must start with http:// or https://');
@@ -49,6 +49,15 @@ export default function SubmitProjectPage() {
       }}
       renderExtra={(values, patch) => (
         <>
+          <FileUploadField
+            label={t('项目视频', 'Project video')}
+            value={values.video_url}
+            onChange={(url) => patch({ video_url: url })}
+            folder="projects/videos"
+            accept="video/mp4"
+            preview="video"
+          />
+
           <label className="flex flex-col gap-2">
             <span className="text-sm font-medium">{t('项目地址', 'Project URL')} *</span>
             <Input
@@ -94,6 +103,7 @@ export default function SubmitProjectPage() {
         summary: v.summary.trim(),
         content: v.content,
         cover_url: v.cover_url,
+        video_url: v.video_url,
         external_url: v.external_url.trim(),
         scene: v.scene,
         maturity: v.maturity,
