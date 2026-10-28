@@ -4,6 +4,9 @@
   "buildCommand": "npx vite build",
   "outputDirectory": "dist",
   "installCommand": "pnpm install --frozen-lockfile",
+  "env": {
+    "NODE_OPTIONS": "--experimental-require-module"
+  },
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/cases/:id", "destination": "/api/share?type=case&id=:id" },

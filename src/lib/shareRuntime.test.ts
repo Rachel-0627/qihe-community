@@ -24,7 +24,10 @@ describe('compiled share function', () => {
     }
 
     const entry = pathToFileURL(path.join(buildDir, 'api/share.js')).href;
-    const run = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    const deployment = JSON.parse(readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+    const runtimeFlags = (deployment.env?.NODE_OPTIONS ?? '').split(/\s+/).filter(Boolean);
+    // Vercel disables require(ESM) unless the deployment explicitly opts in.
+    const run = spawnSync(process.execPath, ['--no-experimental-require-module', ...runtimeFlags, '--input-type=module', '-e', `
       const { buildCrawlerBody } = await import(${JSON.stringify(entry)});
       const output = buildCrawlerBody('Title', 'Summary', '<h2>Heading</h2><p onclick="bad()">safe</p><script>bad()</script>');
       if (!output.includes('<h2>Heading</h2>') || !output.includes('<p>safe</p>')) throw Error('Valid content was lost');
