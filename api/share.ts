@@ -1,6 +1,6 @@
 import createDOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
-import { createRichHtmlSanitizer } from '../src/lib/sanitizeRichHtml';
+import { createRichHtmlSanitizer } from '../src/lib/sanitizeRichHtml.js';
 
 const serverWindow = new JSDOM('').window;
 const sanitizeServerHtml = createRichHtmlSanitizer(createDOMPurify(serverWindow));
