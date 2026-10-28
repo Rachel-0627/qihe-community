@@ -1,3 +1,5 @@
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
+
 interface EditorPreviewProps {
   title: string;
   summary: string;
@@ -30,7 +32,7 @@ export default function EditorPreview({ title, summary, content, coverUrl, autho
       )}
 
       {content ? (
-        <div className="prose prose-base max-w-none dark:prose-invert mt-10" dangerouslySetInnerHTML={{ __html: content }} />
+        <div className="prose prose-base max-w-none dark:prose-invert mt-10" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(content) }} />
       ) : (
         <p className="mt-10 text-sm text-muted-foreground">（正文为空）</p>
       )}

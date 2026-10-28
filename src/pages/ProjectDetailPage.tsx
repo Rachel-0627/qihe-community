@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { totalCount } from '@/lib/utils';
 import { injectHeadingIds, type ContentHeading } from '@/lib/contentHeadings';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 import ChapterToc from '@/components/common/ChapterToc';
 import CommentsSection from '@/components/common/CommentsSection';
 import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
@@ -123,7 +124,10 @@ export default function ProjectDetailPage() {
   const scene = lang === 'en' && item?.scene_en ? item.scene_en : (item?.scene ?? '');
   const maturity = lang === 'en' && item?.maturity_en ? item.maturity_en : (item?.maturity ?? '');
   const rawContent = lang === 'en' && content?.en ? content.en : (content?.zh ?? '');
-  const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+  const { html: processedContent, headings } = useMemo(
+    () => injectHeadingIds(sanitizeRichHtml(rawContent)),
+    [rawContent],
+  );
 
   // 目录以数据库返回的为准：它包含被锁住、正文没下发的章节。
   // 旧正文还没盖过章节编号，退回用正文里解析出来的目录。

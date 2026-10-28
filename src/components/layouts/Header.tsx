@@ -31,12 +31,17 @@ const DEFAULT_NAV_ITEMS = [
 
 export default function Header() {
   const { t, lang, toggleLang } = useI18n();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, loading: authLoading, profileLoading, signOut } = useAuth();
   const { brandName, brandNameEn, navLabels } = useSiteSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loadedAvatarUrl, setLoadedAvatarUrl] = useState<string | null>(null);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const avatarUrl = profile?.avatar_url || undefined;
+  const avatarLoading = Boolean(avatarUrl && loadedAvatarUrl !== avatarUrl && failedAvatarUrl !== avatarUrl);
+  const accountLoading = authLoading || Boolean(user && (profileLoading || avatarLoading));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -113,50 +118,68 @@ export default function Header() {
             {lang === 'zh' ? 'EN' : '中'}
           </Button>
 
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="gap-1.5 font-mono-label text-base">
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.nickname || profile?.username || ''} />
-                    <AvatarFallback className="bg-primary text-sm text-primary-foreground">
-                      {(profile?.nickname || profile?.username || 'U')[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline">{profile?.nickname || profile?.username || 'Me'}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex cursor-pointer items-center gap-2">
-                    <User className="h-4 w-4" />{t('个人中心', 'Profile')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/benefits" className="flex cursor-pointer items-center gap-2">
-                    <Award className="h-4 w-4" />{t('我的权益', 'My Benefits')}
-                  </Link>
-                </DropdownMenuItem>
-                {profile?.role === 'admin' && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="flex cursor-pointer items-center gap-2">
-                      <Settings className="h-4 w-4" />{t('后台管理', 'Admin')}
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="flex cursor-pointer items-center gap-2 text-muted-foreground">
-                  <LogOut className="h-4 w-4" />{t('退出登录', 'Sign out')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link to="/login">
-              <Button size="sm" className="font-mono-label text-base">
-                {t('登录', 'Sign in')}
-              </Button>
-            </Link>
-          )}
+          <div className="relative h-8 w-[72px] sm:w-[108px]">
+            {accountLoading && (
+              <div
+                role="status"
+                aria-label={t('正在加载账号…', 'Loading account…')}
+                className="absolute inset-0 animate-pulse rounded-md bg-muted/70"
+              />
+            )}
+            <div aria-hidden={accountLoading} className={`absolute inset-0 ${accountLoading ? 'invisible pointer-events-none' : ''}`}>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="sm" className="h-8 w-full justify-center gap-1.5 font-mono-label text-base">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage
+                          src={avatarUrl}
+                          alt={profile?.nickname || profile?.username || ''}
+                          onLoadingStatusChange={(status) => {
+                            if (status === 'loaded' && avatarUrl) setLoadedAvatarUrl(avatarUrl);
+                            if (status === 'error' && avatarUrl) setFailedAvatarUrl(avatarUrl);
+                          }}
+                        />
+                        <AvatarFallback className="bg-muted text-muted-foreground">
+                          <User className="h-3.5 w-3.5" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="hidden max-w-[72px] truncate sm:inline">{profile?.nickname || profile?.username || t('账号', 'Account')}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex cursor-pointer items-center gap-2">
+                        <User className="h-4 w-4" />{t('个人中心', 'Profile')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/benefits" className="flex cursor-pointer items-center gap-2">
+                        <Award className="h-4 w-4" />{t('我的权益', 'My Benefits')}
+                      </Link>
+                    </DropdownMenuItem>
+                    {profile?.role === 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex cursor-pointer items-center gap-2">
+                          <Settings className="h-4 w-4" />{t('后台管理', 'Admin')}
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="flex cursor-pointer items-center gap-2 text-muted-foreground">
+                      <LogOut className="h-4 w-4" />{t('退出登录', 'Sign out')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link to="/login" className="block h-full">
+                  <Button size="sm" className="h-8 w-full font-mono-label text-base">
+                    {t('登录', 'Sign in')}
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>

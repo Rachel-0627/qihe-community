@@ -1,3 +1,10 @@
+import createDOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+import { createRichHtmlSanitizer } from '../src/lib/sanitizeRichHtml';
+
+const serverWindow = new JSDOM('').window;
+const sanitizeServerHtml = createRichHtmlSanitizer(createDOMPurify(serverWindow));
+
 // 详情页的分享卡片：把这一篇的标题、摘要、封面写进返回的 HTML。
 //
 // 为什么需要它：站点是单页应用，标题和封面都是 JS 跑起来之后才改的，
@@ -88,8 +95,8 @@ const MAX_BODY_CHARS = 30000;
  * 放进 <noscript>：内容和页面上渲染出来的完全一致（不是给爬虫单独编一套，
  * 那是作弊会被惩罚），普通用户看不到也不影响体验，不执行 JS 的爬虫能完整读到。
  */
-function buildCrawlerBody(title: string, summary: string, content: string): string {
-  const safe = content
+export function buildCrawlerBody(title: string, summary: string, content: string): string {
+  const safe = sanitizeServerHtml(content)
     // 正文里真出现这个字符串会把 noscript 提前闭合，后面的内容全漏到页面上
     .replace(/<\/noscript>/gi, '')
     // 正文是后台录入的 HTML，正常不会有脚本，这里是兜底

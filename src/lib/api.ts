@@ -588,11 +588,12 @@ async function supportsShowOnHome(): Promise<boolean> {
 }
 
 async function supportsProjectGallery(): Promise<boolean> {
-  if (projectGallerySupported === null) {
-    const { error } = await supabase.from('projects').select('gallery_urls').limit(1);
-    projectGallerySupported = !error;
-  }
-  return projectGallerySupported;
+  // Do not cache a failed probe forever: the migration may be applied while
+  // the admin page is open, or a transient request failure may recover.
+  if (projectGallerySupported === true) return true;
+  const { error } = await supabase.from('projects').select('gallery_urls').limit(1);
+  if (!error) projectGallerySupported = true;
+  return projectGallerySupported === true;
 }
 
 /**

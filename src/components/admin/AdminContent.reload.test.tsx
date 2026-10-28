@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   saveSiteContent: vi.fn(),
   reloadSiteContent: vi.fn(),
   navigate: vi.fn(),
+  t: (zh: string) => zh,
+  profile: { role: 'admin' },
 }));
 
 vi.mock('@/lib/api', () => ({
@@ -17,11 +19,11 @@ vi.mock('@/lib/api', () => ({
 }));
 
 vi.mock('@/contexts/I18nContext', () => ({
-  useI18n: () => ({ t: (zh: string) => zh }),
+  useI18n: () => ({ t: mocks.t }),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ profile: { role: 'admin' } }),
+  useAuth: () => ({ profile: mocks.profile }),
 }));
 
 vi.mock('@/contexts/SiteContentContext', () => ({
@@ -55,8 +57,10 @@ describe('AdminContent', () => {
     render(<AdminContent />);
 
     const field = await screen.findByLabelText('页脚品牌介绍');
+    expect(mocks.fetchSiteContent).toHaveBeenCalledOnce();
     await user.clear(field);
     await user.type(field, '新的页脚文案');
+    expect(mocks.fetchSiteContent).toHaveBeenCalledOnce();
     await user.click(screen.getByRole('button', { name: '保存全部更改' }));
 
     await waitFor(() => expect(mocks.saveSiteContent).toHaveBeenCalledOnce());

@@ -58,7 +58,7 @@ export default function AdminProjects() {
   const [bulkEdit, setBulkEdit] = useState({ sceneId: UNCHANGED, maturityId: UNCHANGED, access: UNCHANGED });
   // 数据库迁移未执行时，这个开关存不进去，置灰并说明原因，避免静默失效
   const [homeToggleReady, setHomeToggleReady] = useState(true);
-  const [galleryReady, setGalleryReady] = useState(false);
+  const [galleryStatus, setGalleryStatus] = useState<'checking' | 'ready' | 'missing'>('checking');
   const [filterOptions, setFilterOptions] = useState<ProjectFilterOption[]>([]);
   const editorRef = useRef<ImmersiveEditorApi>(null);
 
@@ -67,10 +67,19 @@ export default function AdminProjects() {
   const defaultScene = sceneOptions[0]?.name ?? '视觉创意';
   const defaultMaturity = maturityOptions[0]?.name ?? '概念验证';
 
+  const checkGalleryReady = useCallback(async () => {
+    setGalleryStatus('checking');
+    try {
+      setGalleryStatus(await isProjectGalleryReady() ? 'ready' : 'missing');
+    } catch {
+      setGalleryStatus('missing');
+    }
+  }, []);
+
   useEffect(() => {
     isShowOnHomeReady().then(setHomeToggleReady).catch(() => setHomeToggleReady(false));
-    isProjectGalleryReady().then(setGalleryReady).catch(() => setGalleryReady(false));
-  }, []);
+    void checkGalleryReady();
+  }, [checkGalleryReady]);
 
   useEffect(() => {
     if (profile && profile.role !== 'admin') { navigate('/', { replace: true }); return; }
@@ -292,14 +301,23 @@ export default function AdminProjects() {
                       onChange={(urls) => setEditing({ ...editing, gallery_urls: urls, cover_url: urls[0] || '' })}
                       folder="projects/covers"
                       id={editing.id}
-                      disabled={!galleryReady}
+                      disabled={galleryStatus !== 'ready'}
                     />
                     <FileUploadField label={t('视频', 'Video')} value={editing.video_url || ''} onChange={(url) => setEditing({ ...editing, video_url: url })} folder="projects/videos" accept="video/mp4" preview="video" id={editing.id} />
                   </div>
-                  {!galleryReady && (
-                    <p className="text-xs text-muted-foreground">
-                      {t('多图轮播需要先应用项目图片集数据库迁移；迁移完成后即可上传。', 'Apply the project gallery database migration before uploading multiple card images.')}
-                    </p>
+                  {galleryStatus !== 'ready' && (
+                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground" role="status" aria-live="polite">
+                      <span>
+                        {galleryStatus === 'checking'
+                          ? t('正在检查多图轮播数据库状态…', 'Checking the project gallery database…')
+                          : t('多图轮播数据库字段尚未启用，请先应用迁移。', 'The project gallery database field is not enabled yet. Apply the migration first.')}
+                      </span>
+                      {galleryStatus === 'missing' && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => void checkGalleryReady()}>
+                          {t('重新检查', 'Retry')}
+                        </Button>
+                      )}
+                    </div>
                   )}
                   <Field label={t('外部链接', 'External URL')}><Input value={editing.external_url || ''} onChange={(e) => setEditing({ ...editing, external_url: e.target.value })} className="px-3" /></Field>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

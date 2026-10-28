@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import { useI18n } from '@/contexts/I18nContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 
 export default function PrivacyPage() {
   const { t, lang } = useI18n();
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
 
   const html = useMemo(() => {
     const raw = marked.parse(activeContent || '', { async: false }) as string;
-    return DOMPurify.sanitize(raw);
+    return sanitizeRichHtml(raw);
   }, [activeContent]);
 
   const pageTitle = `${t('隐私政策', 'Privacy Policy')} - ${brandName || t('启禾社区', 'Qihe Community')}`;

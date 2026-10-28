@@ -14,8 +14,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) {
-    console.error('获取用户信息失败:', error);
-    return null;
+    throw new Error(error.message || '获取用户信息失败');
   }
   return data;
 }
@@ -28,6 +27,8 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
+  profileError: Error | null;
   signInWithUsername: (username: string, password: string) => Promise<{ error: Error | null }>;
   signUpWithUsername: (username: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -41,15 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<Error | null>(null);
+
+  const loadProfile = async (userId: string) => {
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      setProfile(await getProfile(userId));
+    } catch (error) {
+      setProfile(null);
+      setProfileError(error instanceof Error ? error : new Error('获取用户信息失败'));
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const refreshProfile = async () => {
     if (!user) {
       setProfile(null);
+      setProfileError(null);
+      setProfileLoading(false);
       return;
     }
 
-    const profileData = await getProfile(user.id);
-    setProfile(profileData);
+    await loadProfile(user.id);
   };
 
   useEffect(() => {
@@ -58,9 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       // @ts-ignore
       .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          getProfile(session.user.id).then(setProfile);
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
+        if (sessionUser) {
+          void loadProfile(sessionUser.id);
+        } else {
+          setProfile(null);
+          setProfileError(null);
+          setProfileLoading(false);
         }
       })
       // @ts-ignore
@@ -74,11 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // @ts-ignore
     // In this function, do NOT use any await calls. Use `.then()` instead to avoid deadlocks.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        getProfile(session.user.id).then(setProfile);
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        void loadProfile(sessionUser.id);
       } else {
         setProfile(null);
+        setProfileError(null);
+        setProfileLoading(false);
       }
     });
 
@@ -136,10 +161,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setProfileError(null);
+    setProfileLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signInWithUsername, signUpWithUsername, signOut, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, profileLoading, profileError, signInWithUsername, signUpWithUsername, signOut, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

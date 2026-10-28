@@ -104,4 +104,16 @@ describe('AdminProjects save', () => {
     await waitFor(() => expect(screen.queryByText('重复项目一')).toBeNull());
     expect(screen.getByText('重复项目二')).toBeTruthy();
   });
+
+  it('rechecks gallery readiness after the database probe reports unavailable', async () => {
+    mocks.isProjectGalleryReady
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    render(<AdminProjects />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '新建项目' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '添加图片' })).toHaveProperty('disabled', true));
+    fireEvent.click(screen.getByRole('button', { name: '重新检查' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '添加图片' })).toHaveProperty('disabled', false));
+  });
 });

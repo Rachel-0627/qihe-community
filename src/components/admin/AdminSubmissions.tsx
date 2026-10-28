@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { deleteSubmission, fetchSubmissionsForReview, reviewSubmission } from '@/lib/submissionsApi';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 import type { ContentSubmission, SubmissionStatus } from '@/types/types';
 
 const TABS: { key: SubmissionStatus; label: string }[] = [
@@ -198,7 +199,7 @@ export default function AdminSubmissions() {
                   /* 案例/项目的正文是用户提交的 HTML，仅管理员在后台预览时渲染 */
                   <div
                     className="prose prose-invert max-w-none text-sm"
-                    dangerouslySetInnerHTML={{ __html: s.payload?.content || '<p>（无正文）</p>' }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(s.payload?.content || '<p>（无正文）</p>') }}
                   />
                 )}
               </div>

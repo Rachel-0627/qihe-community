@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { totalCount } from '@/lib/utils';
 import { injectHeadingIds } from '@/lib/contentHeadings';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 import ChapterToc from '@/components/common/ChapterToc';
 import CommentsSection from '@/components/common/CommentsSection';
 import ShareDialog, { ShareButton } from '@/components/common/ShareDialog';
@@ -74,7 +75,10 @@ export default function CaseDetailPage() {
   const author = lang === 'en' && item?.author_en ? item.author_en : (item?.author ?? '');
   const category = item?.categories ? (lang === 'en' && item.categories.name_en ? item.categories.name_en : item.categories.name) : null;
   const rawContent = lang === 'en' && item?.content_en ? item.content_en : (item?.content ?? '');
-  const { html: processedContent, headings } = useMemo(() => injectHeadingIds(rawContent), [rawContent]);
+  const { html: processedContent, headings } = useMemo(
+    () => injectHeadingIds(sanitizeRichHtml(rawContent)),
+    [rawContent],
+  );
 
   // 正文里的代码块加复制按钮。内容是注入的 HTML，拿不到 React 节点，
   // 只能等渲染完再操作 DOM；必须放在 processedContent 声明之后

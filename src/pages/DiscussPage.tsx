@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import PostCard from '@/components/discuss/PostCard';
 import { fetchDiscussionPosts } from '@/lib/discussionApi';
+import { sanitizeRichHtml } from '@/lib/sanitizeRichHtml';
 import type { DiscussionPost } from '@/types/types';
 
 export default function DiscussPage() {
@@ -50,7 +51,7 @@ export default function DiscussPage() {
         data-reveal
         className="project-content mt-8"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(content) }}
       />
 
       <div data-reveal className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-8">
