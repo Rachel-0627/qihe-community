@@ -33,6 +33,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `ProjectsPage.tsx` (187) | 项目库列表 |
 | `ProjectDetailPage.tsx` (334) ⚠️ | 项目详情，含付费内容解锁判断 |
 | `EventsPage.tsx` (311) ⚠️ | 活动（城市组局）列表 + 日历视图 |
+| `DiscussPage.tsx` | 「交流与连接」页面：交流讨论分类/搜索/排序/分页，另有成员匹配页签；帖子仍走原审核流程 |
+| `community/CommunityConnections.tsx` | 成员连接档案、隐私开关、真实候选推荐、申请与连接状态、联系方式授权和通知 |
 | `EventDetailPage.tsx` (332) ⚠️ | 活动详情 |
 | `ToolsPage.tsx` (38) | 工具页外壳 |
 | `ProfilePage.tsx` (380) ⚠️ | 个人中心。容器用 `mx-auto max-w-7xl px-4 md:px-8`，**和项目库/工具/案例/活动保持一致**——页面间左边界不一致，来回切换整页会横向跳。左栏：身份名片 → 我的等级 → 经验值规则 → 快捷入口；右栏：我的投稿 → 我报名的活动。等级信息只在左栏出现一次（原先左右各一份） |
@@ -44,6 +46,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `BusinessCoopPage.tsx` | 商务与合作 |
 | `LoginPage.tsx` (152) | 登录 / 注册 |
 | `AdminPage.tsx` (107) | 后台管理外壳，负责分栏切换 |
+| `components/admin/AdminCommunity.tsx` | 社区真实运营统计、举报处理、隐藏/恢复帖子及暂停成员匹配 |
 | `TermsPage.tsx` (36) / `PrivacyPage.tsx` (36) | 服务条款 / 隐私政策 |
 | `NotFound.tsx` | 404 |
 
@@ -52,14 +55,14 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | 文件 | 职责 |
 |---|---|
 | `MainLayout.tsx` (23) | 页面外框：Header + 内容 + Footer |
-| `Header.tsx` (180) | 顶部导航。品牌标识、导航项、语言切换、登录态菜单 |
+| `Header.tsx` (249) ⚠️ | 顶部导航。品牌标识、导航项、语言切换、登录态菜单；缓存同一用户的展示姓名与头像地址，资料请求时可先显示，权限仍以实时资料为准 |
 | `Footer.tsx` (70) | 页脚 |
 
 ## 四、首页专用 `src/components/home/`
 
 | 文件 | 职责 |
 |---|---|
-| `FlowingHero.tsx` (92) | 首屏大标题区 |
+| `FlowingHero.tsx` (147) | 首屏大标题区。保留文案与网络图的入场动画，网络图挂载即播放、文案有缓存或数据时立即播放；缓存上次后台文案供刷新先显，再以最新数据覆盖 |
 | `CommunityNetwork.tsx` (254) ⚠️ | 首屏右侧星座网络图（Canvas 绘制 + GSAP 视差） |
 | `HomeSections.tsx` (172) | 首页下方各内容板块 |
 
@@ -164,6 +167,7 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 | `iterator-polyfill.ts` (87) | 补 Iterator Helpers，解决 pdfjs 在旧运行时崩溃 |
 | `submissionsApi.ts` (215) | **投稿与审核的所有读写**。单独成文件,不往 api.ts 里堆。`withdrawToDraft` 撤回=收进草稿箱;`submitDraft` 草稿重新投出;`fetchPublishedForEdit` 读**正式表**的当前内容用于「申请修改」预填——不能读当初那条投稿,发布后管理员可能改过,用旧数据填一提交就把管理员的修改覆盖了;`findPendingEditFor` 保证同一条内容只有一条待审修改申请 |
 | `discussionApi.ts` | 讨论区帖子与评论的读写。帖子的**新增只能走审核函数**（表上没给任何人 INSERT）；删除走 `delete_my_discussion_post()` —— 直接 delete 会在投稿表里留下指向空目标的记录 |
+| `communityConnectionsApi.ts` | 交流分类常量、成员档案/推荐/连接申请/通知/隐私联系方式与举报接口 |
 | `aiToolsApi.ts` (52) | `ai_tools` 读写：前台只取已上架，后台取全部 |
 | `assistantQa.ts` (100) | 助手固定问答的匹配：标题 > 标签 > 正文加权，再用二字片段重合打破平局 |
 | `secretScan.ts` (84) | **扫描文本里疑似真实的 API 密钥**，用在投稿提交前。难点是压误报——站点内容本来就在讲 AI 工具，`sk-your-key` 这类示例必须放过，所以只认「够长 + 够随机 + 不含占位符字样」的 |
@@ -195,7 +199,8 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 
 | 路径 | 职责 |
 |---|---|
-| `migrations/` | 50 个数据库迁移脚本，按编号顺序执行 |
+| `migrations/` | 52 个数据库迁移脚本，按编号顺序执行；00052 为待审的交流与连接迁移，不能在生产环境未经确认执行 |
+| `migrations/00052_community_connections.sql` | 讨论分类、互动计数与隐藏状态；成员连接档案、规则匹配 RPC、申请/屏蔽/反馈、联系方式授权、通知、举报与管理员统计。需 Supabase 项目持有人审阅并部署 |
 | `migrations/00039_…submissions.sql` | 投稿表 + RLS + `review_submission()` 审核落地函数 |
 | `migrations/00040_…preview_chapters.sql` | `projects.preview_chapters` 列 + 重写 `get_project_content()`：目录全给、正文按章节切 |
 | `migrations/00041_…intro_leak.sql` | 收紧「引言免费」：必须真的切出章节、且引言 ≤2000 字符，否则不给 |
@@ -261,3 +266,11 @@ React 18 + TypeScript + Vite + Tailwind + shadcn/ui ｜ 后端 Supabase（Postgr
 7. **本地 `.env` 容易指错后端**。`.env` 不在版本库里，2026-09-23 曾发现它还指向秒哒网关 `backend.appmiaoda.com`，而线上早已切到独立 Supabase `rrotrtbhqthvfuteoryv.supabase.co`——导致本地开发连的是旧库，新表全都读不到，很容易误判成功能坏了。
    `.env.vercel` 同样是过期快照，里面的 `VITE_SUPABASE_URL` 也还是秒哒的，**以 Vercel 后台的环境变量为准**。
    排查方法：`curl -s https://qihe.bj.cn/ | grep -o 'assets/index-[^"]*\.js'` 拿到产物名，再 `curl` 该文件搜 `supabase.co`，就能看到线上真正用的地址。
+
+## 十七、AI 开发交接文档
+
+| 路径 | 职责 |
+|---|---|
+| `AGENTS.md` | AI 开发协作约束与项目注意事项 |
+| `PROJECT_CONTEXT.md` | 当前代码对应的产品、架构与业务流概览 |
+| `PROJECT_PROGRESS.md` | 初始化结果、验证状态、问题与下一步 |

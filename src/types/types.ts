@@ -380,10 +380,15 @@ export interface DiscussionPost {
   author_name: string;
   author_avatar: string;
   is_pinned: boolean;
+  /** 新分类；旧数据在迁移未生效时按「随想交流」兼容展示 */
+  category?: string;
+  likes_count?: number;
+  favorites_count?: number;
   created_at: string;
   updated_at: string;
   /** 列表查询联表带出的评论数 */
   post_comments?: { count: number }[];
+  discussion_reactions?: { count: number }[];
 }
 
 export interface PostComment {

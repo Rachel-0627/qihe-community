@@ -21,7 +21,13 @@ export async function fetchDiscussionPosts(): Promise<DiscussionPost[]> {
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(100);
-  if (error) throw error;
+  if (error) {
+    // 新的互动表可能尚未部署；先保证已有讨论区仍能正常浏览。
+    const legacy = await supabase.from('discussion_posts').select('*, post_comments(count)')
+      .order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+    if (legacy.error) throw legacy.error;
+    return asArray<DiscussionPost>(legacy.data).map((post) => ({ ...post, category: post.category || '随想交流', discussion_reactions: [] }));
+  }
   return asArray<DiscussionPost>(data);
 }
 
@@ -74,4 +80,29 @@ export async function deletePostComment(id: string): Promise<void> {
 /** 列表里的评论数：联表 count 的形状是 [{ count: n }] */
 export function commentCountOf(post: DiscussionPost): number {
   return post.post_comments?.[0]?.count ?? 0;
+}
+
+export function reactionCountOf(post: DiscussionPost): number {
+  return post.likes_count ?? post.discussion_reactions?.[0]?.count ?? 0;
+}
+
+export async function fetchUserDiscussionReactions(userId: string): Promise<{ like: Set<string>; favorite: Set<string> }> {
+  const { data, error } = await supabase.from('discussion_reactions').select('post_id, kind').eq('user_id', userId).limit(500);
+  const result = { like: new Set<string>(), favorite: new Set<string>() };
+  if (error) return result;
+  for (const row of data ?? []) {
+    const kind = String(row.kind);
+    if (kind === 'like' || kind === 'favorite') result[kind].add(String(row.post_id));
+  }
+  return result;
+}
+
+export async function toggleDiscussionReaction(userId: string, postId: string, kind: 'like' | 'favorite', active: boolean): Promise<void> {
+  if (active) {
+    const { error } = await supabase.from('discussion_reactions').delete().eq('user_id', userId).eq('post_id', postId).eq('kind', kind);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('discussion_reactions').insert({ user_id: userId, post_id: postId, kind });
+    if (error) throw error;
+  }
 }

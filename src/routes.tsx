@@ -57,7 +57,7 @@ export const routes: RouteConfig[] = [
   { name: '项目详情', path: '/projects/:id', element: <ProjectDetailPage />, public: true },
   { name: '城市组局', path: '/events', element: <EventsPage />, public: true },
   { name: '活动详情', path: '/events/:id', element: <EventDetailPage />, public: true },
-  { name: '分享讨论区', path: '/discuss', element: <DiscussPage />, public: true },
+  { name: '交流与连接', path: '/discuss', element: <DiscussPage />, public: true },
   { name: '帖子详情', path: '/discuss/:id', element: <DiscussPostDetailPage />, public: true },
   // 板块原来叫「商务与合作」，旧链接可能已被收藏或分享出去，留个重定向
   { name: '旧商务页', path: '/business', element: <Navigate to="/discuss" replace />, public: true },

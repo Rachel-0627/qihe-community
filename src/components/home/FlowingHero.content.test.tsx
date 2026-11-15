@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import FlowingHero from './FlowingHero';
 
@@ -15,7 +15,27 @@ vi.mock('@gsap/react', () => ({ useGSAP: vi.fn() }));
 vi.mock('./CommunityNetwork', () => ({ default: () => <div data-testid="community-network" /> }));
 
 describe('FlowingHero content loading', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+  afterEach(cleanup);
+
+  it('shows saved copy immediately, then replaces it with fresh admin copy', async () => {
+    localStorage.setItem('qihe.hero.v1', JSON.stringify({ zh: { title: '已保存标题', subtitle: '已保存副标题' } }));
+    let resolveRows!: (rows: Array<{ section: string; key: string; value: string; value_en: string }>) => void;
+    mocks.fetchSiteContent.mockImplementation(() => new Promise((resolve) => { resolveRows = resolve; }));
+
+    render(<SiteContentProvider><FlowingHero /></SiteContentProvider>);
+
+    expect(screen.getByText('已保存标题')).toBeTruthy();
+    expect(screen.getByText('已保存副标题')).toBeTruthy();
+    expect(screen.getByTestId('community-network')).toBeTruthy();
+
+    resolveRows([
+      { section: 'hero', key: 'title', value: '后台最新标题', value_en: 'Current admin headline' },
+      { section: 'hero', key: 'subtitle', value: '后台最新副标题', value_en: 'Current admin subtitle' },
+    ]);
+    await waitFor(() => expect(screen.getByText('后台最新标题')).toBeTruthy());
+    expect(screen.queryByText('已保存标题')).toBeNull();
+  });
 
   it('never shows a superseded hard-coded headline while admin copy loads', async () => {
     let resolveRows!: (rows: Array<{ section: string; key: string; value: string; value_en: string }>) => void;

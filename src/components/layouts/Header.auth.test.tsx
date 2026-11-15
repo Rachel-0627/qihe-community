@@ -20,8 +20,8 @@ vi.mock('@/contexts/I18nContext', () => ({ useI18n: () => ({ t: (zh: string) => 
 vi.mock('@/contexts/SiteSettingsContext', () => ({ useSiteSettings: () => ({ brandName: '启禾社区', brandNameEn: 'Qihe Community', navLabels: {} }) }));
 vi.mock('@/components/ui/avatar', () => ({
   Avatar: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  AvatarImage: ({ onLoadingStatusChange, ...props }: ImgHTMLAttributes<HTMLImageElement> & { onLoadingStatusChange: (status: string) => void }) => (
-    <img {...props} onLoad={() => onLoadingStatusChange('loaded')} onError={() => onLoadingStatusChange('error')} />
+  AvatarImage: ({ onLoadingStatusChange, ...props }: ImgHTMLAttributes<HTMLImageElement> & { onLoadingStatusChange?: (status: string) => void }) => (
+    <img {...props} onLoad={() => onLoadingStatusChange?.('loaded')} onError={() => onLoadingStatusChange?.('error')} />
   ),
   AvatarFallback: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
@@ -39,6 +39,7 @@ describe('Header account loading', () => {
     mocks.auth.loading = true;
     mocks.auth.profileLoading = false;
     mocks.auth.signOut.mockReset();
+    localStorage.clear();
   });
   afterEach(cleanup);
 
@@ -58,17 +59,31 @@ describe('Header account loading', () => {
     expect(screen.queryByText('U')).toBeNull();
   });
 
-  it('reveals the saved nickname only after the avatar has loaded', async () => {
+  it('shows the saved nickname without waiting for the avatar', () => {
     mocks.auth.loading = false;
     mocks.auth.profile = { nickname: '新宇', username: 'xinyu', avatar_url: 'https://example.com/avatar.png', role: 'user' };
-    const view = renderHeader();
+    renderHeader();
 
-    expect(screen.getByRole('status', { name: '正在加载账号…' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /新宇/ })).toBeNull();
-    fireEvent.load(view.container.querySelector('img')!);
-
-    expect(await screen.findByRole('button', { name: /新宇/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /新宇/ })).toBeTruthy();
     expect(screen.queryByRole('status', { name: '正在加载账号…' })).toBeNull();
+  });
+
+  it('shows the previous identity during a profile refresh for the same user', () => {
+    localStorage.setItem('qihe.headerIdentity.v1', JSON.stringify({ userId: 'user-1', name: '新宇', avatarUrl: null }));
+    mocks.auth.loading = false;
+    mocks.auth.profileLoading = true;
+    renderHeader();
+    expect(screen.getByRole('button', { name: /新宇/ })).toBeTruthy();
+    expect(screen.queryByRole('status', { name: '正在加载账号…' })).toBeNull();
+  });
+
+  it("does not show another user's cached identity", () => {
+    localStorage.setItem('qihe.headerIdentity.v1', JSON.stringify({ userId: 'someone-else', name: '他人', avatarUrl: null }));
+    mocks.auth.loading = false;
+    mocks.auth.profileLoading = true;
+    renderHeader();
+    expect(screen.queryByText('他人')).toBeNull();
+    expect(screen.getByRole('status', { name: '正在加载账号…' })).toBeTruthy();
   });
 
   it('uses a neutral account label when no profile was returned', () => {

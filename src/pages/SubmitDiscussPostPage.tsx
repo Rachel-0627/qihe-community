@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import SubmitTabs from '@/components/common/SubmitTabs';
 import FileUploadField from '@/components/common/FileUploadField';
 import ImageListField from '@/components/discuss/ImageListField';
+import { DISCUSSION_CATEGORIES } from '@/lib/communityConnectionsApi';
 import {
   createSubmission, updateSubmission, fetchSubmission,
   findPendingEditFor, fetchPublishedForEdit,
@@ -36,6 +37,7 @@ export default function SubmitDiscussPostPage() {
   const [body, setBody] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [category, setCategory] = useState<string>('随想交流');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(!!resubmitId || !!targetId);
   /** ?target= 进来时，若已有一条待审的修改申请，就改那条而不是再开一条 */
@@ -51,12 +53,13 @@ export default function SubmitDiscussPostPage() {
   );
   useLocalDraft(
     draftKey,
-    { title, body, coverUrl, images },
+    { title, body, coverUrl, images, category },
     (d) => {
       if (d.title) setTitle(d.title);
       if (d.body) setBody(d.body);
       if (d.coverUrl) setCoverUrl(d.coverUrl);
       if (Array.isArray(d.images)) setImages(d.images);
+      if (d.category) setCategory(d.category);
     },
     // 申请修改时不要恢复草稿：内容应该来自线上那条，
     // 否则会被「新建帖子」时留下的半成品盖掉
@@ -68,6 +71,7 @@ export default function SubmitDiscussPostPage() {
     if (typeof p.title === 'string') setTitle(p.title);
     if (typeof p.body === 'string') setBody(p.body);
     if (typeof p.cover_url === 'string') setCoverUrl(p.cover_url);
+    if (typeof p.category === 'string') setCategory(p.category);
     if (Array.isArray(p.images)) setImages(p.images as string[]);
     else if (typeof p.images === 'string') {
       // fetchPublishedForEdit 把数组序列化成字符串传回来
@@ -124,7 +128,7 @@ export default function SubmitDiscussPostPage() {
     if (!body.trim()) { toast.error(t('请填写正文', 'Content is required')); return; }
     setSubmitting(true);
     try {
-      const payload = { title: title.trim(), body: body.trim(), cover_url: coverUrl, images };
+      const payload = { title: title.trim(), body: body.trim(), cover_url: coverUrl, images, category };
       if (editingId) await updateSubmission(editingId, payload);
       else await createSubmission('discussion_post', payload, targetId);
       toast.success(t('已提交，等待管理员审核', 'Submitted, pending review'));
@@ -136,7 +140,7 @@ export default function SubmitDiscussPostPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [title, body, coverUrl, images, editingId, targetId, navigate, t]);
+  }, [title, body, coverUrl, images, category, editingId, targetId, navigate, t]);
 
   if (!user) return <Navigate to="/login" replace state={{ from: '/submit/discuss' }} />;
   if (loading) return <div className="py-24 text-center text-muted-foreground">{t('载入中…', 'Loading…')}</div>;
@@ -175,6 +179,12 @@ export default function SubmitDiscussPostPage() {
       </div>
 
       <div className="mt-8 flex flex-col gap-6">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium">{t('内容分类', 'Category')}</span>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            {DISCUSSION_CATEGORIES.filter((item) => item !== '全部').map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium">{t('标题', 'Title')} *</span>
           <Input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)}

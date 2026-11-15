@@ -1,20 +1,53 @@
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useSiteContent } from '@/contexts/SiteContentContext';
 import CommunityNetwork from './CommunityNetwork';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
+const HERO_CACHE_KEY = 'qihe.hero.v1';
+type HeroCopy = { title: string; subtitle: string };
+type HeroCache = Partial<Record<'zh' | 'en', HeroCopy>>;
+
+function readCachedHero(): HeroCache {
+  try {
+    const value = JSON.parse(localStorage.getItem(HERO_CACHE_KEY) || '{}');
+    const cache = value && typeof value === 'object' ? value as HeroCache : {};
+    return {
+      zh: typeof cache.zh?.title === 'string' && typeof cache.zh?.subtitle === 'string' ? cache.zh : undefined,
+      en: typeof cache.en?.title === 'string' && typeof cache.en?.subtitle === 'string' ? cache.en : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default function FlowingHero() {
   const { lang } = useI18n();
   const { c, status, reload } = useSiteContent();
+  const [cachedHero, setCachedHero] = useState<HeroCache>(readCachedHero);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   // 首页文案只读取后台保存的记录，不维护可见的前端默认副本。
-  const heroTitle = c('hero', 'title');
+  const savedTitle = c('hero', 'title');
+  const savedSubtitle = c('hero', 'subtitle');
+  const heroTitle = status === 'ready' ? savedTitle : cachedHero[lang]?.title || '';
+  const heroSubtitle = status === 'ready' ? savedSubtitle : cachedHero[lang]?.subtitle || '';
+  const showCopy = status === 'ready' || Boolean(heroTitle && heroSubtitle);
+
+  useEffect(() => {
+    if (status !== 'ready' || !savedTitle || !savedSubtitle) return;
+    const next = { ...readCachedHero(), [lang]: { title: savedTitle, subtitle: savedSubtitle } };
+    setCachedHero(next);
+    try {
+      localStorage.setItem(HERO_CACHE_KEY, JSON.stringify(next));
+    } catch {
+      // Storage may be unavailable; fresh content still renders normally.
+    }
+  }, [status, lang, savedTitle, savedSubtitle]);
   // 后台可用换行精确控制版式；旧中文文案仍兼容按第一个逗号分行。
   const manualTitleLines = heroTitle.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const titleLines = manualTitleLines.length > 1
@@ -23,32 +56,27 @@ export default function FlowingHero() {
       ? heroTitle.split(/，|,\s*/).map((line) => line.trim()).filter(Boolean)
       : [heroTitle.trim()];
   const isLongEnglishTitle = lang === 'en' && heroTitle.trim().split(/\s+/).length > 10;
-  const heroSubtitle = c('hero', 'subtitle');
 
+
+  // 网络图不依赖后台文案，页面挂载时就开始原有的入场效果。
   useGSAP(() => {
-    if (status !== 'ready') return;
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const ctx = gsap.context(() => {
-      if (prefersReduced) {
-        gsap.set(['.hero-label', '.hero-title-line', '.hero-desc', '.hero-index'], { autoAlpha: 1, y: 0 });
-        return;
-      }
-      // 与首页滚动进场使用一致的柔和收尾。
-      const tl = gsap.timeline({ defaults: { ease: 'expo.out', duration: 0.9 } });
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out', duration: 0.9 } });
+    tl.from('.network-ring', { scale: 0.75, autoAlpha: 0, duration: 0.9 })
+      .from('.network-core', { scale: 0.4, autoAlpha: 0, duration: 0.7, ease: 'back.out(1.6)' }, '-=0.7')
+      .from('.network-label', { y: 24, autoAlpha: 0, stagger: 0.1, duration: 0.55 }, '-=0.55')
+      .from('.network-status', { y: 12, autoAlpha: 0, duration: 0.45 }, '-=0.35');
+  }, { scope: sectionRef, dependencies: [] });
 
-      tl.from('.hero-label', { y: 12, autoAlpha: 0, duration: 0.5 })
-        .from('.hero-title-line', { y: 36, autoAlpha: 0, stagger: 0.12 }, '-=0.3')
-        .from('.hero-desc', { y: 24, autoAlpha: 0 }, '-=0.5')
-        .from('.hero-index', { y: 16, autoAlpha: 0 }, '-=0.4')
-        .from('.network-ring', { scale: 0.75, autoAlpha: 0, duration: 0.9 }, '-=0.5')
-        .from('.network-core', { scale: 0.4, autoAlpha: 0, duration: 0.7, ease: 'back.out(1.6)' }, '-=0.7')
-        .from('.network-label', { y: 24, autoAlpha: 0, stagger: 0.1, duration: 0.55 }, '-=0.55')
-        .from('.network-status', { y: 12, autoAlpha: 0, duration: 0.45 }, '-=0.35');
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, { scope: sectionRef, dependencies: [status], revertOnUpdate: true });
-
+  // 文案一旦从缓存或后台可用，立即播放原有的逐项入场效果。
+  useGSAP(() => {
+    if (!showCopy || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out', duration: 0.9 } });
+    tl.from('.hero-label', { y: 12, autoAlpha: 0, duration: 0.5 })
+      .from('.hero-title-line', { y: 36, autoAlpha: 0, stagger: 0.12 }, '-=0.3')
+      .from('.hero-desc', { y: 24, autoAlpha: 0 }, '-=0.5')
+      .from('.hero-index', { y: 16, autoAlpha: 0 }, '-=0.4');
+  }, { scope: sectionRef, dependencies: [showCopy], revertOnUpdate: true });
   return (
     <div ref={sectionRef}>
       <section className="relative overflow-hidden border-b border-border bg-background">
@@ -65,14 +93,14 @@ export default function FlowingHero() {
           <div className="grid min-h-[calc(100svh-80px)] grid-cols-1 items-center gap-8 py-12 lg:grid-cols-[1.12fr_.88fr] lg:gap-[3vw] lg:py-[8vh]">
             {/* 左侧文案 */}
             <div className="hero-copy max-w-[750px]">
-              {status === 'loading' && (
+              {status === 'loading' && !showCopy && (
                 <div className="space-y-6" aria-label={lang === 'en' ? 'Loading homepage content' : '正在加载首页内容'} aria-busy="true">
                   <div className="h-3 w-48 animate-pulse rounded bg-muted" />
                   <div className="h-28 max-w-[620px] animate-pulse rounded bg-muted/70" />
                   <div className="h-12 max-w-[520px] animate-pulse rounded bg-muted/50" />
                 </div>
               )}
-              {status === 'error' && (
+              {status === 'error' && !showCopy && (
                 <div role="alert" className="space-y-3 text-muted-foreground">
                   <p>{lang === 'en' ? 'Homepage content could not be loaded.' : '首页内容暂时无法加载。'}</p>
                   <button type="button" className="text-primary underline underline-offset-4" onClick={() => void reload()}>
@@ -80,7 +108,7 @@ export default function FlowingHero() {
                   </button>
                 </div>
               )}
-              {status === 'ready' && <>
+              {showCopy && <>
               <p className="hero-label mb-6 font-mono text-[10px] uppercase tracking-[0.19em] text-muted-foreground">
                 QIHE COMMUNITY / AI BUILDERS NETWORK
               </p>

@@ -5,6 +5,7 @@ import AdminAccounts from '@/components/admin/AdminAccounts';
 import AdminAssistant from '@/components/admin/AdminAssistant';
 import AdminBenefits from '@/components/admin/AdminBenefits';
 import AdminContentHub from '@/components/admin/AdminContentHub';
+import AdminCommunity from '@/components/admin/AdminCommunity';
 import AdminCopywriting from '@/components/admin/AdminCopywriting';
 import AdminOverview from '@/components/admin/AdminOverview';
 import AdminSubmissions from '@/components/admin/AdminSubmissions';
@@ -13,7 +14,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
 
-type TabKey = 'overview' | 'content' | 'submissions' | 'copywriting' | 'benefits' | 'assistant' | 'accounts';
+type TabKey = 'overview' | 'content' | 'community' | 'submissions' | 'copywriting' | 'benefits' | 'assistant' | 'accounts';
 
 /**
  * 后台按站长任务组织：工作台集中待办与快捷入口，其余模块负责具体维护。
@@ -67,6 +68,7 @@ export default function AdminPage() {
   const tabs: { key: TabKey; zh: string; en: string; icon: React.ReactNode }[] = [
     { key: 'overview', zh: '工作台', en: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
     { key: 'content', zh: '内容中心', en: 'Content', icon: <LayoutGrid className="h-4 w-4" /> },
+    { key: 'community', zh: '社区治理', en: 'Community', icon: <Users className="h-4 w-4" /> },
     { key: 'submissions', zh: '投稿审核', en: 'Submissions', icon: <Inbox className="h-4 w-4" /> },
     { key: 'copywriting', zh: '页面装修', en: 'Site Appearance', icon: <PenLine className="h-4 w-4" /> },
     { key: 'benefits', zh: '会员与权益', en: 'Membership', icon: <Settings2 className="h-4 w-4" /> },
@@ -78,6 +80,7 @@ export default function AdminPage() {
     switch (tab) {
       case 'overview': return <AdminOverview onNavigate={setTab} />;
       case 'content': return <AdminContentHub />;
+      case 'community': return <AdminCommunity />;
       case 'submissions': return <AdminSubmissions />;
       case 'copywriting': return <AdminCopywriting />;
       case 'benefits': return <AdminBenefits />;

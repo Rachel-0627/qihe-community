@@ -16,6 +16,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import BrandMark from '@/components/common/BrandMark';
 
+const IDENTITY_CACHE_KEY = 'qihe.headerIdentity.v1';
+type CachedIdentity = { userId: string; name: string; avatarUrl: string | null };
+
+function readCachedIdentity(): CachedIdentity | null {
+  try {
+    const value = JSON.parse(localStorage.getItem(IDENTITY_CACHE_KEY) || 'null') as CachedIdentity | null;
+    return value && typeof value.userId === 'string' && typeof value.name === 'string' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 // 发布按钮样式，与旁边的语言切换保持一致
 const PUBLISH_BTN =
   'font-mono-label text-base gap-1.5 text-muted-foreground hover:bg-transparent hover:text-foreground';
@@ -37,11 +49,23 @@ export default function Header() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [loadedAvatarUrl, setLoadedAvatarUrl] = useState<string | null>(null);
-  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
-  const avatarUrl = profile?.avatar_url || undefined;
-  const avatarLoading = Boolean(avatarUrl && loadedAvatarUrl !== avatarUrl && failedAvatarUrl !== avatarUrl);
-  const accountLoading = authLoading || Boolean(user && (profileLoading || avatarLoading));
+  const [cachedIdentity, setCachedIdentity] = useState<CachedIdentity | null>(readCachedIdentity);
+  const previousIdentity = user?.id === cachedIdentity?.userId ? cachedIdentity : null;
+  const avatarUrl = profile?.avatar_url || previousIdentity?.avatarUrl || undefined;
+  const accountLoading = authLoading || Boolean(user && profileLoading && !previousIdentity);
+
+  useEffect(() => {
+    if (!user || !profile) return;
+    const name = profile.nickname || profile.username;
+    if (!name) return;
+    const identity = { userId: user.id, name, avatarUrl: profile.avatar_url };
+    setCachedIdentity(identity);
+    try {
+      localStorage.setItem(IDENTITY_CACHE_KEY, JSON.stringify(identity));
+    } catch {
+      // The account remains usable when storage is unavailable.
+    }
+  }, [user, profile]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -55,14 +79,16 @@ export default function Header() {
   const navItems = useMemo(() => DEFAULT_NAV_ITEMS
     .map((item) => ({
       ...item,
-      zh: navLabels[item.path]?.zh ?? (item.path === '/discuss' ? '广场' : item.path === '/tools' ? '工具' : item.path),
-      en: navLabels[item.path]?.en ?? (item.path === '/discuss' ? 'Plaza' : item.path === '/tools' ? 'Tools' : item.path),
+      zh: navLabels[item.path]?.zh ?? (item.path === '/discuss' ? '交流与连接' : item.path === '/tools' ? '工具' : item.path),
+      en: navLabels[item.path]?.en ?? (item.path === '/discuss' ? 'Connect & Exchange' : item.path === '/tools' ? 'Tools' : item.path),
     })), [navLabels]);
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   const handleSignOut = async () => {
+    try { localStorage.removeItem(IDENTITY_CACHE_KEY); } catch { /* Storage may be unavailable. */ }
+    setCachedIdentity(null);
     await signOut();
     navigate('/');
   };
@@ -132,19 +158,12 @@ export default function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="secondary" size="sm" className="h-8 w-full justify-center gap-1.5 font-mono-label text-base">
                       <Avatar className="h-5 w-5">
-                        <AvatarImage
-                          src={avatarUrl}
-                          alt={profile?.nickname || profile?.username || ''}
-                          onLoadingStatusChange={(status) => {
-                            if (status === 'loaded' && avatarUrl) setLoadedAvatarUrl(avatarUrl);
-                            if (status === 'error' && avatarUrl) setFailedAvatarUrl(avatarUrl);
-                          }}
-                        />
+                        <AvatarImage src={avatarUrl} alt={profile?.nickname || profile?.username || previousIdentity?.name || ''} />
                         <AvatarFallback className="bg-muted text-muted-foreground">
                           <User className="h-3.5 w-3.5" />
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden max-w-[72px] truncate sm:inline">{profile?.nickname || profile?.username || t('账号', 'Account')}</span>
+                      <span className="hidden max-w-[72px] truncate sm:inline">{profile?.nickname || profile?.username || previousIdentity?.name || t('账号', 'Account')}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">

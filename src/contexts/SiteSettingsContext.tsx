@@ -38,7 +38,7 @@ const defaultNavLabels: Record<string, { zh: string; en: string }> = {
   '/cases': { zh: '案例', en: 'Cases' },
   '/projects': { zh: '项目库', en: 'Projects' },
   '/events': { zh: '城市组局', en: 'Events' },
-  '/discuss': { zh: '广场', en: 'Plaza' },
+  '/discuss': { zh: '交流与连接', en: 'Connect & Exchange' },
   '/tools': { zh: '工具', en: 'Tools' },
 };
 
@@ -119,6 +119,8 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       updateNav('/projects', 'nav_projects', 'nav_projects_en');
       updateNav('/events', 'nav_events', 'nav_events_en');
       updateNav('/discuss', 'nav_discuss', 'nav_discuss_en');
+      if (['广场', '分享讨论区'].includes(get('nav_discuss'))) next['/discuss'].zh = '交流与连接';
+      if (['Plaza', 'Discussion'].includes(get('nav_discuss_en'))) next['/discuss'].en = 'Connect & Exchange';
       updateNav('/tools', 'nav_tools', 'nav_tools_en');
       setNavLabels(next);
 

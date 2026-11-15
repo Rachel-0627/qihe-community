@@ -29,7 +29,7 @@ export default function Footer() {
               <li><Link to="/cases" className="hover:text-accent transition-colors">{t('案例', 'Cases')}</Link></li>
               <li><Link to="/projects" className="hover:text-accent transition-colors">{t('项目库', 'Projects')}</Link></li>
               <li><Link to="/events" className="hover:text-accent transition-colors">{t('城市组局', 'Events')}</Link></li>
-              <li><Link to="/discuss" className="hover:text-accent transition-colors">{t('分享讨论区', 'Discussion')}</Link></li>
+              <li><Link to="/discuss" className="hover:text-accent transition-colors">{t('交流与连接', 'Connect & Exchange')}</Link></li>
               <li><Link to="/tools" className="hover:text-accent transition-colors">{t('工具', 'Tools')}</Link></li>
             </ul>
           </div>
