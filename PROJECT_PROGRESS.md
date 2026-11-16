@@ -78,4 +78,4 @@
 - 发帖表单增加“插入视频”：选择本地 MP4、WebM 或 OGG 视频后，上传并插入正文光标位置；单个文件不超过 50MB。正文编辑预览和帖子详情均以带控制栏的播放器显示，列表摘要将视频折叠为“[视频]”。
 - 飞书文档复制出的“暂时无法在飞书文档外展示此内容”仅是占位文字，不能还原视频；需先取得原视频文件再上传。没有新增数据库迁移，复用 Supabase `media` 桶；本地配置连接朋友的线上 Supabase，未上传真实测试视频。
 - 朋友配合项：若线上尚未执行 `00046_allow_user_media_upload.sql`，普通用户视频上传会被 Storage 权限拦截；需朋友确认迁移状态，失败时再协调处理。
-- 验证：完整 Vitest 20 个文件、56 项通过（`shareRuntime` 用例需 15 秒超时）；TypeScript 检查、Biome 和生产构建通过。构建保留既有 Tailwind、GSAP 动态导入与大包体积提示。本轮按用户要求准备提交并推送至 `feature/community-connections` 分支，不部署网站。
+- 验证：完整 Vitest 20 个文件、56 项通过（`shareRuntime` 用例需 15 秒超时）；TypeScript 检查、Biome 和生产构建通过。构建保留既有 Tailwind、GSAP 动态导入与大包体积提示。本轮代码已提交并推送到 GitHub 的 `feature/community-connections` 分支（`8a918d1`）；未合并 `main` 或部署网站。
