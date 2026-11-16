@@ -5,6 +5,7 @@ import { notifyLoadFailed } from '@/lib/feedback';
 import { useI18n } from '@/contexts/I18nContext';
 import { fetchDiscussionPostById } from '@/lib/discussionApi';
 import PostComments from '@/components/discuss/PostComments';
+import DiscussionBody from '@/components/discuss/DiscussionBody';
 import type { DiscussionPost } from '@/types/types';
 
 export default function DiscussPostDetailPage() {
@@ -62,11 +63,7 @@ export default function DiscussPostDetailPage() {
         </div>
       )}
 
-      {/* 正文是纯文本，用 whitespace-pre-line 保住换行；
-          不走 dangerouslySetInnerHTML：用户输入的内容不能当 HTML 渲染 */}
-      <div className="mt-8 whitespace-pre-line text-base leading-relaxed text-foreground text-pretty">
-        {item.body}
-      </div>
+      <div className="mt-8"><DiscussionBody body={item.body} /></div>
 
       <PostComments postId={item.id} />
     </div>

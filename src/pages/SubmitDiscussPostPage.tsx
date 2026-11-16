@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, ClipboardEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import SubmitTabs from '@/components/common/SubmitTabs';
 import FileUploadField from '@/components/common/FileUploadField';
 import ImageListField from '@/components/discuss/ImageListField';
+import DiscussionBody from '@/components/discuss/DiscussionBody';
+import { uploadMedia } from '@/lib/api';
 import { DISCUSSION_CATEGORIES } from '@/lib/communityConnectionsApi';
+import { DISCUSSION_IMAGE_MISSING_MARKER, discussionBodyParts, prepareDiscussionPaste, replaceUnavailableDiscussionImages } from '@/lib/discussionBody';
 import {
   createSubmission, updateSubmission, fetchSubmission,
   findPendingEditFor, fetchPublishedForEdit,
@@ -39,6 +43,11 @@ export default function SubmitDiscussPostPage() {
   const [images, setImages] = useState<string[]>([]);
   const [category, setCategory] = useState<string>('随想交流');
   const [submitting, setSubmitting] = useState(false);
+  const [pastingImages, setPastingImages] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const videoSelectionRef = useRef({ start: 0, end: 0 });
   const [loading, setLoading] = useState(!!resubmitId || !!targetId);
   /** ?target= 进来时，若已有一条待审的修改申请，就改那条而不是再开一条 */
   const [editingId, setEditingId] = useState<string | null>(resubmitId);
@@ -123,9 +132,121 @@ export default function SubmitDiscussPostPage() {
     setLoading(false);
   }, [resubmitId, targetId, fill, t]);
 
+  const chooseVideo = useCallback(() => {
+    const input = bodyRef.current;
+    if (input) videoSelectionRef.current = { start: input.selectionStart, end: input.selectionEnd };
+    videoInputRef.current?.click();
+  }, []);
+
+  const uploadInlineVideo = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast.error(t('请选择视频文件', 'Choose a video file'));
+      return;
+    }
+
+    const selection = videoSelectionRef.current;
+    setUploadingVideo(true);
+    try {
+      const url = await uploadMedia(file, 'discuss/inline');
+      const marker = `![视频](${url})`;
+      setBody((current) => {
+        const start = Math.min(selection.start, current.length);
+        const end = Math.min(selection.end, current.length);
+        const before = current.slice(0, start);
+        const after = current.slice(end);
+        const prefix = before && !before.endsWith('\n') ? '\n' : '';
+        const suffix = after && !after.startsWith('\n') ? '\n' : '';
+        return `${before}${prefix}${marker}${suffix}${after}`;
+      });
+      toast.success(t('视频已插入正文', 'Video inserted into the post'));
+    } catch {
+      toast.error(t('视频上传失败，请确认文件不超过 50MB 后重试', 'Video upload failed. Check that the file is under 50 MB and try again.'));
+    } finally {
+      setUploadingVideo(false);
+      bodyRef.current?.focus();
+    }
+  }, [t]);
+
+  const pasteBody = useCallback(async (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboard = event.clipboardData;
+    const plain = clipboard.getData('text/plain');
+    const html = clipboard.getData('text/html');
+    const prepared = prepareDiscussionPaste(html, plain);
+    const files = Array.from(clipboard.items)
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    if (prepared.sources.length === 0 && files.length === 0) {
+      if (plain.includes('[图片]')) {
+        event.preventDefault();
+        const input = event.currentTarget;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        setBody((current) => current.slice(0, start) + replaceUnavailableDiscussionImages(plain) + current.slice(end));
+        toast.warning(t('剪贴板没有带上图片，请单独复制图片并粘贴到正文，或使用上方“配图”上传',
+          'The clipboard did not include the images. Copy each image into the post, or upload it using Images above.'));
+      }
+      return;
+    }
+
+    event.preventDefault();
+    const input = event.currentTarget;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const count = Math.max(prepared.sources.length, files.length);
+    let pasted = prepared.text;
+    if (prepared.sources.length === 0) {
+      let index = 0;
+      pasted = plain.replace(/\[图片\]/g, (value) => index < files.length ? `__QIHE_PASTED_IMAGE_${index++}__` : value);
+      while (index < files.length) pasted += `${pasted && !pasted.endsWith('\n') ? '\n' : ''}__QIHE_PASTED_IMAGE_${index++}__\n`;
+    } else if (files.length > prepared.sources.length) {
+      for (let i = prepared.sources.length; i < files.length; i++) {
+        pasted += `${pasted && !pasted.endsWith('\n') ? '\n' : ''}__QIHE_PASTED_IMAGE_${i}__\n`;
+      }
+    }
+    setPastingImages(true);
+    let failed = 0;
+    try {
+      for (let i = 0; i < count; i++) {
+        const source = prepared.sources[i];
+        let file = files[i];
+        if (!file && source && /^(data:image\/|blob:|https?:\/\/)/i.test(source)) {
+          try {
+            const response = await fetch(source);
+            if (!response.ok) throw new Error('Image unavailable');
+            const blob = await response.blob();
+            if (!blob.type.startsWith('image/')) throw new Error('Not an image');
+            file = new File([blob], `pasted-${i}.${blob.type.split('/')[1] || 'png'}`, { type: blob.type });
+          } catch { /* 飞书图片可能需要登录或禁止跨站读取 */ }
+        }
+        let replacement = DISCUSSION_IMAGE_MISSING_MARKER;
+        if (file) {
+          try { replacement = `![图片](${await uploadMedia(file, 'discuss/inline')})`; }
+          catch { failed++; }
+        } else failed++;
+        pasted = pasted.replace(`__QIHE_PASTED_IMAGE_${i}__`, replacement);
+      }
+      setBody((current) => current.slice(0, start) + pasted + current.slice(end));
+      if (failed) toast.warning(t(`${failed} 张图片未能读取，请逐张复制图片再粘贴`,
+        `${failed} images could not be read. Copy and paste them one by one.`));
+    } finally {
+      setPastingImages(false);
+      bodyRef.current?.focus();
+    }
+  }, [t]);
+
   const submit = useCallback(async () => {
     if (!title.trim()) { toast.error(t('请填写标题', 'Title is required')); return; }
     if (!body.trim()) { toast.error(t('请填写正文', 'Content is required')); return; }
+    if (body.includes(DISCUSSION_IMAGE_MISSING_MARKER)) {
+      toast.error(t('正文里有未导入的图片，请补传图片或删除提示后再发布',
+        'Your post has images that were not imported. Upload them or remove the markers before publishing.'));
+      return;
+    }
+    if (body.length > 3000) { toast.error(t('正文超过 3000 字，请精简后发布', 'Content exceeds 3000 characters')); return; }
     setSubmitting(true);
     try {
       const payload = { title: title.trim(), body: body.trim(), cover_url: coverUrl, images, category };
@@ -205,13 +326,34 @@ export default function SubmitDiscussPostPage() {
 
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium">{t('正文', 'Content')} *</span>
-          <Textarea value={body} rows={10} maxLength={3000} onChange={(e) => setBody(e.target.value)}
+          <Textarea ref={bodyRef} value={body} rows={10} maxLength={3000} readOnly={pastingImages || uploadingVideo}
+            onChange={(e) => setBody(e.target.value)} onPaste={(e) => void pasteBody(e)}
             placeholder={t('你的做法、遇到的问题、踩过的坑、想听听大家怎么看…', 'What you did, what went wrong, what you want others to weigh in on…')} />
-          <span className="text-xs text-muted-foreground">{body.length}/3000</span>
+          <span className="text-xs text-muted-foreground">{pastingImages
+            ? t('正在粘贴图片…', 'Pasting images…')
+            : uploadingVideo ? t('正在上传并插入视频…', 'Uploading and inserting video…')
+            : t('从飞书粘贴时若出现“图片未导入”，请单独复制图片粘贴，或使用上方“配图”上传', 'If Feishu images are not imported, copy them individually or upload them using Images above')}
+            {' · '}{body.length}/3000</span>
         </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="secondary" onClick={chooseVideo} disabled={pastingImages || uploadingVideo}>
+            {uploadingVideo ? t('视频上传中…', 'Uploading video…') : t('插入视频', 'Insert video')}
+          </Button>
+          <input ref={videoInputRef} type="file" accept="video/mp4,video/webm,video/ogg" className="hidden"
+            onChange={(e) => void uploadInlineVideo(e)} />
+          <span className="text-xs text-muted-foreground">
+            {t('选择 MP4、WebM 或 OGG 视频，单个不超过 50MB。飞书占位提示不含原视频文件。', 'Choose an MP4, WebM, or OGG video up to 50 MB. Feishu placeholders do not contain the source video.')}
+          </span>
+        </div>
+        {discussionBodyParts(body).some((part) => part.type === 'image' || part.type === 'video') && (
+          <div className="border-t border-border pt-4">
+            <p className="mb-3 text-sm font-medium">{t('正文预览', 'Content preview')}</p>
+            <DiscussionBody body={body} />
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
-          <Button onClick={submit} disabled={submitting} className="font-mono-label text-xs uppercase tracking-wider">
+          <Button onClick={submit} disabled={submitting || pastingImages || uploadingVideo || body.length > 3000} className="font-mono-label text-xs uppercase tracking-wider">
             {submitting ? t('提交中…', 'Submitting…') : t('发布', 'Publish')}
           </Button>
           <Button variant="ghost" onClick={() => navigate(-1)} className="font-mono-label text-xs uppercase tracking-wider">

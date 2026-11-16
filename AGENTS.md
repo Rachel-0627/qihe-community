@@ -3,7 +3,7 @@
 ## 工作目录与真源
 
 - 固定目录：`A:\qihe_AI`。先检查目录与 Git 状态，不创建平行项目副本。
-- 以 `main` 的实际代码和当前数据库迁移为准。`README.md`、`PROJECT_MAP.md`、`docs/prd.md`、`docs/DESIGN.md`、`MIGRATION.md` 是参考资料；历史文字若与代码冲突，先核实并在汇报中说明。
+- 以当前检出的分支代码和当前数据库迁移为准。`README.md`、`PROJECT_MAP.md`、`docs/prd.md`、`docs/DESIGN.md`、`MIGRATION.md` 是参考资料；历史文字若与代码冲突，先核实并在汇报中说明。
 - 新对话先读本文件、`PROJECT_CONTEXT.md`、`PROJECT_PROGRESS.md`；按任务再查 `PROJECT_MAP.md` 和相关代码，避免全库重复扫描。
 
 ## 合作与改动边界

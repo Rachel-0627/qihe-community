@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useI18n } from '@/contexts/I18nContext';
 import { commentCountOf, reactionCountOf, toggleDiscussionReaction } from '@/lib/discussionApi';
 import { reportCommunityItem } from '@/lib/communityConnectionsApi';
+import { discussionBodyExcerpt } from '@/lib/discussionBody';
 import type { DiscussionPost } from '@/types/types';
 
 function relativeTime(iso: string, en: boolean): string {
@@ -50,7 +51,7 @@ export default function PostCard({ item, userId, liked = false, saved = false, o
         <div className="flex gap-4">
           <div className="min-w-0 flex-1">
             <h3 className="font-display text-lg font-medium text-foreground text-balance">{item.title}</h3>
-            <p className="mt-1.5 line-clamp-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground text-pretty">{item.body}</p>
+            <p className="mt-1.5 line-clamp-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground text-pretty">{discussionBodyExcerpt(item.body)}</p>
           </div>
           {item.cover_url && <img src={item.cover_url} alt="" loading="lazy" className="h-20 w-28 shrink-0 rounded-md border border-border object-cover" />}
         </div>

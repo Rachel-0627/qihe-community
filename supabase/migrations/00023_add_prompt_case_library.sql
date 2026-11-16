@@ -96,8 +96,8 @@ DROP POLICY IF EXISTS "Admins manage prompt case filters" ON public.prompt_case_
 CREATE POLICY "Admins manage prompt case filters"
   ON public.prompt_case_filters FOR ALL
   TO authenticated
-  USING (get_user_role(uid()) = 'admin'::user_role)
-  WITH CHECK (get_user_role(uid()) = 'admin'::user_role);
+  USING (get_user_role(auth.uid()) = 'admin'::user_role)
+  WITH CHECK (get_user_role(auth.uid()) = 'admin'::user_role);
 
 DROP POLICY IF EXISTS "Anyone view active prompt cases" ON public.prompt_cases;
 CREATE POLICY "Anyone view active prompt cases"
@@ -108,5 +108,5 @@ DROP POLICY IF EXISTS "Admins manage prompt cases" ON public.prompt_cases;
 CREATE POLICY "Admins manage prompt cases"
   ON public.prompt_cases FOR ALL
   TO authenticated
-  USING (get_user_role(uid()) = 'admin'::user_role)
-  WITH CHECK (get_user_role(uid()) = 'admin'::user_role);
+  USING (get_user_role(auth.uid()) = 'admin'::user_role)
+  WITH CHECK (get_user_role(auth.uid()) = 'admin'::user_role);

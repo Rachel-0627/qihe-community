@@ -26,7 +26,7 @@ GitHub 仓库和 Supabase 项目由用户朋友持有；用户作为协作者提
 | `src/contexts/` | 登录、站点设置、文案、中英切换、AI 助手状态 |
 | `src/lib/` | Supabase 数据访问、投稿和讨论 API、编辑器与导入工具 |
 | `api/` | Vercel 服务端分享页和 sitemap |
-| `supabase/migrations/` | 当前版本含 52 个迁移文件；00052 的新增社区能力尚未应用到 Supabase |
+| `supabase/migrations/` | 当前版本含 52 个迁移文件；全部迁移已应用到用户独立开发项目 `qihe-ai-dev`。当前本地 `.env.local` 连接朋友持有的线上 Supabase；新功能涉及数据库变更时，需先协调朋友处理线上迁移 |
 | `supabase/schema.sql` | 数据库结构快照，需与迁移和实际线上库分别核对 |
 | `supabase/functions/` | 5 个 Edge Functions |
 | `public/` | 图片、图标、字体等静态资源 |
@@ -37,11 +37,11 @@ GitHub 仓库和 Supabase 项目由用户朋友持有；用户作为协作者提
 - 投稿审核：案例、项目、帖子投稿先写 `content_submissions`；管理员在 `AdminSubmissions.tsx` 审核，通过后经 `review_submission()` 写到正式表。待审、退回、草稿与已发布修改申请有不同流程；帖子表单独立实现。
 - 互动与权益：签到、点赞收藏、活动报名、等级和免费解锁额度通过 Supabase 表及 RPC 实现。具体规则应以对应迁移和页面代码核实。
 - 后台：`AdminPage.tsx` 按工作台、内容中心、社区治理、投稿审核、页面装修、会员权益、智能助手、账号管理分栏。社区治理依赖待部署迁移中的管理 RPC 与 RLS。
-- 交流与连接：`/discuss` 保留历史 URL，现有审核发帖、详情和评论不变；新增交流分类、搜索/排序/客户端分页、独立互动和举报入口。成员匹配用独立连接档案与 Supabase RPC，服务端按公开授权筛选推荐，连接申请、联系方式与通知受数据库权限控制。结构定义在 `00052_community_connections.sql`，生产数据库没有执行本地迁移。
+- 交流与连接：`/discuss` 保留历史 URL，现有审核发帖、详情和评论不变；新增交流分类、搜索/排序/客户端分页、独立互动和举报入口。帖子正文支持图片和视频标记；视频由登录用户选择本地文件上传后内嵌播放，单文件限制 50MB。成员匹配用独立连接档案与 Supabase RPC，服务端按公开授权筛选推荐，连接申请、联系方式与通知受数据库权限控制。结构定义在 `00052_community_connections.sql`，已在 `qihe-ai-dev` 独立开发库执行，生产数据库未执行。
 
 ## 配置与验证入口
 
 - 本地包管理：`pnpm-lock.yaml`；Node 要求 `>=20.11`。本地安装依赖不更改锁文件。
-- 前端必需：`.env` 中 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY`；`.env.example` 另列 `VITE_APP_ID`，当前代码搜索未发现使用。`VITE_SENTRY_DSN` 在 `src/main.tsx` 可选使用。
+- 前端必需：`.env.local`（或 `.env`）中的 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY`；当前本地文件指向朋友持有的线上项目，本地上传和发布会写入该项目；`.env.example` 另列 `VITE_APP_ID`，当前代码搜索未发现使用。`VITE_SENTRY_DSN` 在 `src/main.tsx` 可选使用。
 - Vercel API：`SUPABASE_URL`、`SUPABASE_ANON_KEY`。Edge Functions 读取 Supabase 服务端变量；AI 助手/翻译还读取 `INTEGRATIONS_API_KEY`，历史文档指出其上游网关迁移问题，需实测现状。
 - 命令：`pnpm dev`、`npm run build`、`pnpm exec vitest run`、`pnpm exec tsgo -p tsconfig.check.json`、`pnpm exec biome lint .`。构建通过不代表后端已连接。

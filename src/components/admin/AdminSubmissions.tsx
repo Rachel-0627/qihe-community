@@ -2,6 +2,7 @@ import { Check, ChevronDown, ChevronUp, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { SUBMIT_KIND_META } from '@/components/common/SubmitTabs';
+import DiscussionBody from '@/components/discuss/DiscussionBody';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -191,9 +192,7 @@ export default function AdminSubmissions() {
                         ))}
                       </div>
                     )}
-                    {/* 帖子正文是纯文本，按文本渲染。
-                        当 HTML 渲染的话用户能往后台注入标签 */}
-                    <p className="whitespace-pre-line text-sm">{s.payload?.body || '（无正文）'}</p>
+                    <DiscussionBody body={s.payload?.body || '（无正文）'} />
                   </>
                 ) : (
                   /* 案例/项目的正文是用户提交的 HTML，仅管理员在后台预览时渲染 */

@@ -135,14 +135,14 @@ ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users view own checkins" ON public.user_checkins;
 CREATE POLICY "Users view own checkins"
   ON public.user_checkins FOR SELECT
-  USING (uid() = user_id);
+  USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Admins manage checkins" ON public.user_checkins;
 CREATE POLICY "Admins manage checkins"
   ON public.user_checkins FOR ALL
   TO authenticated
-  USING (get_user_role(uid()) = 'admin'::user_role)
-  WITH CHECK (get_user_role(uid()) = 'admin'::user_role);
+  USING (get_user_role(auth.uid()) = 'admin'::user_role)
+  WITH CHECK (get_user_role(auth.uid()) = 'admin'::user_role);
 
 -- project_filter_options
 DROP POLICY IF EXISTS "Anyone view project filter options" ON public.project_filter_options;
@@ -154,8 +154,8 @@ DROP POLICY IF EXISTS "Admins manage project filter options" ON public.project_f
 CREATE POLICY "Admins manage project filter options"
   ON public.project_filter_options FOR ALL
   TO authenticated
-  USING (get_user_role(uid()) = 'admin'::user_role)
-  WITH CHECK (get_user_role(uid()) = 'admin'::user_role);
+  USING (get_user_role(auth.uid()) = 'admin'::user_role)
+  WITH CHECK (get_user_role(auth.uid()) = 'admin'::user_role);
 
 -- event_filter_options
 DROP POLICY IF EXISTS "Anyone view event filter options" ON public.event_filter_options;
@@ -167,8 +167,8 @@ DROP POLICY IF EXISTS "Admins manage event filter options" ON public.event_filte
 CREATE POLICY "Admins manage event filter options"
   ON public.event_filter_options FOR ALL
   TO authenticated
-  USING (get_user_role(uid()) = 'admin'::user_role)
-  WITH CHECK (get_user_role(uid()) = 'admin'::user_role);
+  USING (get_user_role(auth.uid()) = 'admin'::user_role)
+  WITH CHECK (get_user_role(auth.uid()) = 'admin'::user_role);
 
 -- site_settings
 DROP POLICY IF EXISTS "Anyone view site settings" ON public.site_settings;
@@ -180,5 +180,5 @@ DROP POLICY IF EXISTS "Admins manage site settings" ON public.site_settings;
 CREATE POLICY "Admins manage site settings"
   ON public.site_settings FOR ALL
   TO authenticated
-  USING (get_user_role(uid()) = 'admin'::user_role)
-  WITH CHECK (get_user_role(uid()) = 'admin'::user_role);
+  USING (get_user_role(auth.uid()) = 'admin'::user_role)
+  WITH CHECK (get_user_role(auth.uid()) = 'admin'::user_role);
