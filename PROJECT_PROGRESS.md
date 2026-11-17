@@ -79,9 +79,10 @@
 - 飞书文档复制出的“暂时无法在飞书文档外展示此内容”仅是占位文字，不能还原视频；需先取得原视频文件再上传。没有新增数据库迁移，复用 Supabase `media` 桶；本地配置连接朋友的线上 Supabase，未上传真实测试视频。
 - 朋友配合项：若线上尚未执行 `00046_allow_user_media_upload.sql`，普通用户视频上传会被 Storage 权限拦截；需朋友确认迁移状态，失败时再协调处理。
 - 验证：完整 Vitest 20 个文件、56 项通过（`shareRuntime` 用例需 15 秒超时）；TypeScript 检查、Biome 和生产构建通过。构建保留既有 Tailwind、GSAP 动态导入与大包体积提示。本轮代码已提交并推送到 GitHub 的 `feature/community-connections` 分支（`8a918d1`）；未合并 `main` 或部署网站。
+
 ## 2026-11-17 Supabase 配置复核
 
 - 使用本地 .env.local 配置执行只读检查：Auth 健康接口 HTTP 200；connection_profiles、connection_requests 空结果查询 HTTP 200；connection_candidates RPC 的 OPTIONS 预检 HTTP 200。
 - media 公开对象路由对一个不存在的测试路径返回 “Object not found”，说明请求到达对象读取路由；该结果不能证明登录用户的上传写入策略已生效。没有上传测试文件、发布帖子或写入数据库。
 - 本地 Vite 预览根页面返回 HTTP 200；/discuss 页面可打开。讨论视频的真实上传权限仍需通过用户在本地选择一个视频完成端到端验证；若遇到 Storage 权限错误，再请朋友核对 00046_allow_user_media_upload.sql。
-- 当前分支 feature/community-connections 与 GitHub 同步，HEAD 为 60b21e0；功能代码 8a918d1 已在该分支。本轮只做只读配置复核并补充进度记录，未部署线上。
+- 功能代码 8a918d1 保持在 GitHub 的 feature/community-connections 分支；本轮仅补充文档，没有合并主分支或部署线上。
